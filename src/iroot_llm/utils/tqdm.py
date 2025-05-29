@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import logging
+
+from tqdm import tqdm
+
+# from unittest import mock
+
+
+__TQDM_DEFAULTS = dict(disable=None, dynamic_ncols=True, leave=False, mininterval=1)
+tqdm.__init__.__default_kwargs__ = __TQDM_DEFAULTS
+# patch("tqdm.tqdm.__init__", new=partial(tqdm, **__TQDM_DEFAULTS)).start()
+
+
+class TqdmStream(logging.StreamHandler):
+    def __init__(self):
+        super().__init__()
+
+    def emit(self, record):
+        msg = self.format(record)
+        tqdm.write(msg)
