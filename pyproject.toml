@@ -18,7 +18,7 @@ environments = [
 
 [tool.uv.workspace]
 members = ["packages/*"]
-exclude = ["packages/xeno-serve"]
+exclude = ["packages/xeno-serve", "mineru-api"]
 
 [tool.uv.sources]
 torch = [
