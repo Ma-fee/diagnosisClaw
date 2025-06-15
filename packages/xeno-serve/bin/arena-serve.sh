@@ -10,6 +10,7 @@ DEFAULT_GPUS=1
 DEFAULT_PPU_IMAGE="acs-registry-vpc.cn-shanghai.cr.aliyuncs.com/egslingjun/inference-xpu-pytorch:25.05-v1.5.1-vllm0.8.5-torch2.6-cu126-20250604"
 DEFAULT_GPU_IMAGE="irootechimages-registry-vpc.cn-shanghai.cr.aliyuncs.com/llm/vllm-openai:v0.9.0.1"
 DEFAULT_GPU_MODEL="PPU810E"
+DEFAULT_SERVE_MODE="kserve"
 
 # 初始化全局变量
 cpu=$DEFAULT_CPU
@@ -17,6 +18,7 @@ memory=$DEFAULT_MEMORY
 # gpus=$DEFAULT_GPUS
 # image=$DEFAULT_IMAGE
 gpu_model=$DEFAULT_GPU_MODEL
+serve_mode=$DEFAULT_SERVE_MODE
 plain_mode=0
 config_file=""
 other_args=()
@@ -39,6 +41,7 @@ show_help() {
   -g, --gpus GPUS             指定GPU数量 
   -i, --image IMAGE           指定Docker镜像 (默认: $DEFAULT_IMAGE)
   -gm,--gpu-model MODEL       指定GPU型号 (默认: $DEFAULT_GPU_MODEL)
+  -s, --serve-mode SERVE_MODE 指定部署任务名称 (默认: $DEFAULT_SERVE_MODE)
   -n, --name NAME             指定任务名称 (必选)
       --config FILE           指定配置文件路径, 文件将挂载到容器的/app/config.yaml 并通过 --config 参数传递给vLLM服务
       --*                     其他arena参数直接传递, 参考 arena serve kserve --help
@@ -78,6 +81,10 @@ parse_args() {
                 ;;
             -gm | --gpu-model )
                 gpu_model=$2
+                shift 2
+                ;;
+            -s | --serve-mode )
+                serve_mode=$2
                 shift 2
                 ;;
             -p | --plain )
@@ -138,20 +145,24 @@ validate_required_args() {
 
 # 构建arena命令
 build_arena_command() {
-    local arena_cmd=("arena serve kserve")
+    local arena_cmd=("arena serve $serve_mode")
 
     # 固定参数
     arena_cmd+=("--loglevel debug")
-    arena_cmd+=("--port=8000")  # vllm 默认端口
     arena_cmd+=("--name=$name")  # 使用用户提供的任务名
     arena_cmd+=("--cpu=$cpu")
     arena_cmd+=("--memory=$memory")
-    arena_cmd+=("--enable-prometheus=true")
+    # arena_cmd+=("--enable-prometheus=true")
     # arena_cmd+=("--scale-metric=DCGM_CUSTOM_PROCESS_SM_UTIL")
     # arena_cmd+=("--scale-target=60")
     # arena_cmd+=("--min-replicas=1")
     # arena_cmd+=("--max-replicas=1")
 
+    if [[ "$serve_mode" == "kserve" ]]; then
+        arena_cmd+=("--port=8000")  # vllm 默认端口
+    # elif [[ "$serve_mode" == "triton" ]]; then
+        # do nothing
+    fi
     # GPU类型条件判断
     if [[ "$gpu_model" == "PPU810E" ]]; then
         # PPU810E专用参数
@@ -199,15 +210,18 @@ build_arena_command() {
     
     vllm_args+=("${vllm_extra_args[@]}")
 
-    # 使用printf %q生成安全的命令字符串
-    local vllm_cmd
-    printf -v vllm_cmd '%q ' "${vllm_args[@]}"
-    vllm_cmd="\"$vllm_cmd\""
+    # 仅当vllm_args非空时进行处理
+    if [ ${#vllm_args[@]} -ne 0 ]; then
+        # 使用printf %q生成安全的命令字符串
+        local vllm_cmd
+        printf -v vllm_cmd '%q ' "${vllm_args[@]}"
+        vllm_cmd="\"$vllm_cmd\""
 
-    # 添加到arena命令
-    arena_cmd+=("$vllm_cmd")
+        # 添加到arena命令
+        arena_cmd+=("$vllm_cmd")
 
-    # 输出最终命令（供eval执行）
+        # 输出最终命令（供eval执行）
+    fi
     echo "${arena_cmd[@]}"
 }
 
