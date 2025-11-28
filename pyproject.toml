@@ -3,8 +3,8 @@ name = "iroot-llm"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10,<=3.12"
-dependencies = ["torch>=2.4"]
+requires-python = ">=3.10,<=3.13"
+dependencies = []
 
 [build-system]
 requires = ["hatchling"]
@@ -17,8 +17,8 @@ environments = [
 ]
 
 [tool.uv.workspace]
-members = ["packages/*"]
-exclude = ["packages/xeno-serve", "mineru-api"]
+members = []
+exclude = []
 
 [tool.uv.sources]
 torch = [
@@ -48,3 +48,9 @@ name = "torch-cu124"
 url = "http://mirrors.cloud.aliyuncs.com/pytorch-wheels/cu124"
 explicit = true
 format = "flat"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.0",
+    "ruff>=0.14.6",
+]
