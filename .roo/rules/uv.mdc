@@ -1,0 +1,78 @@
+# Python Package Management with uv
+
+Use **uv** exclusively for Python package management in this project.
+
+## Package Management Commands
+
+- All Python dependencies **must be installed, synchronized, and locked** using `uv`
+- Never use `pip`, `pip-tools`, `poetry`, or `conda` directly for dependency management
+
+Use these commands:
+
+- Install dependencies: `uv add <package>`
+- Remove dependencies: `uv remove <package>`
+- Sync dependencies: `uv sync`
+- Update lockfile: `uv lock --check` (to verify lockfile matches `pyproject.toml`)
+- Rebuild lockfile: `uv lock --rebuild`
+
+## Workspace Usage Guidelines
+
+The project uses a **uv workspace** with members located under the `packages/` directory.
+
+- Workspace members are defined in `pyproject.toml` under the `[project]` and `[tool.uv.workspace]` sections.
+- Each member package must have its own `pyproject.toml` with `name = "..."` and `dependencies = [...]`.
+- The root `pyproject.toml` should declare `workspace = true` and define `members = ["packages/*"]`.
+
+### Working with Workspace Members
+
+- **Always use `uv run --project <project_name>`** for running scripts or tools within a workspace member.
+- Avoid `cd packages/<project_name> && python ...` — this bypasses dependency isolation and `uv`'s project context.
+- Use `uv add <package> --project <project_name>` to install dependencies in a specific workspace member.
+- Use `uv sync --project <project_name>` to install dependencies for a workspace member.
+- Use `uv run --project <project_name> <command>` to execute scripts, tests, or tools within the scope of a workspace member.
+
+#### Example:
+
+```bash
+# Install a dependency in a workspace member
+uv add requests --project my-lib
+
+# Sync dependencies for a workspace member
+uv sync --project my-lib
+
+# Run a script inside a workspace member
+uv run --project my-lib main.py
+
+# Run pytest in a workspace member
+uv run --project my-lib pytest tests/
+
+# Launch Python REPL in a workspace member
+uv run --project my-lib python
+```
+
+## Running Python Code
+
+- Run a Python script with `uv run <script-name>.py`
+- Run Python tools like `pytest`, `ruff`, `black` with `uv run pytest`, `uv run ruff`, etc.
+- Launch a Python REPL with `uv run python`
+- Run a Python script or tool within a workspace member with `uv run --project <project_name> <command>`
+
+> ✅ **Best Practice**: Always prefer `uv run --project <project_name>` over `cd packages/<project_name> && python ...`
+
+## Managing Scripts with PEP 723 Inline Metadata
+
+- Run a Python script with inline metadata (dependencies defined at the top of the file) with: `uv run script.py`
+- You can manually edit the `dependencies = [...]` section at the top of the file, or
+- Use `uv` CLI to manage dependencies:
+    - `uv add package-name --script script.py`
+    - `uv remove package-name --script script.py`
+- Inline scripts **must not** rely on dependencies from the workspace root or other members — they should be self-contained in their metadata.
+
+## Verification and Best Practices
+
+- Always run `uv lock --check` before committing to ensure the lockfile is up-to-date.
+- Do not commit `uv.lock` files outside of the root `pyproject.toml` (they are auto-generated per project/workspace member).
+- Ensure `pyproject.toml` files in workspace members include `tool.uv` configuration if needed (e.g., for `extras`)
+- Use `uv run --project <project_name> -- <args>` to pass arguments to scripts (note: use `--` to separate `uv` args from script args)
+
+> 🔒 **Rule**: Never use `python` with `cd` directly in the CLI when working with workspace members. Always use `uv run --project <project_name>` for correctness and dependency isolation.
