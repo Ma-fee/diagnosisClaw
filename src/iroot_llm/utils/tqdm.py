@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import logging
 
 from tqdm import tqdm as _tqdm
@@ -26,4 +23,4 @@ class TqdmStream(logging.StreamHandler):
         tqdm.write(msg)
 
 
-__all__ = ["tqdm", "trange", "TqdmStream"]
+__all__ = ["TqdmStream", "tqdm", "trange"]

@@ -1,10 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import logging
 import os
 import warnings
 from contextlib import suppress
+from pathlib import Path
 
 from .tqdm import TqdmStream
 
@@ -16,7 +14,7 @@ def formatwarning(msg, category, filename, lineno, line=None):
 
 def setup_logger(capture_warning: bool = True, **kwargs):
     try:
-        # new rich handler
+        # ruff: noqa: PLC0415 - lazy import for optional dependency
         from rich.logging import RichHandler
 
         fmt = "[[bold blue]%(module)s:%(funcName)s@%(lineno)d[/bold blue]] %(message)s"
@@ -28,19 +26,18 @@ def setup_logger(capture_warning: bool = True, **kwargs):
         fmt = "[%(levelname)s][%(asctime)s][%(module)s:%(funcName)s@%(lineno)d] %(message)s"
         stream = TqdmStream()
         with suppress(ImportError):
+            # ruff: noqa: PLC0415 - lazy import for optional dependency
             from colorlog import ColoredFormatter
 
             stream.setFormatter(
                 ColoredFormatter(
                     """[%(log_color)s%(levelname)s%(reset)s][%(blue)s%(asctime)s%(reset)s]"""
-                    """[%(red)s%(module)s:%(funcName)s@%(lineno)d%(reset)s] %(message)s"""
-                )
+                    """[%(red)s%(module)s:%(funcName)s@%(lineno)d%(reset)s] %(message)s""",
+                ),
             )
     level = os.environ.get("LOGLEVEL", "INFO").upper()
     try:
-        logging.basicConfig(
-            format=fmt, level=level, handlers=[stream], force=True, datefmt="[%X]"
-        )
+        logging.basicConfig(format=fmt, level=level, handlers=[stream], force=True, datefmt="[%X]")
     except ValueError:
         logging.basicConfig(format=fmt, level=level, handlers=[stream], datefmt="%X")
 
@@ -68,7 +65,7 @@ def showwarning(message, category, filename, lineno, file=None, line=None):
     #     if module_path and os.path.samefile(module_path, filename):
     #         break
     # else:
-    module_name = os.path.splitext(os.path.split(filename)[1])[0]
+    module_name = Path(filename).stem
     logger = logging.getLogger(module_name)
     # TODO: handle when not logger.hasHandlers()
     logger.warning(message, stacklevel=2)

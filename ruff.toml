@@ -3,7 +3,7 @@ target-version = 'py312'
 exclude = ['build', ]
 
 [format]
-quote-style = "single"
+quote-style = "double"
 
 [lint]
 ignore = [

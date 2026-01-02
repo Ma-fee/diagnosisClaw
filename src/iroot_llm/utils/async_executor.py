@@ -1,10 +1,9 @@
 import asyncio
 import os
-from typing import Optional
 
 
 class AsyncExecutor:
-    def __init__(self, max_concurrent: Optional[int] = None):
+    def __init__(self, max_concurrent: int | None = None):
         if max_concurrent is not None:
             if not isinstance(max_concurrent, int):
                 raise TypeError("max_concurrent must type int")
@@ -49,8 +48,6 @@ class AsyncExecutor:
 
         if not self._completed:
             self._fill()
-            self._completed, self._pending = await asyncio.wait(
-                self._pending, return_when=asyncio.FIRST_COMPLETED
-            )
+            self._completed, self._pending = await asyncio.wait(self._pending, return_when=asyncio.FIRST_COMPLETED)
 
         return self._completed.pop()
