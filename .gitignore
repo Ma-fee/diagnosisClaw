@@ -26,6 +26,18 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Python package installers
+*.whl
+*.whl.*
+
+# System package installers
+*.deb
+*.rpm
+*.dmg
+*.pkg
+*.msi
+*.exe
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -284,8 +296,65 @@ fabric.properties
 *.docs
 *.png
 *.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.svg
+
+# Log files (all types)
+*.log
+*.logs
+*.log.*
+**/logs/
+**/log/
+
+# Data files (use LFS for tracking if needed)
+*.csv
+*.xlsx
+*.xls
+*.parquet
+*.pickle
+*.pkl
+*.pkl.*
+*.feather
+*.h5
+*.hdf5
+*.npz
+*.npy
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tgz
+*.tbz2
+*.zip
+*.rar
+*.7z
+*.gz
+*.bz2
+*.xz
+
+# JSON files (use LFS for tracking if needed)
 *.json
-*.yaml
+*.jsonl
+*.jsonlines
+*.ndjson
+
+# Archive and compressed files
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tgz
+*.tbz2
+*.gz
+*.bz2
+*.xz
+*.lzma
+*.lz4
 
 **/output
 **/outputs
