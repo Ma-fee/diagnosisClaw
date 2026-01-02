@@ -1,0 +1,109 @@
+---
+description: directory structure to follow
+globs:
+alwaysApply: false
+---
+---
+description: the top-level directory structure for the project
+globs:
+alwaysApply: false
+---
+# Directory Structure
+
+## Top-Level Directory Structure
+
+```mermaid
+flowchart TD
+    Root[Project Root: iroot-llm]
+    Root --> Docs[docs/]
+    Root --> Tasks[tasks/]
+    Root --> RooCode[.roo/rules/]
+    Root --> CLINE[.clinerules]
+    Root --> SourceCode[src/]
+    Root --> Test[test/]
+    Root --> Config[config/]
+    Root --> Data[data/]
+    Root --> Output[output/]
+    Root --> WorkspaceMembers[packages/]
+    Root --> Other[Other Directories]
+
+    style Root fill:#c6f6d5
+    style WorkspaceMembers fill:#bee3f8
+```
+
+## packages/ Directory Details
+
+### uv Workspace Structure
+
+This project uses a **uv workspace** to manage multiple Python packages. The `packages/` directory contains two types of packages:
+
+{#quick-reference-table}
+
+| Package Name | Type | Description | uv Command Prefix |
+|-------------|------|-------------|-------------------|
+| `xeno-parser` | Workspace Member | PDF parsing and OCR tool for document processing | `--package xeno-parser` |
+| `xeno-serve` | Non-member | Service deployment related | `--project packages/xeno-serve` |
+| `xeno-nmt-core` | Non-member | Neural machine translation core | `--project packages/xeno-nmt-core` |
+| `mineru-api` | Non-member | Mineru API | `--project mineru-api` |
+
+### Directory Relationship Diagram
+
+```mermaid
+flowchart TD
+    Root[iroot-llm<br/>Workspace Root]
+    Root --> XenoParser[xeno-parser<br/>Workspace Member ✓]
+    Root --> XenoServe[xeno-serve<br/>Non-member ✗]
+    Root --> XenoNmtCore[xeno-nmt-core<br/>Non-member ✗]
+    Root --> MineruApi[mineru-api<br/>Non-member ✗]
+
+    XenoParser --> ParserSrc[src/]
+    XenoParser --> ParserTests[tests/]
+    XenoParser --> ParserDocs[docs/]
+
+    XenoServe --> ServeBin[bin/]
+    XenoServe --> ServeDockerfiles[dockerfiles/]
+    XenoServe --> ServeK8s[k8s/]
+
+    XenoNmtCore --> NmtData[data/]
+
+    style Root fill:#c6f6d5
+    style XenoParser fill:#ffd6a5
+    style XenoServe fill:#e2e8f0
+    style XenoNmtCore fill:#e2e8f0
+    style MineruApi fill:#e2e8f0
+```
+
+### Workspace Configuration
+
+Workspace members are defined in the root [`pyproject.toml`](pyproject.toml:19-21):
+
+```toml
+[tool.uv.workspace]
+members = ["packages/xeno-parser"]
+exclude = ["packages/xeno-serve", "mineru-api"]
+```
+
+### Key Differences
+
+| Type | Definition | Dependency References | Recommended Command |
+|------|------------|------------------------|-------------------|
+| **Workspace Member** | Listed in `members` | Can reference workspace dependencies | `uv run --package xeno-parser <command>` |
+| **Non-member Package** | Listed in `exclude` or not declared | Cannot reference workspace dependencies | `uv run --project packages/xeno-serve <command>` |
+| **Root Project** | Default workspace root | Can be referenced by members | `uv run <command>` |
+
+**Important Notes:**
+
+- **Workspace Member** (e.g., `xeno-parser`):
+  - Listed in the `members` array of root [`pyproject.toml`](pyproject.toml:19-21)
+  - Can reference workspace dependencies (e.g., `iroot-llm = { workspace = true }`)
+  - Use the `--package` parameter with the package name
+  - Example: `uv run --package xeno-parser pytest tests/`
+
+- **Non-member Package** (e.g., `xeno-serve`, `xeno-nmt-core`, `mineru-api`):
+  - Listed in `exclude` or not declared in [`pyproject.toml`](pyproject.toml:19-21)
+  - Cannot reference workspace dependencies
+  - Use the `--project` parameter with the package path
+  - Have their own independent `uv.lock` files
+  - Example: `uv run --project packages/xeno-serve python serve.py`
+
+**Important Tip:** Non-member packages can still be operated on using `--project <path>`, even if they're in the `packages/` directory. This is useful when developing independent tools or services within the repository.

@@ -2,64 +2,257 @@
 
 Use **uv** exclusively for Python package management in this project.
 
-## Package Management Commands
+## 1. Pre-Task Preparation
 
-- All Python dependencies **must be installed, synchronized, and locked** using `uv`
-- Never use `pip`, `pip-tools`, `poetry`, or `conda` directly for dependency management
+> **Note**: For detailed project structure and workspace configuration, see [`.roo/rules/directory-structure.mdc`](.roo/rules/directory-structure.mdc).
 
-Use these commands:
+### Step 1: Determine Which Package to Operate On
 
-- Install dependencies: `uv add <package>`
-- Remove dependencies: `uv remove <package>`
-- Sync dependencies: `uv sync`
-- Update lockfile: `uv lock --check` (to verify lockfile matches `pyproject.toml`)
-- Rebuild lockfile: `uv lock --rebuild`
+Before starting any task, ask yourself:
+- Which package does this task belong to?
+  - `xeno-parser` (document parsing related)
+  - `xeno-serve` (service deployment related)
+  - `xeno-nmt-core` (neural machine translation related)
+  - `iroot-llm` (root project related)
+  - other package
 
-## Workspace Usage Guidelines
+### Step 2: Determine the Package Type
 
-The project uses a **uv workspace** with members located under the `packages/` directory.
-
-- Workspace members are defined in `pyproject.toml` under the `[project]` and `[tool.uv.workspace]` sections.
-- Each member package must have its own `pyproject.toml` with `name = "..."` and `dependencies = [...]`.
-- The root `pyproject.toml` should declare `workspace = true` and define `members = ["packages/*"]`.
-
-### Working with Workspace Members
-
-- **Always use `uv run --project <project_name>`** for running scripts or tools within a workspace member.
-- Avoid `cd packages/<project_name> && python ...` — this bypasses dependency isolation and `uv`'s project context.
-- Use `uv add <package> --project <project_name>` to install dependencies in a specific workspace member.
-- Use `uv sync --project <project_name>` to install dependencies for a workspace member.
-- Use `uv run --project <project_name> <command>` to execute scripts, tests, or tools within the scope of a workspace member.
-
-#### Example:
+Check the root `pyproject.toml`:
 
 ```bash
-# Install a dependency in a workspace member
-uv add requests --project my-lib
-
-# Sync dependencies for a workspace member
-uv sync --project my-lib
-
-# Run a script inside a workspace member
-uv run --project my-lib main.py
-
-# Run pytest in a workspace member
-uv run --project my-lib pytest tests/
-
-# Launch Python REPL in a workspace member
-uv run --project my-lib python
+# Quick check
+cat pyproject.toml | grep -A 3 "\[tool.uv.workspace\]"
 ```
 
-## Running Python Code
+**Interpretation:**
+- If listed in `members` → workspace member
+- If listed in `exclude` → non-member package
+- If not listed in either → non-member package
+
+## 2. Command Usage Guidelines
+
+### 3.1 Workspace Member Commands
+
+For: `xeno-parser`
+
+**Syntax:**
+```bash
+uv run --package <package-name> <command>
+```
+
+**Common Commands:**
+```bash
+# Run a script
+uv run --package xeno-parser python main.py
+
+# Run tests
+uv run --package xeno-parser pytest tests/
+
+# Launch REPL
+uv run --package xeno-parser python
+
+# Add dependency
+uv add <dependency> --package xeno-parser
+
+# Sync dependencies
+uv sync --package xeno-parser
+```
+
+**Real Examples:**
+```bash
+# Test xeno-parser backends
+cd /Users/yuchen.liu/src/yilab/iroot-llm  # Ensure you're in the workspace root
+uv run --package xeno-parser pytest tests/test_backends.py
+
+# Run demo
+uv run --package xeno-parser python demo/run_demo.py
+
+# Add new dependency to xeno-parser
+uv add pillow --package xeno-parser
+```
+
+### 3.2 Non-member Package Commands
+
+For: `xeno-serve`, `xeno-nmt-core`, `mineru-api`
+
+**Syntax:**
+```bash
+uv run --project <path/to/package> <command>
+```
+
+**Common Commands:**
+```bash
+# Run a script
+uv run --project packages/xeno-serve python main.py
+
+# Add dependency
+uv add <dependency> --project packages/xeno-serve
+
+# Sync dependencies
+uv sync --project packages/xeno-serve
+```
+
+**Real Examples:**
+```bash
+# Start service in xeno-serve
+cd /Users/yuchen.liu/src/yilab/iroot-llm
+uv run --project packages/xeno-serve python src/xeno_serve/scripts/dolphin_api_server.py
+
+# Add vllm dependency to xeno-serve
+uv add vllm --project packages/xeno-serve
+
+# Run script in xeno-nmt-core
+uv run --project packages/xeno-nmt-core python src/main.py
+```
+
+### 3.3 Root Directory Commands
+
+For: `iroot-llm` root project
+
+**Syntax:**
+```bash
+uv run <command>
+```
+
+**Command Examples:**
+```bash
+# Run tests in root directory
+uv run pytest tests/
+
+# Add dependency to root project
+uv add rich
+
+# Sync entire workspace
+uv sync
+```
+
+### 3.4 Command Comparison Summary
+
+| Operation | Workspace Member | Non-member Package | Root Project |
+|-----------|-----------------|-------------------|--------------|
+| Run command | `uv run --package xeno-parser pytest` | `uv run --project packages/xeno-serve python serve.py` | `uv run pytest` |
+| Add dependency | `uv add pkg --package xeno-parser` | `uv add pkg --project packages/xeno-serve` | `uv add pkg` |
+| Sync dependencies | `uv sync --package xeno-parser` | `uv sync --project packages/xeno-serve` | `uv sync` |
+| Launch REPL | `uv run --package xeno-parser python` | `uv run --project packages/xeno-serve python` | `uv run python` |
+
+### 3.5 Important Note: Directory Paths
+
+- **Workspace member**: Use **package name**, not path
+  - ✅ `--package xeno-parser`
+  - ❌ `--package packages/xeno-parser`
+
+- **Non-member package**: Use **relative path** or **absolute path**
+  - ✅ `--project packages/xeno-serve`
+  - ✅ `--project ./packages/xeno-serve`
+  - ❌ `--project xeno-serve` (searches root directory, may not find it)
+
+## 4. Command Selection Decision Flow
+
+```mermaid
+flowchart TD
+    Start[Start Task] --> DeterminePackage[Determine Which Package to Operate On]
+
+    DeterminePackage --> CheckMember{Is it a workspace member?}
+
+    CheckMember -->|Yes| UsePackage[Use --package command]
+    CheckMember -->|No| UseProject[Use --project command]
+    CheckMember -->|Root Project| UseRoot[Use no-parameter command]
+
+    UsePackage --> ConstructPackage[uv run --package package-name command]
+    UseProject --> ConstructProject[uv run --project path command]
+    UseRoot --> ConstructRoot[uv run command]
+
+    ConstructPackage --> ExamplesPackage[Example: uv run --package xeno-parser pytest]
+    ConstructProject --> ExamplesProject[Example: uv run --project packages/xeno-serve python serve.py]
+    ConstructRoot --> ExamplesRoot[Example: uv run pytest]
+
+    ExamplesPackage --> Execute[Execute Command]
+    ExamplesProject --> Execute
+    ExamplesRoot --> Execute
+
+    Execute --> End[Task Complete]
+
+    style UsePackage fill:#c6f6d5
+    style UseProject fill:#bee3f8
+    style UseRoot fill:#feebc8
+```
+
+## 5. Dependency Management
+
+### Basic Rules
+
+- **All Python dependencies must be installed, synchronized, and locked using `uv`**
+- **Never use `pip`, `pip-tools`, `poetry`, or `conda`** directly for dependency management
+
+### Workspace Dependency References
+
+Workspace members can reference other members or the root project in the workspace:
+
+```toml
+# packages/xeno-parser/pyproject.toml
+[tool.uv.sources]
+iroot-llm = { workspace = true }
+```
+
+This allows `xeno-parser` to import modules from `iroot-llm` without separate installation.
+
+### Installing Dependencies
+
+**Add to workspace member:**
+```bash
+uv add requests --package xeno-parser
+```
+
+**Add to non-member package:**
+```bash
+uv add requests --project packages/xeno-serve
+```
+
+**Add to root project:**
+```bash
+uv add requests
+```
+
+### Removing Dependencies
+
+```bash
+# Remove from member
+uv remove requests --package xeno-parser
+
+# Remove from non-member package
+uv remove requests --project packages/xeno-serve
+
+# Remove from root project
+uv remove requests
+```
+
+### Synchronizing Dependencies
+
+```bash
+# Sync entire workspace
+uv sync
+
+# Sync specific member
+uv sync --package xeno-parser
+
+# Sync specific non-member package
+uv sync --project packages/xeno-serve
+```
+
+## 6. Running Python Code
+
+### Running Scripts
 
 - Run a Python script with `uv run <script-name>.py`
 - Run Python tools like `pytest`, `ruff`, `black` with `uv run pytest`, `uv run ruff`, etc.
 - Launch a Python REPL with `uv run python`
-- Run a Python script or tool within a workspace member with `uv run --project <project_name> <command>`
+- Run a Python script or tool within a workspace member with `uv run --package <package_name> <command>`
+- Run a Python script or tool within a non-member package with `uv run --project <path> <command>`
 
-> ✅ **Best Practice**: Always prefer `uv run --project <project_name>` over `cd packages/<project_name> && python ...`
+> ✅ **Best Practice**: Always prefer `uv run --package <package_name>` or `uv run --project <path>` over `cd packages/<project_name> && python ...`
 
-## Managing Scripts with PEP 723 Inline Metadata
+## 7. Managing Scripts with PEP 723 Inline Metadata
 
 - Run a Python script with inline metadata (dependencies defined at the top of the file) with: `uv run script.py`
 - You can manually edit the `dependencies = [...]` section at the top of the file, or
@@ -68,10 +261,70 @@ uv run --project my-lib python
     - `uv remove package-name --script script.py`
 - Inline scripts **must not** rely on dependencies from the workspace root or other members — they should be self-contained in their metadata.
 
-## Verification and Best Practices
+## 8. Best Practices and Common Errors
 
-- Always run `uv lock --check` before committing to ensure the lockfile is up-to-date.
-- Do not commit `uv.lock` files outside of the root `pyproject.toml` (they are auto-generated per project/workspace member).
+### Common Mistakes
+
+#### ❌ Mistake 1: Using cd to change directory then using python directly
+
+```bash
+# Wrong approach
+cd packages/xeno-parser
+python main.py  # ❌ Bypasses uv's dependency isolation
+```
+
+**Correct approach:**
+```bash
+# Correct approach
+uv run --package xeno-parser python main.py
+```
+
+#### ❌ Mistake 2: Confusing --package and --project
+
+```bash
+# Wrong approach: using --package for non-member
+uv run --package xeno-serve python serve.py  # ❌ xeno-serve is not a member
+```
+
+**Correct approach:**
+```bash
+# Correct approach
+uv run --project packages/xeno-serve python serve.py
+```
+
+#### ❌ Mistake 3: Using --project for workspace member (not recommended)
+
+Although it works, it's not recommended:
+```bash
+# Not recommended
+uv run --project packages/xeno-parser python main.py
+```
+
+**Recommended approach:**
+```bash
+# Recommended
+uv run --package xeno-parser python main.py
+```
+
+### Lockfile Management
+
+- **Rule 1**: Always run `uv lock --check` before committing to ensure the lockfile is up-to-date
+- **Rule 2**: Do not commit `uv.lock` files for workspace members (auto-generated)
+- **Rule 3**: Only commit root directory `uv.lock` (if it exists)
+- **Rule 4**: Non-member packages may have their own `uv.lock` (e.g., `packages/xeno-serve/uv.lock`)
+
+```bash
+# Check lockfile
+uv lock --check
+
+# Rebuild lockfile (if needed)
+uv lock --rebuild
+```
+
+### Verification and Best Practices
+
+- Always run `uv lock --check` before committing to ensure the lockfile is up-to-date
+- Do not commit `uv.lock` files outside of the root `pyproject.toml` (they are auto-generated per project/workspace member)
 - Ensure `pyproject.toml` files in workspace members include `tool.uv` configuration if needed (e.g., for `extras`)
 - Use `uv run --project <project_name> -- <args>` to pass arguments to scripts (note: use `--` to separate `uv` args from script args)
 
