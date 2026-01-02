@@ -359,3 +359,12 @@ fabric.properties
 **/output
 **/outputs
 **/build
+
+# Documentation directories (anywhere in the tree)
+**/docs/
+
+# Plan directories (anywhere in the tree)
+**/plans/
+
+# Data directories (anywhere in the tree)
+**/data/
