@@ -3,7 +3,9 @@ CLI for running Xeno Agent flows.
 """
 
 import argparse
+import logging
 import sys
+import traceback
 from pathlib import Path
 
 # Add src to path
@@ -12,24 +14,38 @@ sys.path.append(str(Path(__file__).parent.parent / "src"))
 from xeno_agent import (
     InteractionHandler,
     SimulationState,
+    SkillRegistry,
     TaskFrame,
     XenoSimulationFlow,
     create_crewai_llm,
     register_builtin_skills,
 )
-from xeno_agent.agents import AgentRegistry, SkillRegistry, load_agent_from_yaml
+from xeno_agent.agents import AgentRegistry, load_agent_from_yaml
 from xeno_agent.config_loader import ConfigLoader
 from xeno_agent.tool_factory import DynamicToolFactory
+
+logger = logging.getLogger(__name__)
+
+
+def setup_logging(level: str = "INFO"):
+    """配置日志系统。"""
+    logging.basicConfig(
+        level=getattr(logging, level.upper()),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run Xeno Agent Flow")
-    parser.add_argument("--flow", required=True, help="Name of the flow to run")
+    parser.add_argument("--flow", required=True, help="Name of flow to run")
     parser.add_argument("--config-root", default=str(Path(__file__).parent.parent / "config"), help="Root config directory")
     parser.add_argument("--incident", help="Incident description for diagnosis flow", default="System failure detected.")
     parser.add_argument("--auto-approve", action="store_true", help="Auto approve tool execution")
-
+    parser.add_argument("--log-level", default="INFO", help="日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
     args = parser.parse_args()
+
+    setup_logging(args.log_level)
 
     # 1. Initialize Config Loader
     loader = ConfigLoader(args.config_root)
@@ -38,7 +54,7 @@ def main():
     try:
         flow_config = loader.load_flow_config(args.flow)
     except Exception as e:
-        print(f"Error loading flow config: {e}")
+        logger.error(f"Error loading flow config: {e}")
         sys.exit(1)
 
     # 3. Setup Environment
@@ -48,7 +64,7 @@ def main():
     try:
         llm = create_crewai_llm()
     except Exception as e:
-        print(f"Warning: LLM creation failed ({e}). Proceeding might fail.")
+        logger.warning(f"LLM creation failed ({e}). Proceeding might fail.")
         llm = None
 
     # 4. Register Tools from Config
@@ -68,12 +84,12 @@ def main():
 
             if tool_instance:
                 skill_registry.register(tool_name, tool_instance, tool_conf.get("description"))
-                print(f"✓ Registered tool: {tool_name}")
+                logger.info(f"✓ Registered tool: {tool_name}")
             else:
-                print(f"⚠ Could not instantiate tool {tool_name}")
+                logger.warning(f"⚠ Could not instantiate tool {tool_name}")
 
         except Exception as e:
-            print(f"✗ Failed to load tool {tool_name}: {e}")
+            logger.error(f"✗ Failed to load tool {tool_name}: {e}")
 
     # 5. Load Agents from Config
     for agent_name in flow_config.get("agents", []):
@@ -81,14 +97,14 @@ def main():
             # We can reuse load_agent_from_yaml but pointing to config/roles
             agent_path = loader.roles_dir / f"{agent_name}.yaml"
             load_agent_from_yaml(str(agent_path), agent_registry=agent_registry, skill_registry=skill_registry, llm=llm)
-            print(f"✓ Loaded agent: {agent_name}")
+            logger.info(f"✓ Loaded agent: {agent_name}")
         except Exception as e:
-            print(f"✗ Failed to load agent {agent_name}: {e}")
+            logger.error(f"✗ Failed to load agent {agent_name}: {e}")
 
     # 6. Initialize State
     initial_mode = flow_config.get("initial_mode")
     if not initial_mode:
-        print("Error: Flow config must specify 'initial_mode'")
+        logger.error("Error: Flow config must specify 'initial_mode'")
         sys.exit(1)
 
     state = SimulationState(
@@ -108,28 +124,17 @@ def main():
     )
 
     # 7. Run Flow
-    # Use base class directly to avoid potential decorator inheritance issues
-    flow = XenoSimulationFlow(agent_registry=agent_registry)
+    flow = XenoSimulationFlow(agent_registry=agent_registry, state=state)
 
-    # Manual state injection
-
-    flow.state.stack = state.stack
-    flow.state.conversation_history = state.conversation_history
-    flow.state.final_output = state.final_output
-    flow.state.is_terminated = state.is_terminated
-    flow.state.last_signal = state.last_signal
-
-    print(f"\nStarting Flow: {args.flow}")
+    logger.info(f"\nStarting Flow: {args.flow}")
     try:
         flow.kickoff()
-        print("\nFlow completed successfully.")
-        print(f"Final Output: {flow.state.final_output}")
+        logger.info("\nFlow completed successfully.")
+        logger.info(f"Final Output: {flow.state.final_output}")
     except KeyboardInterrupt:
-        print("\nFlow interrupted.")
+        logger.error("\nFlow interrupted.")
     except Exception as e:
-        print(f"\nFlow failed: {e}")
-        import traceback
-
+        logger.error(f"\nFlow failed: {e}")
         traceback.print_exc()
 
 

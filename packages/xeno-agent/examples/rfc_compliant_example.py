@@ -19,6 +19,7 @@ Args:
 import argparse
 import logging
 import sys
+import traceback
 from pathlib import Path
 
 # Add src to path
@@ -35,7 +36,6 @@ from xeno_agent import (
     create_crewai_llm,
     register_builtin_skills,
 )
-
 from xeno_agent.config_loader import ConfigLoader
 
 logger = logging.getLogger(__name__)
@@ -71,38 +71,27 @@ def load_rfc_compliant_agents(llm, agent_registry, skill_registry):
         role_path = agents_dir / f"{role_name}.yaml"
         if role_path.exists():
             try:
-                role_builder = XenoAgentBuilder(
-                    role_name=role_name,
-                    skill_registry=skill_registry,
-                    config_loader=config_loader,
-                )
-
-                role_builder.from_yaml(str(role_path)).with_llm(llm)
-
-                agent = role_builder.build()
-
-                # Register builder's creator function for on-demand instantiation
-                # Use default argument to capture current loop variable value
-                def agent_creator(llm=None, path=role_path):
-                    # Rebuild agent on-demand with potentially different LLM
-                    return (
-                        XenoAgentBuilder(
-                            role_name=role_name,
-                            skill_registry=skill_registry,
-                            config_loader=config_loader,
+                # Use factory to capture loop variables correctly
+                def make_agent_creator(rn=role_name, rp=str(role_path)):
+                    def agent_creator(llm_param=None):
+                        return (
+                            XenoAgentBuilder(
+                                role_name=rn,
+                                skill_registry=skill_registry,
+                                config_loader=config_loader,
+                            )
+                            .from_yaml(rp)
+                            .with_llm(llm_param or llm)
+                            .build()
                         )
-                        .from_yaml(str(path))
-                        .with_llm(llm or llm)
-                        .build()
-                    )
+
+                    return agent_creator
 
                 # Register with correct API: (mode_slug, creator)
-                agent_registry.register(mode_slug=role_name, creator=agent_creator)
+                agent_registry.register(mode_slug=role_name, creator=make_agent_creator())
                 logger.info(f"✓ Loaded RFC role: {role_name}.yaml")
             except Exception as e:
                 logger.error(f"✗ Failed to load {role_name}.yaml: {e}")
-                import traceback
-
                 traceback.print_exc()
         else:
             logger.error(f"✗ RFC role file not found: {role_path}")
@@ -178,9 +167,9 @@ def run_rfc_compliant_demo(auto_approve: bool = True):
 
     flow = XenoSimulationFlow(agent_registry=agent_registry, state=state)
 
-    logger.info("\n" + "=" * 70)
+    logger.info(f"\n{'=' * 70}")
     logger.info("            RFC 002 Compliant 4-Role Collaboration Demo")
-    logger.info("=" * 70 + "\n")
+    logger.info(f"{'=' * 70}\n")
     logger.info("角色:")
     logger.info("  1. Q&A Assistant    - 意图识别与网关分发")
     logger.info("  2. Fault Expert      - 故障诊断编排与协调")
@@ -195,16 +184,16 @@ def run_rfc_compliant_demo(auto_approve: bool = True):
     logger.info("        Fault Expert → Equipment Expert (Active: 现场指导)")
     logger.info("        Equipment Expert (Active) → Fault Expert (或完成)")
     logger.info("")
-    logger.info("-" * 70 + "\n")
+    logger.info(f"{'-' * 70}\n")
 
     try:
         flow.kickoff()
 
-        logger.info("\n" + "=" * 70)
+        logger.info(f"\n{'=' * 70}")
         logger.info("                        演示完成")
         logger.info("=" * 70)
-        logger.info(f"\n最终诊断报告:\n{state.final_output}")
-        logger.info("\n" + "=" * 70)
+        logger.info(f"\n最终诊断报告:\n{flow.state.final_output}")
+        logger.info(f"\n{'=' * 70}")
         return 0
 
     except KeyboardInterrupt:
@@ -212,8 +201,6 @@ def run_rfc_compliant_demo(auto_approve: bool = True):
         return 130
     except Exception as e:
         logger.error(f"\n\n演示失败: {e}")
-        import traceback
-
         traceback.print_exc()
         return 1
 
