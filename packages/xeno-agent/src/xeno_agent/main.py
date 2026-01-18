@@ -87,7 +87,7 @@ def run_simulation(prompt: str, initial_mode: str, agent_registry: AgentRegistry
         last_signal=None,
     )
 
-    # Create and run flow
+    # Create and run Flow (passing state through kwargs for proper initialization)
     flow = XenoSimulationFlow(agent_registry=agent_registry, state=state)
 
     logger.info("=== Starting Simulation ===")
@@ -97,7 +97,7 @@ def run_simulation(prompt: str, initial_mode: str, agent_registry: AgentRegistry
     try:
         flow.kickoff()
         logger.info("\n=== Simulation Complete ===")
-        logger.info(f"Final output: {state.final_output}")
+        logger.info(f"Final output: {flow.state.final_output}")
         return 0
     except KeyboardInterrupt:
         logger.warning("\n\nSimulation interrupted by user.")

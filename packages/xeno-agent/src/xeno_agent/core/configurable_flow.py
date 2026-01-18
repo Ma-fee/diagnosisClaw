@@ -1,5 +1,5 @@
 """
-Configuration-driven Flow.
+Configuration-driven Flow extension of XenoSimulationFlow.
 """
 
 from xeno_agent.utils.logging import get_logger
@@ -11,20 +11,12 @@ logger = get_logger(__name__)
 
 
 class ConfigurableXenoFlow(XenoSimulationFlow):
-    def __init__(self, config_loader: ConfigLoader, flow_name: str, state=None):
+    def __init__(self, agent_registry, config_loader: ConfigLoader, flow_name: str, **kwargs):
         self.config_loader = config_loader
         self.flow_config = self.config_loader.load_flow_config(flow_name)
 
-        # Initialize parent with state if provided
-        # Note: We need to adapt XenoSimulationFlow to accept initial configuration
-        super().__init__()
-        if state:
-            # Manually copy state fields since setter is not available
-            self.state.stack = state.stack
-            self.state.conversation_history = state.conversation_history
-            self.state.final_output = state.final_output
-            self.state.is_terminated = state.is_terminated
-            self.state.last_signal = state.last_signal
+        # Initialize parent with state via kwargs
+        super().__init__(agent_registry=agent_registry, **kwargs)
 
         self.setup_from_config()
 

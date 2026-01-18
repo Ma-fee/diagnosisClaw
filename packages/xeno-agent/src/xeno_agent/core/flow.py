@@ -16,11 +16,28 @@ logger = get_logger(__name__)
 
 
 class XenoSimulationFlow(Flow[SimulationState]):
-    def __init__(self, agent_registry, state=None):
-        super().__init__()
+    """
+    核心仿真流程控制器 - 基于调用栈的多智能体任务编排系统.
+
+    架构说明:
+    - 使用调用栈 (stack) 管理任务上下文, 支持 GOTO (switch_mode), GOSUB (new_task), RETURN (complete)
+    - 支持隔离上下文 (isolated战斗) 与非隔离上下文的任务执行
+    - 通过信号机制 (Signals) 实现模式切换、任务委托、完成和 HITL 交互
+
+    状态初始化规则:
+    - 使用类属性 `initial_state` 定义状态类型
+    - 通过 **kwargs 传入初始值, 不建议在 __init__ 中直接赋值 self.state
+    - Flow 内部会自动调用 _create_initial_state() 初始化状态
+
+    Args:
+        Flow[SimulationState]: 使用 SimulationState 作为状态类型
+    """
+
+    initial_state = SimulationState
+
+    def __init__(self, agent_registry, **kwargs):
+        super().__init__(**kwargs)
         self.agent_registry = agent_registry
-        if state:
-            self.state = state
 
     @start()
     def initialize(self):
@@ -177,7 +194,7 @@ Current task:
                 # 【修改】正常完成 = 继续对话 (不终止)
                 # 除非显式调用 attempt_completion, 否则不退出
                 logger.info(f"[Flow] Agent {current_frame.mode_slug} completed normally (no signal). Continuing conversation in same mode.")
-                # 继续当前模式 (不重新推入agent，直接等待下一轮用户输入)
+                # 继续当前模式 (不重新推入agent, 直接等待下一轮用户输入)
                 # 在实际使用中, 会由外部触发下一轮执行
                 return "agent_completed"
                 return "agent_completed"
