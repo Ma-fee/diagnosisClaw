@@ -17,7 +17,9 @@ environments = [
 ]
 
 [tool.uv.workspace]
-members = []
+members = [
+    "packages/xeno-agent",
+]
 exclude = []
 
 [tool.uv.sources]

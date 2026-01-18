@@ -1,0 +1,91 @@
+description: "Incrementally manage a TODO list by tracking only changes (creation, status updates, and insertions). Designed for complex, multi-step tasks requiring dynamic progress tracking and flexible reordering.\n\n**Core Principle**: \U0001F6A8 ONLY include items that are **new** or have a **status change**. Unchanged existing items must NEVER appear in the todos parameter.\n\n**Key Features:**\n- **Flexible Positioning**: Use `pos` like a sort key. You can insert tasks anywhere (e.g., `1.1` between `1` and `2`).\n- **Sub-task Support**: Use nested positions (e.g., `1.1`, `1.2`) to create child tasks or detailed steps.\n- **No Appending Flag**: Simply calculate the appropriate `pos` (integer or decimal) for new items.\n\n**When to Use:**\n- Tracking a complex task with multiple steps.\n- User provides multiple tasks or asks for a TODO list.\n- Discovering a new task that needs to be inserted between existing steps.\n- Breaking down a large task (e.g., pos 1) into sub-tasks (e.g., pos 1.1, 1.2).\n- Updating the status of several tasks at once.\n\n**When NOT to Use:**\n- The task is simple and can be completed in one step.\n- The request is purely conversational.\n- No actionable items to track."
+name: update_todo_list
+parameters:
+  type: object
+  properties:
+    message:
+      type: string
+      description: The message or result(5-20 words) associate with the todo item which are changed.
+    todos:
+      type: string
+      description: |-
+        A string of one or more `<todo>` tags for incremental updates.
+
+        **Universal Rules:**
+        - Every `<todo>` tag MUST have a `pos` attribute.
+        - `pos` is a **string** representing position/sort order (e.g., "1", "1.1", "2").
+        - Only include items that are **newly created** OR have a **status change**.
+
+        **Status Options:**
+        - `inProgress`: For the first item in a new list or the next new task you start.
+        - `completed`: For finished tasks.
+        - `skipped`: For intentionally skipped tasks.
+        - Omit the `status` attribute for `notStarted` (default).
+
+        ---
+
+        **Operation Syntax & Examples:**
+        <!-- ========= CORE PRINCIPLES (NON-NEGOTIABLE) ========= -->
+        <!-- 1. ONLY include NEW tasks or tasks with CHANGED status -->
+        <!-- 2. NEVER send unchanged existing tasks                -->
+        <!-- 3. 'pos' determines order: "1" < "1.1" < "1.2" < "2"  -->
+
+        <!-- ========= CORRECT USAGE EXAMPLES ========= -->
+
+        <!-- Scenario 1: CREATE NEW LIST -->
+        <todo pos="1" status="inProgress">Setup project</todo>
+        <todo pos="2">Define requirements</todo>
+        <todo pos="3">Design database</todo>
+
+
+        <!-- Scenario 2: INSERT TASK (The "1.1" Logic) -->
+        <!-- Current list: [1. Setup, 2. Define, 3. Design].      -->
+        <!-- Need to add "Install Dependencies" BEFORE "Define".  -->
+        <!-- Resulting order: 1, 1.1, 2, 3.                      -->
+        <todo pos="1.1" status="inProgress">Install Dependencies</todo>
+
+
+        <!-- Scenario 3: CREATE SUB-TASKS -->
+        <!-- Breaking down "Setup project" (pos 1) into steps.    -->
+        <!-- These appear after 1 but before 2.                   -->
+        <todo pos="1.1">Initialize Git repo</todo>
+        <todo pos="1.2">Create README</todo>
+
+
+        <!-- Scenario 4: BATCH UPDATE (Status Changes) -->
+        <!-- Task 1 completed, Task 2 skipped, Task 1.1 started.  -->
+        <todo pos="1" status="completed">Setup project</todo>
+        <todo pos="2" status="skipped">Define requirements</todo>
+        <todo pos="1.1" status="inProgress">Initialize Git repo</todo>
+
+
+        <!-- Scenario 5: APPEND TO END (Manual Positioning) -->
+        <!-- If list ends at 3, use 4 (or 3.1). No 'append' flag.  -->
+        <todo pos="4" status="inProgress">Deployment</todo>
+
+        <!-- ========= DEFENSIVE EXAMPLES (WHAT NOT TO DO) ========= -->
+
+        <!-- ❌ WRONG: Includes unchanged existing todo (Task 2) -->
+        <todo pos="1" status="completed">Setup project</todo>
+        <todo pos="2">Define requirements</todo>
+
+        <!-- ❌ WRONG: Missing pos attribute -->
+        <todo status="completed">Setup project</todo>
+
+        <!-- ❌ WRONG: Assuming auto-append (Must specify pos explicitly) -->
+        <todo status="inProgress">New task at end</todo>
+
+
+        <!-- ========= QUICK REFERENCE TABLE ========= -->
+        <!--
+        | Operation   | Include pos | Pos Format Strategy | Notes                              |
+        |-------------|-------------|---------------------|------------------------------------|
+        | CREATE      | Yes         | Integers (1, 2, 3)  | Initial top-level list.            |
+        | INSERT      | Yes         | Decimals (1.1, 1.2) | Inserted between N and N+1.        |
+        | SUB-TASK    | Yes         | Decimals (1.1)      | Nested under parent N.             |
+        | APPEND      | Yes         | Next Integer (N+1)  | Manual calculation required.       |
+        | UPDATE      | Yes         | Existing Value      | Use exact original pos string.     |
+        -->
+  required:
+    - todos
+strict: false

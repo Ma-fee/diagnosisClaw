@@ -1,0 +1,44 @@
+description: |-
+  The new_task tool creates subtasks with specialized modes while maintaining a parent-child relationship. It breaks down complex projects into manageable pieces, each operating in the mode best suited for specific work.
+
+  This tool is used to:
+  - Decompose a complex project into smaller, focused, and manageable subtasks.
+  - Assign different aspects of a task to specialized modes for optimal execution.
+  - Maintain a clean context by separating distinct phases of work.
+
+
+  # Available Modes:
+
+  - [问答助手]: This role is applicable for assessing problem difficulty, collecting contextual information, and quickly responding to simple inquiries (basic troubleshooting methods, schematic / parameter / fault code queries, multimodal image-text processing). It also possesses the superpower of switching to the appropriate role based on the problem.
+  - [设备专家]: This role is suitable for offering interactive  execution monitoring, collecting information, understanding uploaded images, and assisting users in completing the actual equipment operations when providing guidance on the actual operation of the equipment (such as maintenance, servicing, disassembly, inspection, etc.).
+  - [资料助手]: Specialized in in-depth research for complex technical problems. Expert in multi-source information retrieval (technical documentation, industry standards, case libraries), providing comprehensive technical data collection and professional analysis services.
+name: new_task
+parameters:
+  type: object
+  properties:
+    mode:
+      type: string
+      description: The specialized mode for the new task. Must be one of the available modes.
+    message:
+      type: string
+      description: |
+        A clear, concise statement of what the task entails.
+
+        The initial instructions for this new task. Should be specific, precise, and concise.
+
+        The "message" must contain the following content:
+          - All necessary background information from the parent task or previous sub-tasks required to complete this task.
+          - The goal that this sub-task should achieve.
+          - In markdown format for readability.
+    expected_output:
+      type: string
+      description: |-
+        A precise definition of the successful outcome for this sub-task. The final result from the sub-task must strictly conform to this description. It should clearly and narrowly define:
+        - The specific work to be performed *only* within this sub-task.
+        - The exact format and content of the expected return value.
+        No deviations or additional work beyond this scope are permitted.
+  required:
+    - mode
+    - message
+    - expected_output
+strict: false

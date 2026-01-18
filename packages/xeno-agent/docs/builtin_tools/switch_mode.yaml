@@ -1,0 +1,29 @@
+description: |-
+  用途：申请切换到其他模式，以便在需要不同能力或专长时完成任务。切换前需用户确认。
+  使用场景：
+  1. 当前任务依赖于另一模式所提供的独有功能
+  2. 处理复杂任务的特定阶段需要更专业的 Agent 支持
+name: switch_mode
+parameters:
+  type: object
+  properties:
+    mode_slug:
+      type: string
+      description: The slug of the mode to switch to (e.g., "data-query", "ask", "architect")
+    reason:
+      type: string
+      description: The reason for switching modes, providing context for the user
+    allowed_modes:
+      type: array
+      items:
+        type: string
+      description: |
+        A list of allowed target modes.
+        The tool can only switch to the modes explicitly listed here.
+
+        - If left as an empty array (`[]`), it means **all modes are allowed**.
+        - Use this parameter only when you need to restrict mode switching to a predefined subset (whitelist).
+  required:
+    - result
+    - reason
+strict: false

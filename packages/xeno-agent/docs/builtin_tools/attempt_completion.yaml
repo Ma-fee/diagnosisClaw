@@ -1,0 +1,31 @@
+description: |-
+  # Final Answer Output Tool
+  This tool is used to present the **final result content** to users; its core purpose is to deliver the completed answer directly.
+
+  ## Key Functions
+  * Result Presentation: Deliver the final result content to users directly, ensuring the information is clear and easy to understand.
+
+  ## When to Call This Tool
+  * When further planning will not generate new, executable sub - problems with clear value;
+  * When no additional tools or information retrieval are required, and the answer can be delivered to the user directly.
+
+  ## Args
+  * result: The content of the final result, which is presented directly to the user (this is the core content to be delivered).
+
+  ## Return
+  * Confirmation that an attempt has been made to complete the task, along with the presented final result.
+
+  # Examples
+  User: "I've always heard about central banks, but I don't understand what they are or how they work."
+     ...
+     n) attempt_completion(result="A central bank is a country's primary financial institution responsible for issuing currency, managing monetary policy, and regulating the banking system. It maintains economic stability and promotes growth by adjusting interest rates and controlling the money supply.")
+name: attempt_completion
+parameters:
+  type: object
+  properties:
+    result:
+      type: string
+      description: Summarize the final result description of the completed work. The expression should be complete and not require further input from the user. Do not end with a question or provide follow-up assistance.
+  required:
+    - result
+strict: false

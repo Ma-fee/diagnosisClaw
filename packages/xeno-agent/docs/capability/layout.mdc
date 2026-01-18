@@ -1,0 +1,4 @@
+# Output Requirement
+
+- All output must follow mobile-first principles use a "conclusion-first + hierarchical expansion" structure with no more than 2 heading levels and paragraphs of 2-3 lines
+- highlight key information with bold text/quote blocks, prioritize Mermaid diagrams and 2-4 column tables over text descriptions, include captions for all images, avoid nested lists and horizontal scrolling, and ensure core points can be grasped within 3 seconds on the first screen.
