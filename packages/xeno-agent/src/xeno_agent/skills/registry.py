@@ -1,5 +1,14 @@
 from crewai.tools import BaseTool
 
+from ..skills.builtin.diagnostic_tools import (
+    CollectMetricsTool,
+    DeepInspectTool,
+    QueryKnowledgeBaseTool,
+    QueryLogsTool,
+)
+from ..skills.builtin.meta_tools import AskFollowupTool, AttemptCompletionTool, NewTaskTool, SwitchModeTool
+from ..skills.builtin.search_tools import SearchEngineTool
+
 
 class SkillRegistry:
     """
@@ -53,3 +62,24 @@ class SkillRegistry:
     def clear(cls):
         """Clear all registered skills (useful for testing)."""
         cls._skills.clear()
+
+
+def register_builtin_skills(registry: SkillRegistry):
+    """Registers core meta-tools and diagnostic tools."""
+    # Meta Tools
+    registry.register("switch_mode", SwitchModeTool(), "Use to switch roles.")
+
+    registry.register("new_task", NewTaskTool(), "Use to delegate subtasks.")
+
+    registry.register("attempt_completion", AttemptCompletionTool(), "Use to complete task.")
+
+    registry.register("ask_followup_question", AskFollowupTool(), "Use to ask user questions.")
+
+    # Diagnostic tools
+    registry.register("collect_metrics", CollectMetricsTool(), "Collect system metrics and monitoring data.")
+    registry.register("query_logs", QueryLogsTool(), "Query and analyze system logs.")
+    registry.register("query_knowledge_base", QueryKnowledgeBaseTool(), "Query diagnostic knowledge base.")
+    registry.register("deep_inspect", DeepInspectTool(), "Perform deep inspection of system components.")
+
+    # Search tools
+    registry.register("search_engine", SearchEngineTool(), "Search for technical documents and specifications.")

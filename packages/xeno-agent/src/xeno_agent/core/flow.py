@@ -86,10 +86,19 @@ class XenoSimulationFlow(Flow[SimulationState]):
             if self.state.stack:
                 # Returned to caller
                 logger.info(f"[Flow] Subtask completed. Returning to {self.state.stack[-1].mode_slug}")
-                # We need to inject the result into the caller's next step
-                # In CrewAI Flow, we can't easily inject arbitrary text into the *middle* of an agent's thought process
-                # unless we treat it as tool output.
-                # For now, we will store it in a special field that the Agent Wrapper will pick up.
+
+                # 【新增】将子任务结果注入到父上下文
+                if result:
+                    # 添加到 conversation_history, 使父任务可见
+                    self.state.conversation_history.append(
+                        {
+                            "role": "assistant",
+                            "content": f"[子任务结果] {result}",
+                            "metadata": {"source": "new_task", "child_agent": completed_frame.mode_slug, "task_id": completed_frame.task_id},
+                        },
+                    )
+                    logger.info(f"[Flow] Injected subtask result into context: {result[:100]}...")
+
                 self.state.last_signal = None
                 return "execute_agent"
             # Root completed
@@ -164,20 +173,33 @@ Current task:
 
             # Check if agent raised a signal
             if self.state.last_signal is None:
-                # Agent completed normally without signal
-                # Treat as generic completion or just continue
-                pass
+                # [RFC 002] Agent completed normally without signal
+                # 【修改】正常完成 = 继续对话 (不终止)
+                # 除非显式调用 attempt_completion, 否则不退出
+                logger.info(f"[Flow] Agent {current_frame.mode_slug} completed normally (no signal). Continuing conversation in same mode.")
+                # 继续当前模式 (不重新推入agent，直接等待下一轮用户输入)
+                # 在实际使用中, 会由外部触发下一轮执行
+                return "agent_completed"
+                return "agent_completed"
 
         except SimulationSignal as e:
             # The agent raised a signal (switch_mode, new_task, etc.)
             self.state.last_signal = e
             logger.info(f"[Flow] Signal caught: {e.__class__.__name__}")
+            return "signal_caught"
 
         except Exception as e:
             # Unexpected error
             logger.exception(f"[Flow] Error executing agent: {e}")
             raise e
 
+        return "agent_completed"
+
+    @router(execute_agent_step)
+    def route_after_step(self):
+        """
+        Routes after agent execution step.
+        """
         return self.route()
 
     @listen("finish")
