@@ -1,0 +1,10 @@
+extend = "../../ruff.toml"
+
+[lint.per-file-ignores]
+"tests/*" = ["S101", "PT011"]
+"examples/*" = ["BLE001", "TRY201", "TRY300", "TRY400", "RUF001"]
+"src/xeno_agent/tools/mcp_tool.py" = ["BLE001", "SIM117", "PERF401"]
+"src/xeno_agent/llm.py" = ["BLE001", "TRY300", "TRY400"]
+"src/xeno_agent/main.py" = ["BLE001", "TRY400", "TRY300", "TRY401"]
+"src/xeno_agent/core/flow.py" = ["F841", "TRY401", "TRY201"]
+"debug_mcp*.py" = ["BLE001", "TRY400"]

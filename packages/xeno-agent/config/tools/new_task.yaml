@@ -1,0 +1,4 @@
+name: new_task
+description: "Use to delegate subtasks."
+python_module: "xeno_agent.skills.builtin.meta_tools"
+python_class: "NewTaskTool"

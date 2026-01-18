@@ -1,0 +1,186 @@
+from crewai.flow.flow import Flow, listen, router, start
+
+from xeno_agent.utils.logging import get_logger
+
+from .hitl import InteractionHandler
+from .signals import (
+    AskFollowupSignal,
+    CompletionSignal,
+    NewTaskSignal,
+    SimulationSignal,
+    SwitchModeSignal,
+)
+from .state import SimulationState, TaskFrame
+
+logger = get_logger(__name__)
+
+
+class XenoSimulationFlow(Flow[SimulationState]):
+    def __init__(self, agent_registry, state=None):
+        super().__init__()
+        self.agent_registry = agent_registry
+        if state:
+            self.state = state
+
+    @start()
+    def initialize(self):
+        """Initializes the simulation state."""
+        # Ensure we have at least one frame if not present
+        if not self.state.stack:
+            # Default to Q&A Assistant if no initial state
+            self.state.stack.append(TaskFrame(mode_slug="qa_assistant", task_id="root", trigger_message="System initialized.", is_isolated=False))
+        logger.info(f"[Flow] Initialized in mode: {self.state.stack[-1].mode_slug}")
+        return "execute_agent"
+
+    @router(initialize)
+    def route(self):
+        """
+        The Kernel Router.
+        Inspects the last signal and determines the next state transition.
+        """
+        if self.state.is_terminated:
+            return "finish"
+
+        last_signal = self.state.last_signal
+
+        # If no signal (first run) or just continuation, execute current agent
+        if last_signal is None:
+            return "execute_agent"
+
+        # --- Handle Signals ---
+
+        if isinstance(last_signal, SwitchModeSignal):
+            # GOTO: Pop current, Push new
+            current_frame = self.state.stack.pop()
+            new_frame = TaskFrame(
+                mode_slug=last_signal.target_mode,
+                task_id=f"{current_frame.task_id}_switched",
+                trigger_message=f"Switched from {current_frame.mode_slug}. Reason: {last_signal.reason}",
+                caller_mode=current_frame.caller_mode,
+                is_isolated=current_frame.is_isolated,  # Inherit isolation
+            )
+            self.state.stack.append(new_frame)
+            logger.info(f"[Flow] Switched to {new_frame.mode_slug}")
+            self.state.last_signal = None  # Reset signal
+            return "execute_agent"
+
+        if isinstance(last_signal, NewTaskSignal):
+            # GOSUB: Push new frame
+            new_frame = TaskFrame(
+                mode_slug=last_signal.target_mode,
+                task_id=f"subtask_{len(self.state.stack)}",
+                trigger_message=last_signal.message,
+                caller_mode=self.state.stack[-1].mode_slug,
+                is_isolated=True,  # FORCE ISOLATION
+            )
+            self.state.stack.append(new_frame)
+            logger.info(f"[Flow] New Task delegated to {new_frame.mode_slug}")
+            self.state.last_signal = None
+            return "execute_agent"
+
+        if isinstance(last_signal, CompletionSignal):
+            # RETURN: Pop frame
+            result = last_signal.result
+            completed_frame = self.state.stack.pop()
+
+            if self.state.stack:
+                # Returned to caller
+                logger.info(f"[Flow] Subtask completed. Returning to {self.state.stack[-1].mode_slug}")
+                # We need to inject the result into the caller's next step
+                # In CrewAI Flow, we can't easily inject arbitrary text into the *middle* of an agent's thought process
+                # unless we treat it as tool output.
+                # For now, we will store it in a special field that the Agent Wrapper will pick up.
+                self.state.last_signal = None
+                return "execute_agent"
+            # Root completed
+            self.state.final_output = result
+            self.state.is_terminated = True
+            return "finish"
+
+        if isinstance(last_signal, AskFollowupSignal):
+            # HITL Input
+            logger.info(f"[Flow] Agent asks: {last_signal.question}")
+            answer = InteractionHandler.get_input("Your Answer")
+
+            # Record in history
+            self.state.conversation_history.append({"role": "assistant", "content": last_signal.question})
+            self.state.conversation_history.append({"role": "user", "content": answer})
+
+            self.state.last_signal = None
+            return "execute_agent"
+
+        # Default fallback
+        return "execute_agent"
+
+    @listen("execute_agent")
+    def execute_agent_step(self):
+        """
+        Executes the current agent on the top of the stack.
+        """
+        current_frame = self.state.stack[-1]
+
+        # Retrieve the Agent object from Registry
+        agent = self.agent_registry.get(current_frame.mode_slug)
+
+        # Construct inputs based on isolation
+        if current_frame.is_isolated:
+            # Isolated task: no conversation history, only current trigger
+            context = current_frame.trigger_message
+        else:
+            # Normal task: include conversation history
+            history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in self.state.conversation_history])
+            context = f"""
+Previous conversation:
+{history_text}
+
+Current task:
+{current_frame.trigger_message}
+""".strip()
+
+        logger.info(f"[Flow] Executing agent: {current_frame.mode_slug}")
+
+        try:
+            # Execute the agent with CrewAI
+            # Using single task execution via Crew
+            from crewai import Crew, Task
+
+            task = Task(
+                description=context,
+                expected_output="A response that addresses the task appropriately.",
+                agent=agent,
+            )
+
+            crew = Crew(agents=[agent], tasks=[task], verbose=True)
+
+            # Run the task
+            result_obj = crew.kickoff()
+            result = str(result_obj)
+
+            # Update conversation history if not isolated
+            if not current_frame.is_isolated:
+                self.state.conversation_history.append({"role": "assistant", "content": result})
+
+            logger.info(f"[Flow] Agent output: {result[:100]}...")
+
+            # Check if agent raised a signal
+            if self.state.last_signal is None:
+                # Agent completed normally without signal
+                # Treat as generic completion or just continue
+                pass
+
+        except SimulationSignal as e:
+            # The agent raised a signal (switch_mode, new_task, etc.)
+            self.state.last_signal = e
+            logger.info(f"[Flow] Signal caught: {e.__class__.__name__}")
+
+        except Exception as e:
+            # Unexpected error
+            logger.exception(f"[Flow] Error executing agent: {e}")
+            raise e
+
+        return self.route()
+
+    @listen("finish")
+    def finish(self):
+        logger.info("[Flow] Simulation Finished.")
+        return self.state.final_output

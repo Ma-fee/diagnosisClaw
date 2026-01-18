@@ -1,0 +1,8 @@
+name: attempt_completion
+description: "Use to complete task. You MUST provide the final result."
+python_module: "xeno_agent.skills.builtin.meta_tools"
+python_class: "AttemptCompletionTool"
+parameters:
+  result:
+    description: "The final result or answer to the task."
+    type: string

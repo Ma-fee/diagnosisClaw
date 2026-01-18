@@ -1,0 +1,12 @@
+name: deep_inspect
+description: "深度检查系统组件、配置和状态"
+parameters:
+  component:
+    description: "Component to inspect (e.g., 'database', 'api-gateway')"
+    type: string
+  inspection_type:
+    description: "Type of inspection (status, config, dependencies)"
+    default: "status"
+    type: string
+python_module: "xeno_agent.skills.builtin.diagnostic_tools"
+python_class: "DeepInspectTool"
