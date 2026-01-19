@@ -2,15 +2,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 import yaml
-from crewai.tools import BaseTool
 
-from ..skills.builtin.diagnostic_tools import (
-    CollectMetricsTool,
-    DeepInspectTool,
-    QueryKnowledgeBaseTool,
-    QueryLogsTool,
-)
-from ..skills.builtin.meta_tools import AskFollowupTool, AttemptCompletionTool, NewTaskTool, SwitchModeTool
+from ..skills.registry import SkillRegistry
 from .builder import XenoAgentBuilder
 
 
@@ -34,13 +27,13 @@ class AgentRegistry:
         """
         self._agents[mode_slug] = creator
 
-    def get(self, mode_slug: str, llm=None):
+    def get(self, mode_slug: str, llm_for_get=None):
         """
         Retrieve an agent from the registry.
 
         Args:
             mode_slug: The agent mode to retrieve
-            llm: The LLM instance to use (passed to creator)
+            llm_for_get: The LLM instance to use (passed to creator)
 
         Returns:
             A CrewAI Agent instance
@@ -51,7 +44,7 @@ class AgentRegistry:
         if mode_slug not in self._agents:
             available = list(self._agents.keys())
             raise ValueError(f"Agent mode '{mode_slug}' not found. Available modes: {available}")
-        return self._agents[mode_slug](llm=llm)
+        return self._agents[mode_slug](llm=llm_for_get)
 
     def list_modes(self):
         """
@@ -61,37 +54,6 @@ class AgentRegistry:
             Dictionary mapping mode_slug to agent creator function
         """
         return self._agents.copy()
-
-
-class SkillRegistry:
-    """
-    Registry for tools and their instruction prompts.
-    """
-
-    def __init__(self):
-        self._skills: dict[str, tuple[BaseTool, str]] = {}
-
-    def register(self, name: str, tool: BaseTool, instruction: str):
-        self._skills[name] = (tool, instruction)
-
-    def get(self, name: str) -> tuple[BaseTool, str]:
-        if name not in self._skills:
-            raise ValueError(f"Skill '{name}' not found in registry.")
-        return self._skills[name]
-
-
-def register_builtin_skills(registry: SkillRegistry):
-    """Registers core meta-tools and diagnostic tools."""
-    registry.register("switch_mode", SwitchModeTool(), "Use to switch roles.")
-    registry.register("new_task", NewTaskTool(), "Use to delegate subtasks.")
-    registry.register("attempt_completion", AttemptCompletionTool(), "Use to complete task.")
-    registry.register("ask_followup_question", AskFollowupTool(), "Use to ask user questions.")
-
-    # Diagnostic tools
-    registry.register("collect_metrics", CollectMetricsTool(), "Collect system metrics and monitoring data.")
-    registry.register("query_logs", QueryLogsTool(), "Query and analyze system logs.")
-    registry.register("query_knowledge_base", QueryKnowledgeBaseTool(), "Query diagnostic knowledge base.")
-    registry.register("deep_inspect", DeepInspectTool(), "Perform deep inspection of system components.")
 
 
 def load_agent_from_yaml(yaml_path: str, agent_registry: AgentRegistry, skill_registry: SkillRegistry, llm=None):

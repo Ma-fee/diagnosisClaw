@@ -103,9 +103,7 @@ def main():
 
     # 6. Initialize State
     initial_mode = flow_config.get("initial_mode")
-    if not initial_mode:
-        logger.error("Error: Flow config must specify 'initial_mode'")
-        sys.exit(1)
+    assert isinstance(initial_mode, str), "Flow config must specify 'initial_mode'"
 
     state = SimulationState(
         stack=[

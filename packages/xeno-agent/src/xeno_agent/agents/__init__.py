@@ -7,12 +7,10 @@ This module provides:
 """
 
 from .builder import XenoAgentBuilder
-from .registry import AgentRegistry, SkillRegistry, load_agent_from_yaml, register_builtin_skills
+from .registry import AgentRegistry, load_agent_from_yaml
 
 __all__ = [
     "AgentRegistry",
-    "SkillRegistry",
     "XenoAgentBuilder",
     "load_agent_from_yaml",
-    "register_builtin_skills",
 ]

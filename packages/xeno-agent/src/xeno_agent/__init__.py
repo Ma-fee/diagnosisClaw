@@ -6,10 +6,8 @@ A multi-agent simulation system built on CrewAI for offline task execution.
 
 from .agents import (
     AgentRegistry,
-    SkillRegistry,
     XenoAgentBuilder,
     load_agent_from_yaml,
-    register_builtin_skills,
 )
 from .core import (
     AskFollowupSignal,
@@ -25,7 +23,7 @@ from .core import (
     requires_approval,
 )
 from .llm import create_crewai_llm, get_llm_config, test_connection
-from .skills import SkillRegistry as Skills
+from .skills.registry import SkillRegistry, register_builtin_skills
 
 __all__ = [
     "AgentRegistry",
@@ -36,7 +34,6 @@ __all__ = [
     "SimulationSignal",
     "SimulationState",
     "SkillRegistry",
-    "Skills",
     "SwitchModeSignal",
     "TaskFrame",
     "UpdateTodoListSignal",

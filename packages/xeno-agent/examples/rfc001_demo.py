@@ -23,13 +23,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from xeno_agent import (
     AgentRegistry,
     InteractionHandler,
-    SimulationState,
     SkillRegistry,
-    TaskFrame,
     XenoAgentBuilder,
-    XenoSimulationFlow,
     register_builtin_skills,
-    requires_approval,
 )
 from xeno_agent.config_loader import ConfigLoader
 
@@ -148,42 +144,42 @@ def demo_rfc001_4_role_flow():
     logger.info("")
 
     logger.info("Step 2: QA Assistant => Fault Expert")
-    qa_agent = agent_registry.get("qa_assistant")
+    # qa_agent = agent_registry.get("qa_assistant")
     logger.info(f"  [QA Assistant] 模拟处理: {initial_input}")
-    logger.info(f"  [QA Assistant] 分析: 复杂故障，需要切换到 Fault Expert")
-    logger.info(f"  [QA Assistant] 触发信号: SwitchModeSignal('fault_expert')")
+    logger.info("  [QA Assistant] 分析: 复杂故障，需要切换到 Fault Expert")
+    logger.info("  [QA Assistant] 触发信号: SwitchModeSignal('fault_expert')")
     logger.info("  ✓ 切换成功")
     logger.info("")
 
     logger.info("Step 3: Fault Expert => Material Assistant (查找结构图)")
-    fault_agent = agent_registry.get("fault_expert")
-    logger.info(f"  [Fault Expert] 委派子任务: 查找 X 轴传动结构图")
+    # fault_agent = agent_registry.get("fault_expert")
+    logger.info("  [Fault Expert] 委派子任务: 查找 X 轴传动结构图")
     logger.info("  ✓ 子任务委派")
     logger.info("")
 
     logger.info("Step 4: Material Assistant 返回资料")
-    material_agent = agent_registry.get("material_assistant")
-    logger.info(f"  [Material Assistant] 检索资料并返回")
-    logger.info(f"  [Material Assistant] 返回: X 轴传动结构（丝杠副、导轨、电机）")
+    # material_agent = agent_registry.get("material_assistant")
+    logger.info("  [Material Assistant] 检索资料并返回")
+    logger.info("  [Material Assistant] 返回: X 轴传动结构（丝杠副、导轨、电机）")
     logger.info("  ✓ 资料返回")
     logger.info("")
 
     logger.info("Step 5: Fault Expert => Equipment Expert (分析图纸)")
-    logger.info(f"  [Fault Expert] 收到资料，委派子任务: 分析结构图，诊断潜在故障")
+    logger.info("  [Fault Expert] 收到资料，委派子任务: 分析结构图，诊断潜在故障")
     logger.info("  ✓ 子任务委派")
     logger.info("")
 
     logger.info("Step 6: Equipment Expert 返回分析")
-    equipment_agent = agent_registry.get("equipment_expert")
-    logger.info(f"  [Equipment Expert] 分析图纸")
-    logger.info(f"  [Equipment Expert] 返回: 可能是丝杠反向间隙过大")
+    # equipment_agent = agent_registry.get("equipment_expert")
+    logger.info("  [Equipment Expert] 分析图纸")
+    logger.info("  [Equipment Expert] 返回: 可能是丝杠反向间隙过大")
     logger.info("  ✓ 图纸分析完成")
     logger.info("")
 
     logger.info("Step 7: Fault Expert 综合诊断")
-    logger.info(f"  [Fault Expert] 综合所有信息")
-    logger.info(f"  [Fault Expert] 形成诊断结论: X 轴重复定位精度差，可能由丝杠反向间隙过大引起")
-    logger.info(f"  [Fault Expert] 建议: 排查丝杠预紧力或更换丝杠副")
+    logger.info("  [Fault Expert] 综合所有信息")
+    logger.info("  [Fault Expert] 形成诊断结论: X 轴重复定位精度差，可能由丝杠反向间隙过大引起")
+    logger.info("  [Fault Expert] 建议: 排查丝杠预紧力或更换丝杠副")
     logger.info("  ✓ 诊断完成")
     logger.info("")
 
