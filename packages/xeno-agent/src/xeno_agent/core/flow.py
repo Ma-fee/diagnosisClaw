@@ -1,8 +1,14 @@
+from typing import TYPE_CHECKING
+
+from crewai import Agent
 from crewai.flow import Flow, human_feedback, listen, or_, router, start
 
 from xeno_agent.utils.logging import get_logger
 
 from .hitl import InteractionHandler
+
+if TYPE_CHECKING:
+    from xeno_agent.agents import AgentRegistry
 from .signals import (
     AskFollowupSignal,
     CompletionSignal,
@@ -35,13 +41,14 @@ class XenoSimulationFlow(Flow[SimulationState]):
 
     initial_state = SimulationState
 
-    def __init__(self, agent_registry, **kwargs):
+    def __init__(self, agent_registry: "AgentRegistry", **kwargs):
         super().__init__(**kwargs)
         self.agent_registry = agent_registry
 
     @start()
     def initialize(self):
         """Initializes the simulation state."""
+
         # Ensure we have at least one frame if not present
         if not self.state.stack:
             # Default to Q&A Assistant if no initial state
@@ -53,21 +60,31 @@ class XenoSimulationFlow(Flow[SimulationState]):
         """
         Executes the current agent on the top of the stack.
         """
+        from crewai import Task
+
         current_frame = self.state.stack[-1]
         logger.info(f"[Flow] Executing agent: {current_frame.mode_slug} (Task: {current_frame.task_id})")
 
         # Get agent from registry
-        agent = self.agent_registry.get(current_frame.mode_slug)
+        agent: Agent = self.agent_registry.get(current_frame.mode_slug)
 
         # Prepare context (conversation history) if not isolated
         context = ""
         if not current_frame.is_isolated:
             context = "\n".join([f"{msg['role']}: {msg['content']}" for msg in self.state.conversation_history])
 
-        # Execute agent
+        # Create CrewAI task from the current frame
+        task = Task(
+            description=current_frame.trigger_message + (f"\n\nContext:\n{context}" if context else ""),
+            expected_output=f"Result for task {current_frame.task_id}",
+            agent=agent,
+            tools=agent.tools,
+        )
+
+        # Execute task via CrewAI
         try:
-            # Execute agent via CrewAI
-            current_frame.result = agent.execute_sync()
+            result = task.execute_sync()
+            current_frame.result = result.raw if hasattr(result, "raw") else str(result)
             # Store result if needed, but mainly we look for signals raised by tools
 
         except SimulationSignal as e:

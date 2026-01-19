@@ -82,7 +82,7 @@ def demo_rfc001_4_role_flow():
         )
         .with_goal("快速识别用户问题类型并路由到合适的专家")
         .with_backstory("你是机械故障诊断系统的前台，负责区分简单问答和复杂故障诊断。")
-        .with_skills(["xeno_meta_switch_mode", "xeno_meta_new_task"])
+        .with_skill("xeno_meta_switch_mode", "xeno_meta_new_task")
         .build(),
     )
     logger.info("  ✓ QA Assistant")
@@ -97,7 +97,7 @@ def demo_rfc001_4_role_flow():
         )
         .with_goal("系统化分析复杂故障，规划诊断步骤，协调子任务执行")
         .with_backstory("你是资深的机械故障诊断专家，擅长系统化思维和协作调度。")
-        .with_skills(["xeno_meta_switch_mode", "xeno_meta_new_task", "xeno_meta_attempt_completion"])
+        .with_skill("xeno_meta_switch_mode", "xeno_meta_new_task", "xeno_meta_attempt_completion")
         .build(),
     )
     logger.info("  ✓ Fault Expert")
@@ -112,7 +112,7 @@ def demo_rfc001_4_role_flow():
         )
         .with_goal("分析技术图纸，指导物理操作诊断")
         .with_backstory("你是资深的设备工程师，精通机械结构、工作原理和现场诊断方法。")
-        .with_skills(["xeno_meta_switch_mode", "xeno_meta_new_task", "xeno_meta_attempt_completion"])
+        .with_skill("xeno_meta_switch_mode", "xeno_meta_new_task", "xeno_meta_attempt_completion")
         .build(),
     )
     logger.info("  ✓ Equipment Expert")
@@ -127,7 +127,7 @@ def demo_rfc001_4_role_flow():
         )
         .with_goal("快速检索技术手册、论文、标准，提供引用规范的摘要")
         .with_backstory("你是资深的资料研究员，擅长在庞大的知识库中定位信息并提炼要点。")
-        .with_skills(["search_engine"])
+        .with_skill("search_engine")
         .build(),
     )
     logger.info("  ✓ Material Assistant")
