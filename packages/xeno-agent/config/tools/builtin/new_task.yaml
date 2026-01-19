@@ -1,0 +1,27 @@
+name: new_task
+description: |
+  【委派子任务】
+  使用场景：
+  1. QA Assistant → Material Assistant: 简单信息查询
+  2. Fault Expert → Material Assistant: 查找资料/规格/图纸
+  3. Fault Expert → Equipment Expert (Worker): 分析图纸/诊断
+
+  动作：临时切换角色执行任务，返回后继续原流程
+  说明：子任务完成后自动返回当前角色，可使用子任务结果继续工作
+parameters:
+  mode:
+    type: string
+    description: The target agent mode.
+    required: true
+  message:
+    type: string
+    description: The task description.
+    required: true
+  expected_output:
+    type: string
+    description: The expected output criteria.
+    required: true
+python_module: "xeno_agent.tools.meta_tools"
+python_class: "NewTaskTool"
+metadata:
+  category: meta

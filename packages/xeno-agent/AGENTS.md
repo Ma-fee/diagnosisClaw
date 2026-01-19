@@ -8,10 +8,11 @@ packages/xeno-agent/
 ├── config/              # Agent roles, tools configuration (YAML)
 │   ├── roles/           # Agent role definitions (qa_assistant, fault_expert, etc.)
 │   └── tools/           # Tool definitions (search_engine, etc.)
+├── skills/              # Claude Skills definitions (SKILL.md)
 ├── src/xeno_agent/
 │   ├── agents/          # CrewAI agent building (XenoAgentBuilder)
-│   ├── core/            # Flow orchestration, signals, state management
-│   ├── skills/          # MCP tools and builtin meta tools
+│   ├── core/            # Flow orchestration, loaders (ToolLoader, SkillLoader)
+│   ├── tools/           # Executable tool implementations
 │   └── utils/            # Logging, config loading
 ├── examples/            # Usage examples (rfc_compliant_example.py)
 ├── tests/              # pytest test files
@@ -115,6 +116,8 @@ uv run ruff check . && uv run ruff format .
 - `thought_process` provides step-by-step reasoning instructions
 - `constraints` agent must-follow rules
 - `capabilities` what agent can do
+- **`tools`**: List of executable tools (loaded via ToolLoader)
+- **`skills`**: List of instructional skills (loaded via SkillLoader)
 - Example:
   ```yaml
   identifier: qa_assistant
@@ -122,6 +125,8 @@ uv run ruff check . && uv run ruff format .
   goal: Route user queries to appropriate experts
   tools:
     - switch_mode
+  skills:
+    - fa_skill_intent_classification
   thought_process: |
     1. Analyze user query
     2. If simple, answer directly
@@ -131,7 +136,7 @@ uv run ruff check . && uv run ruff format .
 ### CrewAI Integration
 - Use `XenoAgentBuilder` to construct CrewAI Agents
 - Agents require: `role`, `goal`, `backstory`, `tools`, `llm`
-- Backstory includes: backstory + thought_process + constraints + capabilities + examples
+- Backstory includes: backstory + thought_process + constraints + capabilities + examples + **Skill Instructions**
 - Use `@start`, `@listen()`, `@router()` decorators for flow control
 
 ### Comments & Documentation
@@ -159,18 +164,26 @@ agent = (XenoAgentBuilder(role_name="qa_assistant", ...)
 ```
 
 ### Creating a Tool
+1. **Implement Tool**: Create class in `src/xeno_agent/tools/`.
 ```python
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
+from ..core.tool_decorator import configured_tool
 
+@configured_tool("custom_tool")
 class CustomTool(BaseTool):
-    name: str = "custom_tool"
-    description: str = "Tool description for LLM"
-    args_schema: type[BaseModel] = InputSchema
-
-    def _run(self, arg1: str, arg2: int):
-        # Tool implementation
+    # name and description injected by @configured_tool
+    def _run(self, arg1: str):
         return result
+```
+2. **Configure Tool**: Create YAML in `config/tools/builtin/`.
+```yaml
+name: custom_tool
+description: Tool description
+parameters:
+  arg1:
+    type: string
+python_module: "xeno_agent.tools.your_module"
+python_class: "CustomTool"
 ```
 
 ### Flow Control
@@ -187,8 +200,8 @@ class CustomTool(BaseTool):
 - Hook will fail if code doesn't pass checks
 
 ## PROJECT-SPECIFIC NOTES
-- MCP tools are registered in `src/xeno_agent/skills/registry.py`
-- Tool names should NOT have prefixes (e.g., use `switch_mode`, not `xeno_meta_switch_mode`)
-- Agent roles are defined in `config/roles/*.yaml`
-- Signal exceptions inherit from `BaseException` for Flow interception
-- Use `uv` instead of `pip` for all dependency operations
+- Tools are defined in `src/xeno_agent/tools/` and configured in `config/tools/builtin/`.
+- Skills (instructions) are defined in `skills/<name>/SKILL.md`.
+- Agent roles are defined in `config/roles/*.yaml`.
+- Signal exceptions inherit from `BaseException` for Flow interception.
+- Use `uv` instead of `pip` for all dependency operations.

@@ -57,26 +57,17 @@ capabilities:
   - mechanical_expertise       # 机械专业知识
   - system_structure_analysis
 
+tasks:
+  - description: 分析技术图纸，指导物理操作诊断
+    expected_output: 诊断结论或操作指导结果
+
 tools:
-  - switch_mode      # 返回故障专家 (仅 Active 模式）
-  - new_task          # 若再次需要资料分析，仍可委派
-  - attempt_completion # 提交指导结果 (Active 模式）
+  - switch_mode
+  - new_task
+  - attempt_completion
 
-constraints:
-  - Worker 模式：完成单个分析任务，不切换角色
-  - Active 模式：指导操作，可返回 fault_expert 或完成
-  - 任何分析任务必须引用来源 (手册批次号、图纸编号）
-  - 必须基于技术原理，避免凭空猜测
-
-example_worker: |
-  示例 (Worker 模式):
-  用户/故障专家: "请分析该伺服驱动器接线图"
-  思考: 需要识别接线规范与故障点
-  执行: 分析图纸，识别可能短路/开路点
-  输出: "根据连接图 [图纸编号: ELEC-2024-001]，接触器线路可能存在故障，建议检查..."
-
-example_active: |
-  示例 (Active 模式):
-  故障专家: switch_mode("equipment_expert", "需要现场指导排查机械臂故障")
-  你: (Active 模式) "好的，我将接管。请按以下步骤操作..."
-  (后续提供逐步指导，或在无法继续时返回或完成)
+skills:
+  - fa_skill_maintenance
+  - fa_skill_equipment_knowledge
+  - fa_skill_image_analysis
+  - fa_skill_diagram_generation

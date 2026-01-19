@@ -4,7 +4,6 @@ from pathlib import Path
 import yaml
 from crewai import Agent
 
-from ..skills.registry import SkillRegistry
 from .builder import XenoAgentBuilder
 
 
@@ -57,14 +56,13 @@ class AgentRegistry:
         return self._agents.copy()
 
 
-def load_agent_from_yaml(yaml_path: str, agent_registry: AgentRegistry, skill_registry: SkillRegistry, llm=None):
+def load_agent_from_yaml(yaml_path: str, agent_registry: AgentRegistry, llm=None):
     """
     Load an agent from a YAML file and register it.
 
     Args:
         yaml_path: Path to YAML file
         agent_registry: Registry to register the agent to
-        skill_registry: Registry to resolve skills from
         llm: The LLM instance to use (passed to builder)
 
     YAML format:
@@ -73,6 +71,8 @@ def load_agent_from_yaml(yaml_path: str, agent_registry: AgentRegistry, skill_re
         backstory: "Agent backstory"
         skills:
           - skill_name
+        tools:
+          - tool_name
     """
     yaml_path_obj = Path(yaml_path)
     with yaml_path_obj.open("r") as f:
@@ -87,11 +87,14 @@ def load_agent_from_yaml(yaml_path: str, agent_registry: AgentRegistry, skill_re
     # Register creation function that rebuilds the agent each time
     def create_agent_creator(agent_data, mode):
         def creator(llm=None):
-            builder = XenoAgentBuilder(role_name, skill_registry)
+            builder = XenoAgentBuilder(role_name)
             if "goal" in data:
                 builder.with_goal(data["goal"])
             if "backstory" in data:
                 builder.with_backstory(data["backstory"])
+            if "tools" in data:
+                for tool in data["tools"]:
+                    builder.with_tool(tool)
             if "skills" in data:
                 for skill in data["skills"]:
                     builder.with_skill(skill)

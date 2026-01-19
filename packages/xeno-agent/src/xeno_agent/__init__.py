@@ -21,7 +21,8 @@ from .core import (
     XenoSimulationFlow,
 )
 from .llm import create_crewai_llm, get_llm_config, test_connection
-from .skills.registry import SkillRegistry, register_builtin_skills
+
+# Removed: from .skills.registry import SkillRegistry, register_builtin_skills
 
 __all__ = [
     "AgentRegistry",
@@ -30,7 +31,6 @@ __all__ = [
     "NewTaskSignal",
     "SimulationSignal",
     "SimulationState",
-    "SkillRegistry",
     "SwitchModeSignal",
     "TaskFrame",
     "UpdateTodoListSignal",
@@ -39,7 +39,6 @@ __all__ = [
     "create_crewai_llm",
     "get_llm_config",
     "load_agent_from_yaml",
-    "register_builtin_skills",
     "test_connection",
 ]
 

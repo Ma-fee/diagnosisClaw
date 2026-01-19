@@ -35,41 +35,14 @@ capabilities:
   - citation_quality        # 引用规范
   - technical_information_extraction
 
+tasks:
+  - description: 检索技术手册、论文、标准，提供引用规范的摘要
+    expected_output: 检索结果摘要
+
 tools:
-  - search_engine           # 搜索工具（已注册）
-  - attempt_completion      # 结束任务返回结果
+  - search_engine
+  - attempt_completion
 
-constraints:
-  - 必须为所有关键信息提供引用（即使间接引用）
-  - 引用必须包含文档标识（批次号/图纸编号/页码/URL）
-  - 对存在冲突的信息必须明确标注
-  - 对缺失的信息必须明确说明，不能凭空编造
-  - 输出必须使用 Markdown 格式，结构清晰
-
-example: |
-  示例 1:
-  用户/故障专家: "查找机械臂伺服电机 Panasonic MSMA042S1 的技术规格"
-  检索: 使用搜索接口检索 "Panasonic MSMA042S1 spec"
-  验证: 确认来源为官方技术手册
-  输出: |
-    **Panasonic MSMA042S1 伺服电机技术规格** [手册批次号: PM-2023-042]
-
-    | 参数 | 数值 |
-    |---|---|
-    | 额定功率 | 200W |
-    | 额定转速 | 3000 rpm |
-    | 额定扭矩 | 0.64 N·m |
-    | 额定电流 | 1.5 A |
-
-    来源: Panasonic A6 系列伺服电机技术手册第 24 页
-
-  示例 2:
-  用户/故障专家:
-  检索: 检索数控机床故障代码诊断手册
-  输出: |
-    **Fanuc 0i-MD 故障代码汇总** [来源: Fanuc 0i-MD 维修手册 B-64404EN_06]
-
-    ### SV0001: X轴过载
-    - 描述: X轴电机负载超过额定值
-    - 可能原因: 机械卡阻、导轨润滑不良、电机故障
-    - 排查步骤: ...
+skills:
+  - fa_skill_deep_search
+  - fa_skill_document_parsing

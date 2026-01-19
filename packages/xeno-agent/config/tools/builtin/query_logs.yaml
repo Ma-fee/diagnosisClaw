@@ -1,0 +1,17 @@
+name: query_logs
+description: Simulate querying system logs.
+parameters:
+  time_range:
+    type: string
+    description: Time range to query (e.g., "1h", "24h")
+    default: "1h"
+    required: false
+  keywords:
+    type: string
+    description: Keywords to filter logs
+    default: ""
+    required: false
+python_module: "xeno_agent.tools.diagnostic_tools"
+python_class: "QueryLogsTool"
+metadata:
+  category: functional

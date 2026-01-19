@@ -1,0 +1,16 @@
+name: deep_inspect
+description: Simulate deep inspection of system components.
+parameters:
+  component:
+    type: string
+    description: Component to inspect (e.g., "database", "api-gateway")
+    required: true
+  inspection_type:
+    type: string
+    description: Type of inspection (status, config, dependencies)
+    default: "status"
+    required: false
+python_module: "xeno_agent.tools.diagnostic_tools"
+python_class: "DeepInspectTool"
+metadata:
+  category: functional

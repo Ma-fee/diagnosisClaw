@@ -1,0 +1,11 @@
+name: query_knowledge_base
+description: Simulate querying diagnostic knowledge base.
+parameters:
+  query:
+    type: string
+    description: Search query for knowledge base
+    required: true
+python_module: "xeno_agent.tools.diagnostic_tools"
+python_class: "QueryKnowledgeBaseTool"
+metadata:
+  category: functional
