@@ -28,7 +28,6 @@ sys.path.append(str(Path(__file__).parent.parent / "src"))
 from xeno_agent import (
     AgentRegistry,
     InteractionHandler,
-    SimulationState,
     SkillRegistry,
     TaskFrame,
     XenoAgentBuilder,
@@ -73,7 +72,7 @@ def load_rfc_compliant_agents(llm, agent_registry, skill_registry):
             try:
                 # Use factory to capture loop variables correctly
                 def make_agent_creator(rn=role_name, rp=str(role_path)):
-                    def agent_creator(llm_param=None):
+                    def agent_creator(llm=None):
                         return (
                             XenoAgentBuilder(
                                 role_name=rn,
@@ -81,7 +80,7 @@ def load_rfc_compliant_agents(llm, agent_registry, skill_registry):
                                 config_loader=config_loader,
                             )
                             .from_yaml(rp)
-                            .with_llm(llm_param or llm)
+                            .with_llm(llm)
                             .build()
                         )
 
@@ -144,7 +143,8 @@ def run_rfc_compliant_demo(auto_approve: bool = True):
     """
 
     # Create initial state starting with QA Assistant
-    state = SimulationState(
+    flow = XenoSimulationFlow(
+        agent_registry=agent_registry,
         stack=[
             TaskFrame(
                 mode_slug="qa_assistant",  # Matches qa_assistant.yaml name
@@ -164,8 +164,6 @@ def run_rfc_compliant_demo(auto_approve: bool = True):
         is_terminated=False,
         last_signal=None,
     )
-
-    flow = XenoSimulationFlow(agent_registry=agent_registry, state=state)
 
     logger.info(f"\n{'=' * 70}")
     logger.info("            RFC 002 Compliant 4-Role Collaboration Demo")
@@ -208,7 +206,8 @@ def run_rfc_compliant_demo(auto_approve: bool = True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RFC 002 Compliant 4-Role Demo")
     parser.add_argument("--log-level", default="INFO", help="日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+    parser.add_argument("--auto-approve", action="store_true", help="自动批准所有 HITL 交互（无需手动输入）")
     args = parser.parse_args()
 
     setup_logging(args.log_level)
-    sys.exit(run_rfc_compliant_demo(auto_approve=True))
+    sys.exit(run_rfc_compliant_demo(auto_approve=args.auto_approve))

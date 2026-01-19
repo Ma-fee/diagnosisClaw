@@ -9,7 +9,10 @@ This module contains the fundamental building blocks of the simulation system:
 """
 
 from .flow import XenoSimulationFlow
-from .hitl import InteractionHandler, requires_approval
+from .hitl import (
+    InteractionHandler,
+    requires_approval,
+)
 from .signals import (
     AskFollowupSignal,
     CompletionSignal,

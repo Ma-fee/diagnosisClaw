@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from functools import wraps
 
 from xeno_agent.utils.logging import get_logger
 
@@ -16,12 +15,17 @@ class InteractionHandler:
     _auto_approve: bool = False
     _input_provider: Callable[[str], str] | None = None
 
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     @classmethod
     def set_auto_approve(cls, auto: bool):
         cls._auto_approve = auto
 
     @classmethod
-    def set_input_provider(cls, provider: Callable[[str], str]):
+    def set_input_provider(cls, provider: Callable[[str], str] | None):
         cls._input_provider = provider
 
     @classmethod
@@ -33,14 +37,22 @@ class InteractionHandler:
             logger.info(f"[AUTO-APPROVE] {message}")
             return True
 
-        response = input(f"[APPROVAL REQUIRED] {message} (y/n): ").strip().lower()
-        return response in ("y", "yes")
+        prompt = f"[APPROVAL REQUIRED] {message} (y/n): "
+        if cls._input_provider:
+            response = cls._input_provider(prompt)
+        else:
+            response = input(prompt)
+
+        return response.strip().lower() in ("y", "yes")
 
     @classmethod
     def get_input(cls, prompt: str) -> str:
         """
         Gets text input from the user.
         """
+        if cls._auto_approve:
+            return ""
+
         if cls._input_provider:
             return cls._input_provider(prompt)
 
@@ -51,6 +63,7 @@ def requires_approval(method):
     """
     Decorator for tool methods that require user approval before execution.
     """
+    from functools import wraps
 
     @wraps(method)
     def wrapper(self, *args, **kwargs):
