@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from crewai import Agent
+from crewai import Agent, Task
 from crewai.flow import Flow, human_feedback, listen, or_, router, start
 
 from xeno_agent.utils.logging import get_logger
@@ -41,12 +41,12 @@ class XenoSimulationFlow(Flow[SimulationState]):
 
     initial_state = SimulationState
 
-    def __init__(self, agent_registry: "AgentRegistry", **kwargs):
+    def __init__(self, agent_registry: "AgentRegistry", **kwargs) -> None:
         super().__init__(**kwargs)
         self.agent_registry = agent_registry
 
     @start()
-    def initialize(self):
+    def initialize(self) -> None:
         """Initializes the simulation state."""
 
         # Ensure we have at least one frame if not present
@@ -56,12 +56,13 @@ class XenoSimulationFlow(Flow[SimulationState]):
         logger.info(f"[Flow] Initialized in mode: {self.state.stack[-1].mode_slug}")
 
     @listen(or_(initialize, "execute_agent"))
-    def execute_agent_step(self):
+    def execute_agent_step(self) -> str:
         """
-        Executes the current agent on the top of the stack.
-        """
-        from crewai import Task
+        Executes current agent on top of stack.
 
+        Returns:
+            Next state transition identifier
+        """
         current_frame = self.state.stack[-1]
         logger.info(f"[Flow] Executing agent: {current_frame.mode_slug} (Task: {current_frame.task_id})")
 
@@ -100,10 +101,13 @@ class XenoSimulationFlow(Flow[SimulationState]):
             self.state.last_signal = None
             return "agent_completed"
 
-    def route(self):
+    def route(self) -> str:
         """
         The Kernel Router.
-        Inspects the last signal and determines the next state transition.
+        Inspects last signal and determines next state transition.
+
+        Returns:
+            Next state transition identifier
         """
         if self.state.is_terminated:
             return "finish"
@@ -178,9 +182,12 @@ class XenoSimulationFlow(Flow[SimulationState]):
         return "ask_completion_approval"
 
     @router(execute_agent_step)
-    def route_after_step(self):
+    def route_after_step(self) -> str:
         """
         Routes after agent execution step.
+
+        Returns:
+            Next state transition
         """
         return self.route()
 
@@ -191,19 +198,19 @@ class XenoSimulationFlow(Flow[SimulationState]):
         llm="gpt-4o-mini",
         default_outcome="continue",
     )
-    def get_completion_approval(self):
+    def get_completion_approval(self) -> str:
         """获取任务完成后的用户决策"""
         # 返回当前模式名称，作为上下文显示给用户
         return self.state.stack[-1].mode_slug
 
     @listen("continue")
-    def continue_in_same_mode(self, result):
+    def continue_in_same_mode(self, result: str) -> str:
         """继续当前模式"""
         # 不做任何操作，重新执行 Agent
         return "execute_agent"
 
     @listen("complete")
-    def finish_current_task(self, result):
+    def finish_current_task(self, result: str) -> str:
         """完成当前任务"""
         current_frame = self.state.stack.pop()
         logger.info(f"[Flow] Completed task: {current_frame.task_id}")
@@ -216,7 +223,7 @@ class XenoSimulationFlow(Flow[SimulationState]):
         return "execute_agent"
 
     @listen("restart")
-    def restart_flow(self, result):
+    def restart_flow(self, result: str) -> str:
         """重新开始 Flow"""
         # 重置状态
         self.state.stack = [self.state.stack[0]]  # 保留初始帧
@@ -225,9 +232,9 @@ class XenoSimulationFlow(Flow[SimulationState]):
         return "execute_agent"
 
     @listen("finish")
-    def handle_flow_termination(self):
+    def handle_flow_termination(self) -> str:
         """
-        Terminal handler for the 'finish' event.
+        Terminal handler for 'finish' event.
         Method name differs from event name to avoid infinite loop.
         Flow terminates when no listeners remain.
         """

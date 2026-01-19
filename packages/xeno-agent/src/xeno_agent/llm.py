@@ -6,15 +6,17 @@ Provides a centralized way to configure and create LLM instances using litellm.
 
 import os
 from pathlib import Path
+from typing import Any, Unpack
 
 from dotenv import load_dotenv
+from litellm import completion
 
 from xeno_agent.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
 
-def load_direnv_file(filepath: Path):
+def load_direnv_file(filepath: Path) -> None:
     """
     Manually parse a simple .envrc file (export KEY=VAL).
     """
@@ -78,8 +80,8 @@ def get_llm_config(
     api_base: str | None = None,
     model: str | None = None,
     api_key: str | None = None,
-    **kwargs,
-) -> dict:
+    **kwargs: Unpack[Any],
+) -> dict[str, Any]:
     """
     Create a configuration dict for LLM initialization.
 
@@ -133,22 +135,20 @@ def create_crewai_llm(
     api_base: str | None = None,
     model: str | None = None,
     api_key: str | None = None,
-    **kwargs,
-):
+    **kwargs: Unpack[Any],
+) -> str:
     """
     Create a CrewAI-compatible LLM instance.
 
     Args:
-        api_base: The base URL for the LLM API
+        api_base: The base URL for LLM API
         model: The model name to use
         api_key: The API key for authentication
         **kwargs: Additional parameters (temperature, max_tokens, etc.)
 
     Returns:
-        CrewAI LLM instance (LiteLLM adapter)
+        Model identifier string for CrewAI LLM initialization
     """
-    # Import litellm here
-
     # Get configuration
     config = get_llm_config(api_base=api_base, model=model, api_key=api_key, **kwargs)
 
@@ -165,28 +165,25 @@ def create_crewai_llm(
 
     os.environ["OPENAI_MODEL_NAME"] = lite_llm_model
 
-    # Return the model name string.
-    # CrewAI will use this string to initialize its internal LLM using LiteLLM.
+    # Return the model name string
     return lite_llm_model
 
     # The adapter below is deprecated in favor of CrewAI's native string support
     # class LiteLLMAdapter: ...
 
 
-def test_connection(api_base: str | None = None, model: str | None = None, api_key: str | None = None):
+def test_connection(api_base: str | None = None, model: str | None = None, api_key: str | None = None) -> bool:
     """
-    Test the connection to the LLM API.
+    Test the connection to LLM API.
 
     Args:
-        api_base: The base URL for the LLM API
+        api_base: The base URL for LLM API
         model: The model name to use
         api_key: The API key for authentication
 
     Returns:
         True if connection successful, False otherwise
     """
-    from litellm import completion
-
     config = get_llm_config(api_base=api_base, model=model, api_key=api_key)
     lite_llm_model = get_model_identifier(model)
 

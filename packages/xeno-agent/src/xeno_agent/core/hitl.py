@@ -32,6 +32,12 @@ class InteractionHandler:
     def ask_approval(cls, message: str) -> bool:
         """
         Asks the user for approval.
+
+        Args:
+            message: The approval message to display
+
+        Returns:
+            True if user approves, False otherwise
         """
         if cls._auto_approve:
             logger.info(f"[AUTO-APPROVE] {message}")
@@ -48,7 +54,7 @@ class InteractionHandler:
     @classmethod
     def get_input(cls, prompt: str) -> str:
         """
-        Gets text input from the user.
+        Gets text input from user.
         """
         if cls._auto_approve:
             return ""

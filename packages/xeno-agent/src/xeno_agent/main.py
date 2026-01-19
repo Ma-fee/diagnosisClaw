@@ -7,9 +7,12 @@ Provides a command-line interface for running agent simulations.
 import argparse
 import sys
 from pathlib import Path
+from typing import Any, Literal
 
 from xeno_agent import (
+    InteractionHandler,
     SimulationState,
+    TaskFrame,
     XenoSimulationFlow,
     create_crewai_llm,
     load_agent_from_yaml,
@@ -20,9 +23,12 @@ from xeno_agent.agents.registry import AgentRegistry, SkillRegistry
 from xeno_agent.utils.logging import get_logger, setup_logging
 
 logger = get_logger(__name__)
+# Agent registry and skill loading
+
+logger = get_logger(__name__)
 
 
-def setup_agents(agent_dir: Path, agent_registry: AgentRegistry, skill_registry: SkillRegistry, llm):
+def setup_agents(agent_dir: Path, agent_registry: AgentRegistry, skill_registry: SkillRegistry, llm: Any) -> None:
     """
     Load agents from YAML directory and register them with built-in skills.
 
@@ -52,25 +58,29 @@ def setup_agents(agent_dir: Path, agent_registry: AgentRegistry, skill_registry:
     logger.info(f"\nTotal agents registered: {len(agent_registry._agents)}")
 
 
-def run_simulation(prompt: str, initial_mode: str, agent_registry: AgentRegistry, auto_approve: bool = False):
+def run_simulation(
+    prompt: str,
+    initial_mode: str,
+    agent_registry: AgentRegistry,
+    hitl_provider: Any = None,
+) -> Literal[0, 1, 130]:
     """
-    Run a simulation with the given prompt.
+    Run a simulation with given prompt.
 
     Args:
         prompt: The initial user prompt
         initial_mode: The mode/agent to start with
-        auto_approve: Whether to auto-approve tool executions without asking
-    """
-    from xeno_agent import InteractionHandler
+        hitl_provider: The HITL provider to use
 
-    # Configure HITL
-    if auto_approve:
+    Returns:
+        Exit code: 0 for success, 1 for error, 130 for keyboard interrupt
+    """
+    # Configure HITL for legacy tools if provider has auto_approve attribute
+    if hitl_provider and hasattr(hitl_provider, "auto_approve") and hitl_provider.auto_approve:
         InteractionHandler.set_auto_approve(True)
         logger.info("Auto-approve enabled: Tools will execute without confirmation.\n")
 
     # Create initial state
-    from xeno_agent import InteractionHandler, TaskFrame
-
     state = SimulationState(
         stack=[
             TaskFrame(
@@ -78,17 +88,18 @@ def run_simulation(prompt: str, initial_mode: str, agent_registry: AgentRegistry
                 task_id="root_task",
                 trigger_message=prompt,
                 caller_mode=None,
-                is_isolated=False,
-            ),
+            )
         ],
-        conversation_history=[{"role": "user", "content": prompt}],
-        final_output=None,
+        conversation_history=[],
         is_terminated=False,
-        last_signal=None,
     )
 
-    # Create and run Flow (passing state through kwargs for proper initialization)
-    flow = XenoSimulationFlow(agent_registry=agent_registry, state=state)
+    # Create and run Flow
+    flow = XenoSimulationFlow(
+        agent_registry=agent_registry,
+        state=state,
+        hitl_provider=hitl_provider,
+    )
 
     logger.info("=== Starting Simulation ===")
     logger.info(f"Initial mode: {initial_mode}")
@@ -107,7 +118,7 @@ def run_simulation(prompt: str, initial_mode: str, agent_registry: AgentRegistry
         return 1
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(description="Xeno-Agent: Multi-agent simulation system")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -135,7 +146,12 @@ def main():
     run_parser.add_argument(
         "--auto-approve",
         action="store_true",
-        help="Auto-approve tool executions without asking",
+        help="Auto-approve tool executions without asking (Test Mode)",
+    )
+    run_parser.add_argument(
+        "--disable-hitl",
+        action="store_true",
+        help="Disable HITL completely (All interactions auto-approved)",
     )
     # LLM configuration
     run_parser.add_argument("--api-base", help="LLM API base URL")
@@ -167,8 +183,17 @@ def main():
 
         setup_agents(agent_dir, agent_registry, skill_registry, llm)
 
+        # Determine provider - these classes were removed, use None for now
+        provider = None
+        if args.disable_hitl:
+            logger.warning("HITL disabled via --disable-hitl. All interactions will be auto-approved.")
+            InteractionHandler.set_auto_approve(True)
+        elif args.auto_approve:
+            logger.info("Auto-approve enabled via --auto-approve.")
+            InteractionHandler.set_auto_approve(True)
+
         # Run simulation
-        return run_simulation(args.prompt, args.mode, agent_registry, args.auto_approve)
+        return run_simulation(args.prompt, args.mode, agent_registry, hitl_provider=provider)
 
     else:
         parser.print_help()

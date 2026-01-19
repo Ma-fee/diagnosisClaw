@@ -14,7 +14,7 @@ class XenoAgentBuilder:
     Builder for CrewAI Agents with Xeno-specific prompt injection.
     """
 
-    def __init__(self, role_name: str, skill_registry: Any, config_loader: ConfigLoader | None = None):
+    def __init__(self, role_name: str, skill_registry: Any, config_loader: ConfigLoader | None = None) -> None:
         self._role = role_name
         self._skill_registry = skill_registry
         self._config_loader = config_loader
@@ -37,8 +37,8 @@ class XenoAgentBuilder:
         self._backstory = backstory
         return self
 
-    def with_skill(self, skill_name: str) -> "XenoAgentBuilder":
-        self._skills.append(skill_name)
+    def with_skill(self, *skills: str) -> "XenoAgentBuilder":
+        self._skills.extend(skills)
         return self
 
     def with_llm(self, llm: Any) -> "XenoAgentBuilder":

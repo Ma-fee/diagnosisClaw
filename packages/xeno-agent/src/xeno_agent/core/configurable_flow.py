@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 
 class ConfigurableXenoFlow(XenoSimulationFlow):
-    def __init__(self, agent_registry, config_loader: ConfigLoader, flow_name: str, **kwargs):
+    def __init__(self, agent_registry, config_loader: ConfigLoader, flow_name: str, **kwargs) -> None:
         self.config_loader = config_loader
         self.flow_config = self.config_loader.load_flow_config(flow_name)
 
@@ -20,9 +20,16 @@ class ConfigurableXenoFlow(XenoSimulationFlow):
 
         self.setup_from_config()
 
-    def setup_from_config(self):
-        """Configure the flow based on YAML."""
-        # This is where we would interpret the flow config
+    def setup_from_config(self) -> None:
+        """Configure the flow based on YAML.
+
+        This is where we would interpret the flow config.
+        For Xeno's stack-based architecture, "flow" config might define:
+        1. Initial agent/task
+        2. Allowed transitions (optional constraints)
+        3. Global settings
+        """
+        # This is a placeholder for future flow configuration
         # For Xeno's stack-based architecture, "flow" config might define:
         # 1. Initial agent/task
         # 2. Allowed transitions (optional constraints)
@@ -30,7 +37,7 @@ class ConfigurableXenoFlow(XenoSimulationFlow):
 
         initial_mode = self.flow_config.get("initial_mode")
         if initial_mode:
-            # We might need a way to set the initial mode in the state if it's not already set
+            # We might need a way to set the initial mode in state if it's not already set
             pass
 
         logger.info(f"Flow configured from {self.flow_config.get('name', 'unnamed')}")
