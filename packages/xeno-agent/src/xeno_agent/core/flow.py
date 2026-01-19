@@ -5,8 +5,6 @@ from crewai.flow import Flow, human_feedback, listen, or_, router, start
 
 from xeno_agent.utils.logging import get_logger
 
-from .hitl import InteractionHandler
-
 if TYPE_CHECKING:
     from xeno_agent.agents import AgentRegistry
 from .signals import (
@@ -167,16 +165,16 @@ class XenoSimulationFlow(Flow[SimulationState]):
             return "execute_agent"
 
         if isinstance(last_signal, AskFollowupSignal):
-            # HITL Input
-            logger.info(f"[Flow] Agent asks: {last_signal.question}")
-            answer = InteractionHandler.get_input("Your Answer")
+            if self.state.auto_approve:
+                logger.info(f"[AUTO-APPROVE] Agent asks: {last_signal.question}")
+                # Record in history
+                self.state.conversation_history.append({"role": "assistant", "content": last_signal.question})
+                self.state.conversation_history.append({"role": "user", "content": "(Auto-approved)"})
+                self.state.last_signal = None
+                return "execute_agent"
 
-            # Record in history
-            self.state.conversation_history.append({"role": "assistant", "content": last_signal.question})
-            self.state.conversation_history.append({"role": "user", "content": answer})
-
-            self.state.last_signal = None
-            return "execute_agent"
+            # Route to the feedback collecting state
+            return "ask_human_feedback"
 
         # Default fallback: If no signal, ask for completion approval (HITL)
         return "ask_completion_approval"
@@ -231,8 +229,35 @@ class XenoSimulationFlow(Flow[SimulationState]):
         self.state.last_signal = None
         return "execute_agent"
 
+    @human_feedback(message="Please provide your answer to the agent's question")
+    def ask_human_feedback(self):
+        """
+        Requests feedback from the human when an AskFollowupSignal is received.
+        The message will be the question from the signal.
+        """
+        last_signal = self.state.last_signal
+        if isinstance(last_signal, AskFollowupSignal):
+            return last_signal.question
+        return "The agent has a follow-up question."
+
+    @listen(ask_human_feedback)
+    def handle_feedback(self, result):
+        """
+        Handles the result of the human feedback.
+        """
+        logger.info(f"[Flow] Received human feedback: {result.feedback}")
+
+        last_signal = self.state.last_signal
+        if isinstance(last_signal, AskFollowupSignal):
+            # Record in history
+            self.state.conversation_history.append({"role": "assistant", "content": last_signal.question})
+            self.state.conversation_history.append({"role": "user", "content": result.feedback})
+
+        self.state.last_signal = None
+        return "execute_agent"
+
     @listen("finish")
-    def handle_flow_termination(self) -> str:
+    def handle_flow_termination(self) -> str | None:
         """
         Terminal handler for 'finish' event.
         Method name differs from event name to avoid infinite loop.

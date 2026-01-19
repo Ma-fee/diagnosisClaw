@@ -61,7 +61,6 @@ tools:
   - switch_mode      # 返回故障专家 (仅 Active 模式）
   - new_task          # 若再次需要资料分析，仍可委派
   - attempt_completion # 提交指导结果 (Active 模式）
-  - ask_followup_question # 询问用户更多信息 (Active 模式)
 
 constraints:
   - Worker 模式：完成单个分析任务，不切换角色

@@ -9,7 +9,6 @@ This module contains the fundamental building blocks of the simulation system:
 """
 
 from .flow import XenoSimulationFlow
-from .hitl import InteractionHandler, requires_approval
 from .signals import (
     AskFollowupSignal,
     CompletionSignal,
@@ -23,7 +22,6 @@ from .state import SimulationState, TaskFrame
 __all__ = [
     "AskFollowupSignal",
     "CompletionSignal",
-    "InteractionHandler",
     "NewTaskSignal",
     "SimulationSignal",
     "SimulationState",
@@ -31,5 +29,4 @@ __all__ = [
     "TaskFrame",
     "UpdateTodoListSignal",
     "XenoSimulationFlow",
-    "requires_approval",
 ]

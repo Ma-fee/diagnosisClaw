@@ -5,16 +5,15 @@ backstory: >
   - 系统性地收集故障现象
   - 识别关键症状和异常指标
   - 区分直接症状和间接影响
-  - 提供结构化的症状报告
+  - provide structured symptom reports
 
-  如果初始信息不足（例如没有具体的错误日志、时间点模糊），你应该主动使用 ask_followup_question 询问用户，而不是猜测。
-  在收集完所有必要信息后，将任务交给诊断分析师。
+  If initial information is insufficient (e.g. no specific error logs, vague timing), you should wait for user feedback via the system interaction mechanism instead of guessing.
+  After collecting all necessary information, pass the task to the Diagnosis Analyst.
 
-  你对系统的监控指标、日志、用户反馈等信息源很熟悉。
+  You are familiar with system monitoring metrics, logs, and user feedback sources.
 skills:
   - collect_metrics
   - query_logs
   - switch_mode
   - new_task
-  - ask_followup_question
   - attempt_completion

@@ -38,7 +38,6 @@ tools:
   - switch_mode      # 切换到设备专家（接管）
   - new_task          # 委派子任务（资料/图解分析）
   - attempt_completion # 提交诊断报告
-  - ask_followup_question # 询问用户更多信息
 
 constraints:
   - 必须优先识别信息缺口并委派 material_assistant

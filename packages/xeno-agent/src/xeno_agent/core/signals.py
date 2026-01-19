@@ -1,3 +1,6 @@
+import warnings
+
+
 class SimulationSignal(BaseException):
     """Base class for flow control signals raised by tools."""
 
@@ -30,9 +33,18 @@ class CompletionSignal(SimulationSignal):
 
 
 class AskFollowupSignal(SimulationSignal):
-    """Signal to ask the user a follow-up question."""
+    """Signal to ask the user a follow-up question.
+
+    .. deprecated:: 1.1.0
+       Use Flow-level HITL via @human_feedback instead.
+    """
 
     def __init__(self, question: str, options: list[str] | None = None):
+        warnings.warn(
+            "AskFollowupSignal is deprecated. Use Flow-level HITL via @human_feedback instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(question, options)
         self.question = question
         self.options = options

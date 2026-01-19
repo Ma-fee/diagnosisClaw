@@ -25,4 +25,5 @@ class SimulationState(BaseModel):
     conversation_history: list[dict[str, str]] = Field(default_factory=list, description="Full conversation history (for non-isolated frames)")
     final_output: str | None = Field(None, description="Final result when simulation completes")
     is_terminated: bool = Field(False, description="Whether the simulation has terminated")
+    auto_approve: bool = Field(False, description="Whether to automatically approve HITL requests")
     last_signal: Any = Field(None, description="The last signal raised by an agent tool")

@@ -1,0 +1,301 @@
+name: information_verification Skill
+description: Rigorous information verification and source attribution protocols for ensuring accuracy, credibility, and reliability of technical claims and findings
+
+triggers:
+  - Verifying numerical data, statistics, or measurements
+  - Cross-checking technical specifications or implementation details
+  - Validating historical claims against established records
+  - Confirming scientific consensus through peer-reviewed literature
+  - Evaluating source credibility for research or troubleshooting
+
+# Information Verification and Sourcing Rules
+
+## Core Principle
+Maintain rigorous standards for information accuracy and source attribution to build trust and ensure diagnostic/research quality.
+
+## Verification Hierarchy
+
+### Source Quality Criteria
+Evaluate sources based on this hierarchy (highest to lowest):
+
+1. **Primary Sources** (HIGHEST PRIORITY)
+   - Original research papers and studies
+   - Official manufacturer documentation
+   - Direct statements from subject matter experts
+   - Equipment specifications and technical manuals
+   - Industry standards and regulations
+
+2. **Secondary Sources**
+   - Review articles and meta-analyses
+   - Technical analyses and commentaries
+   - Manufacturer service bulletins
+   - Industry white papers
+
+3. **Tertiary Sources**
+   - Encyclopedias and textbooks
+   - Summary articles and overview documents
+   - Technical reference guides
+   - Training materials
+
+4. **Unverified Sources** (LOWEST PRIORITY - Use with Caution)
+   - Forums and discussion boards (context only, NOT for factual claims)
+   - Blogs and social media (context only)
+   - User-generated content (context only)
+
+## Fact-Checking Protocol
+
+### 1. Numerical Data Verification
+**For all measurements, values, and specifications:**
+- Verify against original source documents
+- Check for unit consistency and accuracy
+- Validate measurement methods and conditions
+- Confirm tolerance ranges and acceptable values
+
+**Example**: "Bearing temperature shall not exceed 80°C[^iso_10816]"
+- Verify source contains exact specification
+- Confirm temperature conditions (normal load, ambient, etc.)
+- Check measurement method used in source
+
+### 2. Technical Specifications Cross-Check
+**For equipment parameters and technical details:**
+- Cross-reference manufacturer documentation
+- Verify against multiple manuals/spec sheets
+- Confirm model/year compatibility
+- Check for updates or revisions
+
+**Example**: "Hydraulic system pressure: 34.5 MPa[^cat_manual_2023]"
+- Verify in official Caterpillar manual
+- Cross-check with service bulletin
+- Confirm model-specific applicability
+
+### 3. Historical Claims Validation
+**For claims about events, dates, or history:**
+- Verify against established historical records
+- Cross-reference multiple sources
+- Check primary documentation
+- Confirm timeline accuracy
+
+**Example**: "The E-series excavator was introduced in 2019[^cat_release_note]"
+- Verify manufacturer release notes
+- Cross-check industry publications
+- Confirm with product catalogs
+
+### 4. Scientific Consensus Confirmation
+**For technical principles or scientific claims:**
+- Verify through peer-reviewed literature
+- Check multiple authoritative sources
+- Confirm current consensus view
+- Identify any controversies or competing theories
+
+**Example**: "Vibration analysis requires iso 10816 compliance[^iso_standard]"
+- Verify ISO standard exists and is current
+- Check industry adoption
+- Confirm alignment with best practices
+
+## Source Citation Requirements
+
+### Academic Sources
+**Required elements:**
+- Author name(s)
+- Document title
+- Journal or publication name
+- Publication year
+- Volume and issue numbers
+- Page numbers
+- DOI (Digital Object Identifier)
+
+**Example**:
+```
+[^smith_vibration]: Smith, J. "Advanced Vibration Analysis Techniques,"
+Journal of Mechanical Systems, vol. 45, no. 3, pp. 123-145, 2022.
+DOI: 10.1234/jms.2022.045
+```
+
+### Web Sources
+**Required elements:**
+- Author (if available)
+- Document title or page heading
+- Website/publication name
+- Full URL
+- Access date (for time-sensitive content)
+
+**Example**:
+```
+[^cat_hydraulic]: Caterpillar, "Hydraulic System Troubleshooting Guide,"
+Caterpillar Service Manual, https://cat.com/service/hydraulic-guide,
+accessed 2024-01-15
+```
+
+### Technical Documentation
+**Required elements:**
+- Software or equipment name
+- Version or model number
+- Section or chapter reference
+- Document type (manual, specification, etc.)
+- URL or document identifier
+
+**Example**:
+```
+[^cat_manual]: Caterpillar 320 Excavator, Technical Manual,
+Section 3: Hydraulic Systems, 2022 Edition,
+https://cat.com/manuals/320-tech-manual
+```
+
+### News Sources
+**Required elements:**
+- Author (if published)
+- Headline or article title
+- Publication name
+- Publication date
+- Full URL
+
+**Example**:
+```
+[^industry_news_Chen]: Chen, L., "New Excavator Models Released,"
+Construction Weekly, 2023-09-15, https://constructionweekly.com/news/excavator-release
+```
+
+## Transparency Standards
+
+### 1. Distinguishing Verified vs. Interpreted Information
+- Clearly label verified facts with citations
+- Explicitly state when information is interpretation
+- Separate consensus from controversial claims
+- Provide context for conflicting information
+
+### 2. Uncertainty Acknowledgment
+When information is uncertain or contested:
+- Explicitly state the uncertainty
+- Present multiple perspectives with citations
+- Explain the reasons for the uncertainty
+- Provide confidence level if applicable
+
+**Example**:
+```markdown
+Maintenance intervals are typically 500 hours[^cat_suggested], though
+operator conditions may warrant more frequent service per [
+*expert_recommenDation]. Confidence: High based on industry consensus.
+
+[^cat_suggested]: Caterpillar Maintenance Schedule, Recommended
+Service Intervals, 2023
+
+[^expert_recommendation]: Heavy Equipment Maintenance Association,
+Best Practices Guide, 2022
+```
+
+### 3. Limitations Statement
+- Acknowledge limitations in available information
+- Identify information gaps
+- Suggest areas requiring further research
+- Provide scope statements for claims
+
+## Plagiarism Prevention
+
+### 1. Paraphrasing Standards
+- Always paraphrase information rather than copying directly
+- Maintain original meaning while using your own words
+- Provide proper attribution even when paraphrasing
+- Use quotation marks for direct quotes with full citation
+
+**Direct Quote (with attribution)**:
+```markdown
+As stated in the ISO standard: "Andersson vibration shall not exceed
+4.5 mm/s RMS" under normal operating conditions[^iso_10816].
+```
+
+**Paraphrased (with attribution)**:
+```markdown
+According to ISO standards, permissible vibration is limited to 4.5 mm/s RMS
+during normal operation[^iso_10816].
+```
+
+### 2. Attribution Requirements
+- Cite the original source even when paraphrasing
+- Maintain clear boundaries between original analysis and sourced information
+- Provide credit to original authors or publications
+- Use footnote system for traceability
+
+## Image Reference Verification Protocol
+
+### Critical Rule for Image References
+**Before including any <figure> tag, verify that:**
+1. The user has actually provided an image URL in the conversation history
+2. If no image URL exists, the response must NOT contain any <figure> references
+3. Treat image references as factual claims requiring the same source verification as statistics or technical specifications
+
+### Allowed Image Sources (Source Whitelist)
+- ✅ Tool call results (search_tool, kb_query, db_fetch, etc.)
+- ✅ User-provided content in conversation context
+- ✅ System resource paths: /resources/{resource_id}
+- ✅ Verified repository file paths
+
+### Prohibited Image Sources
+- ❌ Training data memory ("usually...", "typically...")
+- ❌ Unverified external URLs
+- ❌ Hypothetical references
+- ❌ Fabricated or hallucinated image URLs
+
+## Quality Assurance Checklist
+
+### Before Publishing or Delivering Information, Verify:
+1. [ ] All factual claims have citations
+2. [ ] Citations follow the required format
+3. [ ] Sources are from the verification hierarchy
+4. [ ] Numerical data is verified against originals
+5. [ ] Technical specifications are cross-checked
+6. [ ] Confidence levels are stated for uncertain claims
+7. [ ] No unverified sources are used for factual claims
+8. [ ] All sources are traceable and verifiable
+9. [ ] Paraphrasing is used instead of copying
+10. [ ] Original attribution is provided
+
+### Document Review Process
+1. **Initial Draft**: Collect sources and verify all claims
+2. **Citation Check**: Ensure all claims have proper citations
+3. **Cross-Reference**: Verify claims against multiple sources
+4. **Confidence Assessment**: Evaluate certainty of each claim
+5. **Final Review**: Check transparency and completeness
+
+## Application Examples
+
+### Verified Technical Claim
+```markdown
+The hydraulic pump relief valve is set to 38 MPa (5500 psi)[^cat_manual], which
+exceeds the ISO 4414 minimum requirement of 35.5 MPa by 7%[^iso_minor_standard].
+This provides additional safety margin for emergency stops.
+
+[^cat_manual]: Caterpillar 320 Technical Manual, Section 3: Hydraulic
+System, Relief Valve Specifications, 2022 Edition
+
+[^iso_minor_standard]: ISO 4414:2020, Hydraulic fluid power - General rules
+relating to systems, Section 5.2: System Pressures
+```
+
+### Claim with Confidence Assessment
+```markdown
+Based on operator feedback and case studies, bearing failures typically occur
+at intervals between 2000-2500 operating hours under normal conditions[^industry_case_study].
+However, actual failure intervals may vary significantly based on maintenance
+practices and operating environment. Confidence: Medium based on industry survey data.
+
+[^industry_case_study]: Construction Equipment Maintenance Association,
+Bearing Failure Analysis Report, 2021, pp. 45-67
+```
+
+### Multi-Source Verification
+```markdown
+Manufacturer documentation suggests oil replacement at 500 hours[^cat_maintenance],
+while industry best practices recommend 400 hours under heavy-duty conditions[^aem_guide].
+For operations in dusty environments or high ambient temperatures, more frequent
+changes (300 hours) are recommended by independent technical experts[
+*expert_analysis].
+
+[^cat_maintenance]: Caterpillar Maintenance Schedule, Recommended Service
+Intervals, 2023 Technical Manual
+
+[^aem_guide]: Association of Equipment Manufacturers, Best Practices for
+Heavy Equipment Maintenance, 2022
+
+[^expert_analysis]: Heavy Equipment Services, Maintenance Optimization Guide,
+2023
+```

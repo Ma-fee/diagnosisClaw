@@ -12,7 +12,6 @@ from .agents import (
 from .core import (
     AskFollowupSignal,
     CompletionSignal,
-    InteractionHandler,
     NewTaskSignal,
     SimulationSignal,
     SimulationState,
@@ -20,7 +19,6 @@ from .core import (
     TaskFrame,
     UpdateTodoListSignal,
     XenoSimulationFlow,
-    requires_approval,
 )
 from .llm import create_crewai_llm, get_llm_config, test_connection
 from .skills.registry import SkillRegistry, register_builtin_skills
@@ -29,7 +27,6 @@ __all__ = [
     "AgentRegistry",
     "AskFollowupSignal",
     "CompletionSignal",
-    "InteractionHandler",
     "NewTaskSignal",
     "SimulationSignal",
     "SimulationState",
@@ -43,7 +40,6 @@ __all__ = [
     "get_llm_config",
     "load_agent_from_yaml",
     "register_builtin_skills",
-    "requires_approval",
     "test_connection",
 ]
 

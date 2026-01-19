@@ -2,6 +2,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import yaml
+from crewai import Agent
 
 from ..skills.registry import SkillRegistry
 from .builder import XenoAgentBuilder
@@ -27,7 +28,7 @@ class AgentRegistry:
         """
         self._agents[mode_slug] = creator
 
-    def get(self, mode_slug: str, llm_for_get=None):
+    def get(self, mode_slug: str, llm_for_get=None) -> Agent:
         """
         Retrieve an agent from the registry.
 

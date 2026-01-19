@@ -1,0 +1,323 @@
+name: image_handling_skill
+description: Comprehensive image processing and formatting for fault diagnosis workflows, including proper figure structure, annotation details, and source verification for inclusion of technical diagrams and visual aids
+
+triggers:
+  - Querying about diagnostic flow charts, troubleshooting diagrams, or schematics
+  - Need to display component locations, measurement procedures, or technical drawings
+  - Presenting step-by-step repair procedures with visual aids
+  - Including equipment schematics or system diagrams in responses
+
+# Image Handling and Inclusion Rules
+
+## Core Principle
+All images returned from queries MUST be rendered using proper figure structure with comprehensive annotations and citation sources to support fault diagnosis and troubleshooting.
+
+## Mandatory Image Inclusion Rules
+
+### 1. Figure Structure Format
+**Every image MUST be formatted using the proper HTML5 <figure> tag:**
+
+```html
+<figure>
+    <img src="%image_url%" title="%image_title%"/>
+    <figcaption>
+        <p>%figure_number%: %figure_name%</p>
+        <p>%detailed_purpose_description%</p>
+        <p>%annotation_detail%</p>
+        <p>%citation_source%</p>
+    </figcaption>
+</figure>
+```
+
+### 2. Figure Element Requirements
+
+#### Figure Name and Number
+- **figure_name**: Descriptive name of the image (e.g., "Hydraulic System Schematic", "Bearing Assembly Diagram")
+- **figure_number**: Reference number from source or sequential number for documentation purposes
+
+#### Detailed Purpose Description
+- **Detailed purpose**: Explain what the image shows visually
+- **Text/step correspondence**: Which specific text sections or steps it corresponds to
+- **Diagnostic/repair utility**: How it aids in diagnosis, troubleshooting, or repair
+- **Technical specifications**: Any standard values or specifications displayed in the image
+
+#### Annotation Detail
+**CRITICAL**: Must include ALL details from the sources:
+- Figure caption or title from the original document
+- Legend explaining symbols, colors, or line types
+- Labels and annotations on the diagram
+- Component identifiers and part numbers
+- Measurement units and scales
+- Any notes or warnings associated with the image
+
+#### Citation Source
+- Source document title and identifier
+- Page number or section reference
+- Year or version of the source
+- URL or DOI if available
+- Follow the verification protocols for source accuracy
+
+### 3. Image Type Prioritization
+**Prioritize images that show:**
+- **Diagnostic flow charts** and troubleshooting diagrams
+- **Component location** and identification (part numbers, positions)
+- **Measurement procedures** and standard values
+- **Technical specifications** and schematics (electrical, hydraulic, mechanical)
+- **Step-by-step repair procedures** with visual guidance
+
+## Image Processing Rules
+
+### Critical Processing Requirements
+
+#### 1. Format Every Image Properly
+- **FORMAL REQUIREMENT**: Format every image with valid HTML5 <figure> tag
+- **Complete structure**: Include all required elements (img, figcaption, p tags)
+- **Proper nesting**: Ensure correct HTML nesting and closing tags
+- **Accessibility**: Provide meaningful alt text and title attributes
+
+#### 2. NEVER Fabricate or Hallucinate Image References
+- **Prohibited**: If no image is provided in the conversation, do NOT include any <figure> tags
+- **Verification**: Confirm image URLs are real and accessible
+- **Accuracy**: Do not create imaginary figure numbers or names
+- **Source verification**: Ensure images exist in the specified source
+
+#### 3. Provide Detailed Purpose Descriptions
+For each image, explain:
+
+**What it shows visually:**
+- System components and their relationships
+- Measurement points and test locations
+- Assembly or disassembly sequences
+- Failure modes and symptom indicators
+
+**Text/step correspondence:**
+- Which troubleshooting step this supports
+- Which section of the diagnosis plan it illustrates
+- Which procedure or SOP it relates to
+
+**Technical specifications displayed:**
+- Standard values (pressures, temperatures, voltages)
+- Tolerance ranges and acceptable limits
+- Component specifications (sizes, capacities, ratings)
+- Measurement requirements and accuracy
+
+## Source Whitelist (MANDATORY)
+
+### ALLOWED Sources Only
+- ✅ **Tool call results**: search_tool, kb_query, db_fetch, and other verified retrieval tools
+- ✅ **User-provided content**: Links and uploads in the current conversation context
+- ✅ **System resource paths**: Verified paths like /resources/{resource_id}
+- ✅ **Verified repository files**: Files stored in the project repository
+
+### PROHIBITED Sources (Never Use)
+- ❌ **Training data memory**: "usually...", "typically...", or general patterns from training
+- ❌ **Unverified external URLs**: Links not explicitly provided or verified
+- ❌ **Hypothetical references**: Imagined or hypothetical image locations
+- ❌ **General descriptions**: Descriptions without actual image backing
+
+## Image Content Requirements by Use Case
+
+### Diagnostic Flowcharts
+**Required elements:**
+- Decision points with clear logic paths
+- Symptom-to-cause mapping
+- Measurement steps with expected values
+- Go/no-go checkpoints
+- Safety warnings and critical steps
+
+**Annotation requirements:**
+- Decision criteria for each branch
+- Expected measurement ranges
+- Reference to test procedures
+- Component identification (part numbers)
+- Source of the flowchart (manual, SOP, etc.)
+
+### Component Location Diagrams
+**Required elements:**
+- Clear component labeling
+- Position references (front/left/top, etc.)
+- Adjacent components for context
+- Access paths and clearances
+- Tools required for access
+
+**Annotation requirements:**
+- Part numbers and component names
+- Assembly/disassembly sequences
+- Replacement warnings (torque specs, sequencing)
+- Safety notes (disconnect power, depressurize, etc.)
+- Reference to service manual sections
+
+### Measurement Procedure Diagrams
+**Required elements:**
+- Measurement point locations
+- Test equipment setup
+- Required tools and gauges
+- Standard value ranges
+- Acceptable vs. unacceptable indications
+
+**Annotation requirements:**
+- Measurement method details
+- Procedure steps numbering
+- Setup requirements (environment, conditions)
+- Data recording format
+- Pass/fail criteria
+
+### Technical Specifications and Schematics
+**Required elements:**
+- Complete circuit/hydraulic/mechanical system depiction
+- Component symbols and values
+- Connection points and routing
+- Ratings and capacities
+- Reference designators
+
+**Annotation requirements:**
+- Symbol legend
+- Component part numbers
+- Voltage/current/pressure ratings
+- Wire sizes, pipe diameters, or dimensions
+- Reference to specification documents
+
+### Step-by-Step Repair Procedures
+**Required elements:**
+- Sequential visual steps
+- Tools required at each step
+- Safety precautions per step
+- Critical torque or adjustment values
+- Quality checkpoints
+
+**Annotation requirements:**
+- Step numbers and descriptions
+- Hazards and warnings
+- Special tool requirements
+- Measurement checkpoints
+- Completed step appearance
+
+## Application Examples
+
+### Example 1: Diagnostic Flowchart
+```html
+<figure>
+    <img src="/resources/fault-guides/hydraulic-pump-flowchart.png"
+         title="Hydraulic Pump Troubleshooting Flowchart"/>
+    <figcaption>
+        <p>Figure 1: Hydraulic Pump Diagnostic Flowchart</p>
+        <p>This flowchart provides systematic troubleshooting guidance for Caterpillar 320
+        excavator hydraulic pump failure symptoms. It covers the diagnosis process from
+        initial symptom identification through root cause determination.</p>
+        <p>Annotations: Blue boxes indicate measurement checkpoints with standard
+        pressure ranges (20-25 MPa normal). Red diamonds represent critical
+        decision points requiring operator confirmation. Green boxes represent
+        successful resolution paths. All measurements should be taken at operating
+        temperature with machine in neutral and engine at 1800 RPM.</p>
+        <p>Source: Caterpillar 320 Service Manual, Section 4: Hydraulic System
+        Diagnosis, Technical Publication No. SEBF01234, 2023 Edition,
+        Page 45</p>
+    </figcaption>
+</figure>
+```
+
+### Example 2: Component Location Diagram
+```html
+<figure>
+    <img src="/resources/components/main-bearing-location.png"
+         title="Main Bearing Assembly Location"/>
+    <figcaption>
+        <p>Figure 3: Main Bearing Assembly - Component Location</p>
+        <p>Depicts the location and access path for the main bearing assembly on the
+        Caterpillar 320 excavator swing motor. This diagram corresponds to Step 4
+        of the bearing replacement procedure and provides visual reference for component
+        identification and disassembly sequencing.</p>
+        <p>Annotations: ①-Cover bolts (6x M12, 90 Nm torque sequence), ②-Bearing
+        housing cap, ③-Oil seal (38 mm ID, replacement required), ④-Bearing outer race.
+        Component ①-④ must be removed in numbered sequence. Note: Apply thread
+        locker to cover bolts (part no. 7P-1234). Allow oil to drain for at
+        least 15 minutes before disassembly.</p>
+        <p>Source: Caterpillar 320 Components Catalog, Section 2: Swing Drive
+        Assembly, Figure 2.3, 2022 Edition</p>
+    </figcaption>
+</figure>
+```
+
+### Example 3: Measurement Procedure
+```html
+<figure>
+    <img src="/resources/measurement/vibration-test-setup.png"
+         title="Vibration Measurement Setup"/>
+    <figcaption>
+        <p>Figure 5: ISO 10816 Vibration Measurement Point Configuration</p>
+        <p>Shows the accelerometer placement and measurement setup for swing motor
+        bearing vibration assessment according to ISO 10816 standards. This setup
+        supports the vibration diagnosis procedure in Section 3.4 of the diagnostic plan.</p>
+        <p>Annotations: A-Accelerometer mounting stub (magnetic mount required),
+        B-Measurement plane (axial - parallel to shaft), C-Measurement zone (bearing
+        housing surface 50 mm from bearing face), T-Testing conditions (machine at
+        operating temperature, normal load, stabilized speed). Collect data for 30
+        seconds minimum. Acceptable values: < 4.5 mm/s RMS at 1800 RPM, > 7.0 mm/s
+        RMS requires immediate shutdown.</p>
+        <p>Source: ISO 10816:2018, Mechanical vibration - Measurement and
+        evaluation of machine vibration, Figure B.3, Page 25</p>
+    </figcaption>
+</figure>
+```
+
+## Quality Assurance Checklist
+
+### Before Including an Image, Verify:
+- [ ] Image URL exists and is accessible
+- [ ] Image source is on the whitelist (verified source)
+- [ ] <figure> tag structure is complete and valid
+- [ ] All required elements are present (figure_number, figure_name, descriptions)
+- [ ] Annotations include all details from source
+- [ ] Citation source is complete and accurate
+- [ ] Image matches the diagnostic/repair step it supports
+- [ ] Technical specifications in annotations are verified
+- [ ] Purpose description explains how image aids diagnosis
+- [ ] HTML structure is properly nested and closed
+
+### Source Verification for Images:
+- [ ] Source document is verified and authoritative
+- [ ] Page/section reference is accurate
+- [ ] Year or version of source is specified
+- [ ] URL or DOI for source is provided
+- [ ] Image is not fabricated or hallucinated
+- [ ] All annotations match source document exactly
+
+### Purpose Description Verification:
+- [ ] Explains what image shows visually
+- [ ] Identifies which text/step it corresponds to
+- [ ] Describes how it aids diagnosis or repair
+- [ ] Lists all technical specifications shown
+- [ ] Provides context for interpretation
+
+## Special Considerations
+
+### Multi-Image Sequences
+- Use sequential figure numbering (Figure 1, Figure 2, Figure 3...)
+- Number figures in diagnostic/repair procedure order
+- Cross-reference related figures in annotations (e.g., "see Figure 3 for detail")
+- Maintain consistent annotation style across sequence
+
+### Mobile-First Design
+- Ensure figures are responsive and scale properly
+- Test on mobile device viewports (< 768px width)
+- Provide responsive captions that don't overflow
+- Consider image compression for faster mobile loading
+
+### Accessibility
+- Provide meaningful alt text for screen readers
+- Ensure color contrast in diagrams meets accessibility standards
+- Alternative text descriptions when images are complex
+- Keyboard navigable figure references when possible
+
+### Error Prevention
+If uncertain about any of the following:
+- Image URL accuracy or accessibility
+- Source verification status
+- Annotation completeness
+- Citation formatting
+
+**DO NOT include the image**. Instead:
+1. State that image information is incomplete or cannot be verified
+2. Request user to provide the image or verify source
+3. Proceed with text-based explanation only
+4. Note the limitation in the response

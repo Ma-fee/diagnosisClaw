@@ -29,7 +29,6 @@ capabilities:
 tools:
   - switch_mode  # 切换到故障专家
   - new_task      # 委派给资料助手
-  - ask_followup_question # 询问用户更多信息
   - attempt_completion    # 结束任务
 
 constraints:

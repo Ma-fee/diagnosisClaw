@@ -122,7 +122,6 @@ uv run ruff check . && uv run ruff format .
   goal: Route user queries to appropriate experts
   tools:
     - switch_mode
-    - ask_followup_question
   thought_process: |
     1. Analyze user query
     2. If simple, answer directly
@@ -178,7 +177,7 @@ class CustomTool(BaseTool):
 - Use `SwitchModeSignal` for GOTO (complete role switch)
 - Use `NewTaskSignal` for GOSUB (temporary delegation)
 - Use `CompletionSignal` for RETURN (task completion)
-- Use `AskFollowupSignal` for HITL (user interaction)
+- Use `@human_feedback` decorator for HITL (user interaction) - *`AskFollowupSignal` is deprecated*
 - Signals must call `super().__init__()` for proper pickling
 
 ## PRECOMMIT HOOKS

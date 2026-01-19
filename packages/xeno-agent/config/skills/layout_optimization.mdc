@@ -1,0 +1,26 @@
+name: layout_optimization_skill
+description: Guidelines for optimizing output layout for mobile-first reading and quick information absorption.
+
+triggers:
+  - Generating long-form content or reports
+  - Formatting diagnostic results
+  - Creating user-facing explanations
+  - Structuring complex technical information
+
+# Output Requirement
+
+## Core Principles
+- All output must follow **mobile-first principles**.
+- Use a **"conclusion-first + hierarchical expansion"** structure.
+- **Max 2 heading levels** deeper than the root.
+- **Paragraphs max 2-3 lines**.
+
+## Visual Hierarchy
+- **Highlight key information** with bold text or quote blocks.
+- **Prioritize visuals**: Mermaid diagrams and 2-4 column tables > text descriptions.
+- **Include captions** for all images and tables.
+- **Avoid nested lists** (deep indentation is bad on mobile).
+- **Avoid horizontal scrolling** (code blocks/tables should be compact).
+
+## Speed Readability
+- Ensure **core points can be grasped within 3 seconds** on the first screen.

@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 from xeno_agent import (
-    InteractionHandler,
     SimulationState,
     TaskFrame,
     XenoSimulationFlow,
@@ -62,7 +61,7 @@ def run_simulation(
     prompt: str,
     initial_mode: str,
     agent_registry: AgentRegistry,
-    hitl_provider: Any = None,
+    auto_approve: bool = False,
 ) -> Literal[0, 1, 130]:
     """
     Run a simulation with given prompt.
@@ -70,14 +69,13 @@ def run_simulation(
     Args:
         prompt: The initial user prompt
         initial_mode: The mode/agent to start with
-        hitl_provider: The HITL provider to use
+        agent_registry: Registry containing agents
+        auto_approve: Whether to auto-approve tool executions
 
     Returns:
         Exit code: 0 for success, 1 for error, 130 for keyboard interrupt
     """
-    # Configure HITL for legacy tools if provider has auto_approve attribute
-    if hitl_provider and hasattr(hitl_provider, "auto_approve") and hitl_provider.auto_approve:
-        InteractionHandler.set_auto_approve(True)
+    if auto_approve:
         logger.info("Auto-approve enabled: Tools will execute without confirmation.\n")
 
     # Create initial state
@@ -88,17 +86,17 @@ def run_simulation(
                 task_id="root_task",
                 trigger_message=prompt,
                 caller_mode=None,
-            )
+            ),
         ],
         conversation_history=[],
         is_terminated=False,
+        auto_approve=auto_approve,
     )
 
     # Create and run Flow
     flow = XenoSimulationFlow(
         agent_registry=agent_registry,
         state=state,
-        hitl_provider=hitl_provider,
     )
 
     logger.info("=== Starting Simulation ===")
@@ -183,17 +181,17 @@ def main() -> int:
 
         setup_agents(agent_dir, agent_registry, skill_registry, llm)
 
-        # Determine provider - these classes were removed, use None for now
-        provider = None
+        # Determine auto-approve
+        auto_approve = False
         if args.disable_hitl:
             logger.warning("HITL disabled via --disable-hitl. All interactions will be auto-approved.")
-            InteractionHandler.set_auto_approve(True)
+            auto_approve = True
         elif args.auto_approve:
             logger.info("Auto-approve enabled via --auto-approve.")
-            InteractionHandler.set_auto_approve(True)
+            auto_approve = True
 
         # Run simulation
-        return run_simulation(args.prompt, args.mode, agent_registry, hitl_provider=provider)
+        return run_simulation(args.prompt, args.mode, agent_registry, auto_approve=auto_approve)
 
     else:
         parser.print_help()

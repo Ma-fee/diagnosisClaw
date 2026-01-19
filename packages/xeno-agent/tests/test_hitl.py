@@ -2,7 +2,25 @@
 Tests for HITL (Human-in-the-Loop) components.
 """
 
-from xeno_agent.simulation import InteractionHandler, requires_approval
+import pytest
+
+from xeno_agent.core.hitl import (
+    AutoApproveProvider,
+    ConsoleFeedbackProvider,
+    InteractionHandler,
+    human_feedback,
+    requires_approval,
+)
+
+
+@pytest.fixture(autouse=True)
+def reset_interaction_handler():
+    """Reset InteractionHandler state before each test."""
+    InteractionHandler.set_auto_approve(False)
+    InteractionHandler.set_input_provider(None)
+    yield
+    InteractionHandler.set_auto_approve(False)
+    InteractionHandler.set_input_provider(None)
 
 
 def test_interaction_handler_singleton():
@@ -32,7 +50,7 @@ def test_set_input_provider():
         return "test_input"
 
     handler.set_input_provider(custom_input)
-    assert handler._input_provider is custom_input
+    assert InteractionHandler._input_provider is custom_input
 
 
 def test_ask_approval_with_auto_approve():
@@ -40,7 +58,7 @@ def test_ask_approval_with_auto_approve():
     handler = InteractionHandler()
     handler.set_auto_approve(True)
 
-    approved = handler.ask_approval("Execute tool?", ["tool", "arg1"])
+    approved = handler.ask_approval("Execute tool?")
 
     assert approved is True
 
@@ -50,7 +68,7 @@ def test_ask_approval_with_custom_provider():
     handler = InteractionHandler()
     handler.set_input_provider(lambda prompt: "y")
 
-    approved = handler.ask_approval("Execute tool?", ["tool", "arg1"])
+    approved = handler.ask_approval("Execute tool?")
 
     assert approved is True
 
@@ -85,3 +103,64 @@ def test_decorator_preserves_function_doc():
         return "result"
 
     assert my_tool.__doc__ == "This is my tool."
+
+
+def test_console_feedback_provider():
+    """Test ConsoleFeedbackProvider uses InteractionHandler."""
+    provider = ConsoleFeedbackProvider()
+    InteractionHandler.set_input_provider(lambda x: "console_input")
+
+    # Test with string context
+    assert provider.request_feedback("Test Message", None) == "console_input"
+
+    # Test with object context
+    class Context:
+        message = "Msg"
+        method_output = "Output"
+
+    assert provider.request_feedback(Context, None) == "console_input"
+
+
+def test_auto_approve_provider():
+    """Test AutoApproveProvider returns 'approved'."""
+    provider = AutoApproveProvider()
+    assert provider.request_feedback("Any", None) == "approved"
+
+
+def test_human_feedback_decorator_flow():
+    """Test human_feedback decorator works with Flow provider."""
+
+    class MockFlow:
+        hitl_provider = AutoApproveProvider()
+
+    flow = MockFlow()
+
+    @human_feedback(message="Test", emit=["approved", "rejected"])
+    def method(self):
+        return "original_result"
+
+    # Manually bind
+    bound = method.__get__(flow, MockFlow)
+
+    # AutoApproveProvider returns "approved", which is in emit list
+    assert bound() == "approved"
+
+
+def test_human_feedback_decorator_default_provider():
+    """Test human_feedback decorator falls back to Console/InteractionHandler."""
+
+    class MockFlow:
+        # No hitl_provider
+        pass
+
+    flow = MockFlow()
+
+    InteractionHandler.set_input_provider(lambda x: "manual_input")
+
+    @human_feedback(message="Test")
+    def method(self):
+        return "original"
+
+    bound = method.__get__(flow, MockFlow)
+
+    assert bound() == "manual_input"

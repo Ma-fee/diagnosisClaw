@@ -27,7 +27,6 @@ sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from xeno_agent import (
     AgentRegistry,
-    InteractionHandler,
     SkillRegistry,
     TaskFrame,
     XenoAgentBuilder,
@@ -99,23 +98,7 @@ def load_rfc_compliant_agents(llm, agent_registry, skill_registry):
 def run_rfc_compliant_demo(auto_approve: bool = True):
     """
     Run RFC 002 compliant demonstration scenario.
-
-    Scenario flow:
-    1. User reports NC machine X-axis accuracy issue
-    2. QA Assistant detects complex fault → switches to Fault Expert
-    3. Fault Expert delegates subtasks:
-       - Material Assistant: retrieve mechanical structure drawings
-       - Material Assistant: retrieve servo motor specifications
-    4. Equipment Expert analyzes drawings (Worker mode)
-    5. Fault Expert synthesizes results → needs on-site guidance
-    6. Fault Expert switches to Equipment Expert (Active mode)
-    7. Equipment Expert provides step-by-step guidance
-    8. Equipment Expert returns/ Fault Expert completes
     """
-    # Configure HITL
-    if auto_approve:
-        InteractionHandler.set_auto_approve(True)
-
     # Create LLM
     try:
         llm = create_crewai_llm()
@@ -162,6 +145,7 @@ def run_rfc_compliant_demo(auto_approve: bool = True):
         ],
         final_output=None,
         is_terminated=False,
+        auto_approve=auto_approve,
         last_signal=None,
     )
 
