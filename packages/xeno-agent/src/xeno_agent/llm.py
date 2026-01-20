@@ -150,23 +150,14 @@ def create_crewai_llm(
         Model identifier string for CrewAI LLM initialization
     """
     # Get configuration
-    config = get_llm_config(api_base=api_base, model=model, api_key=api_key, **kwargs)
 
     # Convert model name to liteLLM format (provider/model)
-    lite_llm_model = get_model_identifier(model)
+    return get_model_identifier(model)
 
     # Set environment variables for LiteLLM (used by CrewAI internally)
     # CrewAI/LiteLLM defaults to looking for OPENAI_API_BASE/KEY for openai-compatible providers
-    if config.get("api_base"):
-        os.environ["OPENAI_API_BASE"] = config["api_base"]
-
-    if config.get("api_key"):
-        os.environ["OPENAI_API_KEY"] = config["api_key"]
-
-    os.environ["OPENAI_MODEL_NAME"] = lite_llm_model
 
     # Return the model name string
-    return lite_llm_model
 
     # The adapter below is deprecated in favor of CrewAI's native string support
     # class LiteLLMAdapter: ...

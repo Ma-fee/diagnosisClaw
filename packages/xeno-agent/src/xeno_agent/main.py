@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 from xeno_agent import (
-    SimulationState,
     TaskFrame,
     XenoSimulationFlow,
     create_crewai_llm,
@@ -70,8 +69,9 @@ def run_simulation(
     if auto_approve:
         logger.info("Auto-approve enabled: Tools will execute without confirmation.\n")
 
-    # Create initial state
-    state = SimulationState(
+    # Create and run Flow
+    flow = XenoSimulationFlow(
+        agent_registry=agent_registry,
         stack=[
             TaskFrame(
                 mode_slug=initial_mode,
@@ -83,12 +83,6 @@ def run_simulation(
         conversation_history=[],
         is_terminated=False,
         auto_approve=auto_approve,
-    )
-
-    # Create and run Flow
-    flow = XenoSimulationFlow(
-        agent_registry=agent_registry,
-        state=state,
     )
 
     logger.info("=== Starting Simulation ===")

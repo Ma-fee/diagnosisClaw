@@ -1,7 +1,7 @@
 """
 Example: RFC 002 Compliant 4-Role Fault Diagnosis Scenario.
 
-This is an updated version using new 4-role collaboration model.
+This is an updated version using the new 4-role collaboration model.
 运行方式:
     uv run python examples/diagnosis_scenario.py --log-level INFO
 
@@ -20,14 +20,11 @@ sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from xeno_agent import (
     AgentRegistry,
-    InteractionHandler,
     SimulationState,
-    SkillRegistry,
     TaskFrame,
     XenoAgentBuilder,
     XenoSimulationFlow,
     create_crewai_llm,
-    register_builtin_skills,
 )
 from xeno_agent.config_loader import ConfigLoader
 
@@ -43,7 +40,7 @@ def setup_logging(level: str = "INFO"):
     )
 
 
-def setup_diagnosis_agents(llm, agent_registry, skill_registry):
+def setup_diagnosis_agents(llm, agent_registry):
     """Load all diagnosis-related agents using RFC 002 4-role model."""
     # Point to config/roles instead of src/xeno_agent/agents
     config_root = str(Path(__file__).parent.parent / "config")
@@ -73,23 +70,26 @@ def setup_diagnosis_agents(llm, agent_registry, skill_registry):
         role_path = agents_dir / f"{role_name}.yaml"
         if role_path.exists():
             try:
-                # Use factory to capture loop variables correctly
-                def make_agent_creator(rn=role_name, rp=str(role_path)):
-                    def agent_creator(llm_param=None):
-                        return (
-                            XenoAgentBuilder(
-                                role_name=rn,
-                                skill_registry=skill_registry,
-                                config_loader=config_loader,
-                            )
-                            .from_yaml(rp)
-                            .with_llm(llm_param or llm)
-                            .build()
+                role_builder = XenoAgentBuilder(
+                    role_name=role_name,
+                    config_loader=config_loader,
+                )
+
+                role_builder.from_yaml(str(role_path)).with_llm(llm)
+
+                # Register with correct API
+                def agent_creator(llm=None, path=role_path, role_name=role_name):
+                    return (
+                        XenoAgentBuilder(
+                            role_name=role_name,
+                            config_loader=config_loader,
                         )
+                        .from_yaml(str(path))
+                        .with_llm(llm or llm)
+                        .build()
+                    )
 
-                    return agent_creator
-
-                agent_registry.register(mode_slug=role_name, creator=make_agent_creator())
+                agent_registry.register(mode_slug=role_name, creator=agent_creator)
 
                 logger.info(f"✓ Loaded RFC 002 role: {role_name}.yaml")
             except Exception as e:
@@ -107,8 +107,8 @@ def run_diagnosis_scenario(incident_description: str, auto_approve: bool = True)
         auto_approve: Whether to auto-approve tool executions
     """
     # Configure HITL
-    if auto_approve:
-        InteractionHandler.set_auto_approve(True)
+    # if auto_approve:
+    #     InteractionHandler.set_auto_approve(True)
 
     # Create LLM
     # Note: Ensure OPENAI_API_KEY or similar is set in environment
@@ -122,14 +122,10 @@ def run_diagnosis_scenario(incident_description: str, auto_approve: bool = True)
         raise e
 
     # Instantiate registries
-    skill_registry = SkillRegistry()
     agent_registry = AgentRegistry()
 
-    # Register built-in skills (includes diagnostic tools)
-    register_builtin_skills(skill_registry)
-
     # Load diagnosis agents
-    setup_diagnosis_agents(llm, agent_registry, skill_registry)
+    setup_diagnosis_agents(llm, agent_registry)
 
     # Create initial state with QA Assistant as first step (RFC 002 4-role model)
     # Use identifier not display name for mode_slug
@@ -138,12 +134,12 @@ def run_diagnosis_scenario(incident_description: str, auto_approve: bool = True)
             TaskFrame(
                 mode_slug="qa_assistant",  # Must match role identifier for registry
                 task_id="incident_001",
-                trigger_message=incident,
+                trigger_message=incident_description,
                 caller_mode=None,
                 is_isolated=False,
             ),
         ],
-        conversation_history=[{"role": "user", "content": incident}],
+        conversation_history=[{"role": "user", "content": incident_description}],
         final_output=None,
         is_terminated=False,
         last_signal=None,
@@ -169,6 +165,7 @@ def run_diagnosis_scenario(incident_description: str, auto_approve: bool = True)
         return 130
     except Exception as e:
         logger.error(f"\n\n模拟失败: {e}")
+
         traceback.print_exc()
         return 1
 

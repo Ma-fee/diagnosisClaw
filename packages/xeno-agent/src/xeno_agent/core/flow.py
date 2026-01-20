@@ -192,9 +192,8 @@ class XenoSimulationFlow(Flow[SimulationState]):
     @listen("ask_completion_approval")
     @human_feedback(
         message="Agent 已完成任务，是否继续？",
-        emit=["continue", "complete", "restart"],
-        llm="gpt-4o-mini",
-        default_outcome="continue",
+        # emit=["continue", "complete", "restart"],
+        # default_outcome="continue",
     )
     def get_completion_approval(self) -> str:
         """获取任务完成后的用户决策"""

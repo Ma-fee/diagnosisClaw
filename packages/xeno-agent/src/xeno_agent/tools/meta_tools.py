@@ -21,20 +21,20 @@ class SwitchModeTool(BaseTool):
     """
 
     class Input(BaseModel):
-        mode_slug: str = Field(..., description="The slug of the mode to switch to.")
-        reason: str = Field(..., description="The reason for switching.")
+        target: str = Field(..., description="The target agent mode/role (e.g. 'FaultExpert').")
+        reason: str = Field(default="Switching context", description="The reason for switching.")
 
     args_schema: type[BaseModel] = Input
 
-    def _run(self, mode_slug: str, reason: str) -> None:
+    def _run(self, target: str, reason: str = "Switching context") -> None:
         """
         Execute tool - raises signal to be caught by Flow.
 
         Args:
-            mode_slug: The slug of the mode to switch to
+            target: The target agent mode/role
             reason: The reason for switching
         """
-        raise SwitchModeSignal(target_mode=mode_slug, reason=reason)
+        raise SwitchModeSignal(target_mode=target, reason=reason)
 
 
 class NewTaskTool(BaseTool):
@@ -51,22 +51,26 @@ class NewTaskTool(BaseTool):
     """
 
     class Input(BaseModel):
-        mode: str = Field(..., description="The target agent mode.")
-        message: str = Field(..., description="The task description.")
-        expected_output: str = Field(..., description="The expected output criteria.")
+        target: str = Field(..., description="The target agent mode/role.")
+        message: str = Field(default="", description="The task description.")
+        expected_output: str = Field(default="", description="The expected output criteria.")
 
     args_schema: type[BaseModel] = Input
 
-    def _run(self, mode: str, message: str, expected_output: str) -> None:
+    def _run(self, target: str, message: str = "", expected_output: str = "") -> None:
         """
         Execute tool - raises signal for new task delegation.
 
         Args:
-            mode: The target agent mode
+            target: The target agent mode/role
             message: The task description
             expected_output: The expected output criteria
         """
-        raise NewTaskSignal(target_mode=mode, message=message, expected_output=expected_output)
+        if not message:
+            message = f"Delegate task to {target}"
+        if not expected_output:
+            expected_output = "Task result"
+        raise NewTaskSignal(target_mode=target, message=message, expected_output=expected_output)
 
 
 class AttemptCompletionTool(BaseTool):

@@ -1,7 +1,8 @@
+import os
 from pathlib import Path
 from typing import Any
 
-from crewai import Agent
+from crewai import LLM, Agent
 
 from xeno_agent.config_loader import ConfigLoader
 from xeno_agent.core.skill_loader import SkillLoader
@@ -152,4 +153,19 @@ class XenoAgentBuilder:
 
         full_backstory = "\n\n".join(prompt_parts)
 
-        return Agent(role=self._role, goal=self._goal, backstory=full_backstory, tools=agent_tools, llm=self._llm, allow_delegation=self._allow_delegation, verbose=self._verbose)
+        # Ensure LLM is set for function calling
+        llm_instance = self._llm
+        if llm_instance is None:
+            model_name = os.environ.get("OPENAI_MODEL_NAME", "gpt-4")
+            llm_instance = LLM(model=model_name)
+
+        return Agent(
+            role=self._role,
+            goal=self._goal,
+            backstory=full_backstory,
+            tools=agent_tools,
+            llm=llm_instance,
+            function_calling_llm=llm_instance,
+            allow_delegation=self._allow_delegation,
+            verbose=self._verbose,
+        )
