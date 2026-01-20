@@ -362,7 +362,7 @@ fabric.properties
 **/build
 
 # Documentation directories (anywhere in the tree)
-**/docs/
+# **/docs/
 
 # Plan directories (anywhere in the tree)
 **/plans/
