@@ -34,7 +34,7 @@ class StatePersistence(Protocol):
 class ConfigLoader(Protocol):
     """Loads agent definitions."""
 
-    def load_agent_config(self, agent_id: str) -> dict[str, Any]: ...
+    def load_agent_config(self, agent_id: str) -> Any: ...
 
     def list_agents(self) -> list[str]: ...
 
@@ -43,7 +43,7 @@ class ConfigLoader(Protocol):
 class WorkflowLoader(Protocol):
     """Loads workflow definitions."""
 
-    def load_flow_config(self, flow_id: str) -> dict[str, Any]: ...
+    def load_flow_config(self, flow_id: str) -> Any: ...
 
 
 @runtime_checkable
