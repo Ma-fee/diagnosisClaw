@@ -2,7 +2,7 @@
 Configuration-driven Flow extension of XenoSimulationFlow.
 """
 
-from xeno_agent.utils.logging import get_logger
+from ..utils.logging import get_logger
 
 from ..config_loader import ConfigLoader
 from .flow import XenoSimulationFlow

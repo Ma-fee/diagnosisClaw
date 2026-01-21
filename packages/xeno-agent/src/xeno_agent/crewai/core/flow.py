@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING
 from crewai import Agent, Task
 from crewai.flow import Flow, human_feedback, listen, or_, router, start
 
-from xeno_agent.utils.logging import get_logger
+from ..utils.logging import get_logger
 
 if TYPE_CHECKING:
-    from xeno_agent.agents import AgentRegistry
+    from ..agents import AgentRegistry
 from .signals import (
     AskFollowupSignal,
     CompletionSignal,

@@ -7,7 +7,7 @@ as specified in RFC 002.
 
 import re
 
-from xeno_agent.utils.logging import get_logger
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 

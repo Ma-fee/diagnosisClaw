@@ -11,7 +11,7 @@ from typing import Any, Unpack
 from dotenv import load_dotenv
 from litellm import completion
 
-from xeno_agent.utils.logging import get_logger
+from .utils.logging import get_logger
 
 logger = get_logger(__name__)
 

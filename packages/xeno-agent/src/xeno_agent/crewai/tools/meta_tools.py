@@ -1,7 +1,7 @@
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-from xeno_agent.utils.logging import get_logger
+from ..utils.logging import get_logger
 
 from ..core.signals import AskFollowupSignal, CompletionSignal, NewTaskSignal, SwitchModeSignal
 

@@ -1,12 +1,15 @@
 """
-Xeno-agent package.
+CrewAI-based implementation of xeno-agent.
 
-A multi-agent system with support for multiple frameworks.
-Current implementation: CrewAI
+This subpackage contains the CrewAI-specific implementation of the xeno-agent framework.
 """
 
-from .crewai import (
+from .agents import (
     AgentRegistry,
+    XenoAgentBuilder,
+    load_agent_from_yaml,
+)
+from .core import (
     AskFollowupSignal,
     CompletionSignal,
     NewTaskSignal,
@@ -15,15 +18,9 @@ from .crewai import (
     SwitchModeSignal,
     TaskFrame,
     UpdateTodoListSignal,
-    XenoAgentBuilder,
     XenoSimulationFlow,
-    create_crewai_llm,
-    get_llm_config,
-    load_agent_from_yaml,
-    test_connection,
 )
-
-# Removed: from .skills.registry import SkillRegistry, register_builtin_skills
+from .llm import create_crewai_llm, get_llm_config, test_connection
 
 __all__ = [
     "AgentRegistry",
@@ -42,5 +39,3 @@ __all__ = [
     "load_agent_from_yaml",
     "test_connection",
 ]
-
-__version__ = "0.1.0"

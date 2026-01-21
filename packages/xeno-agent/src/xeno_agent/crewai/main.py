@@ -9,15 +9,15 @@ import sys
 from pathlib import Path
 from typing import Any, Literal
 
-from xeno_agent import (
+from .. import (
     TaskFrame,
     XenoSimulationFlow,
     create_crewai_llm,
     load_agent_from_yaml,
     test_connection,
 )
-from xeno_agent.agents.registry import AgentRegistry
-from xeno_agent.utils.logging import get_logger, setup_logging
+from .agents.registry import AgentRegistry
+from .utils.logging import get_logger, setup_logging
 
 logger = get_logger(__name__)
 

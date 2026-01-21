@@ -4,8 +4,8 @@ from typing import Any
 import yaml
 from crewai.tools import BaseTool
 
-from xeno_agent.tool_factory import DynamicToolFactory
-from xeno_agent.utils.logging import get_logger
+from ..tool_factory import DynamicToolFactory
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 

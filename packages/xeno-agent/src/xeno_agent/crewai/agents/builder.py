@@ -4,10 +4,10 @@ from typing import Any
 
 from crewai import LLM, Agent
 
-from xeno_agent.config_loader import ConfigLoader
-from xeno_agent.core.skill_loader import SkillLoader
-from xeno_agent.core.tool_loader import ToolLoader
-from xeno_agent.utils.logging import get_logger
+from ..config_loader import ConfigLoader
+from ..core.skill_loader import SkillLoader
+from ..core.tool_loader import ToolLoader
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
