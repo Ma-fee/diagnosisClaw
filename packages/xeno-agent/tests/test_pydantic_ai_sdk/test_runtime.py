@@ -3,36 +3,48 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic_ai import RunContext
 
-from xeno_agent.pydantic_ai.interfaces import AgentResult
+from xeno_agent.pydantic_ai.models import FlowConfig
 from xeno_agent.pydantic_ai.runtime import delegate_task
 from xeno_agent.pydantic_ai.trace import TraceID
 
 
 # Mock Deps Structure
-class MockConfig:
-    def __init__(self, allow_delegation_to=None):
-        self.allow_delegation_to = allow_delegation_to or []
-
-
 class MockDeps:
-    def __init__(self, config=None, trace=None, factory=None):
-        self.config = config or MockConfig()
+    def __init__(self, flow=None, trace=None, factory=None):
+        self.flow = flow or FlowConfig(
+            name="Test",
+            description="Test",
+            entry_agent="a",
+            participants=["a"],
+            global_instructions="",
+            delegation_rules={},
+        )
         self.trace = trace or TraceID.new()
         self.factory = factory
 
     def child(self, target):
-        return MockDeps(config=self.config, trace=self.trace.child(target), factory=self.factory)
+        return MockDeps(flow=self.flow, trace=self.trace.child(target), factory=self.factory)
 
 
 @pytest.mark.asyncio
 async def test_delegate_task_permission_denied():
     # Setup
-    deps = MockDeps(config=MockConfig(allow_delegation_to=["agent_b"]))
+    flow = FlowConfig(
+        name="Test",
+        description="Test",
+        entry_agent="agent_a",
+        participants=["agent_a", "agent_b", "agent_c"],
+        global_instructions="",
+        delegation_rules={"agent_a": {"allow_delegation_to": ["agent_b"]}},
+    )
+    # Current agent is agent_a
+    trace = TraceID.new().child("agent_a")
+    deps = MockDeps(flow=flow, trace=trace)
     ctx = MagicMock(spec=RunContext)
     ctx.deps = deps
 
     # Act & Assert
-    with pytest.raises(PermissionError, match="Delegation to agent_c not allowed"):
+    with pytest.raises(PermissionError, match="Delegation from agent_a to agent_c not allowed"):
         await delegate_task(ctx, "agent_c", "task")
 
 
@@ -40,7 +52,15 @@ async def test_delegate_task_permission_denied():
 async def test_delegate_task_cycle_detection():
     # Setup: Trace path is already ["agent_a", "agent_b"]
     trace = TraceID.new().child("agent_a").child("agent_b")
-    deps = MockDeps(config=MockConfig(allow_delegation_to=["agent_a"]), trace=trace)
+    flow = FlowConfig(
+        name="Test",
+        description="Test",
+        entry_agent="agent_a",
+        participants=["agent_a", "agent_b"],
+        global_instructions="",
+        delegation_rules={"agent_b": {"allow_delegation_to": ["agent_a"]}},
+    )
+    deps = MockDeps(flow=flow, trace=trace)
     ctx = MagicMock(spec=RunContext)
     ctx.deps = deps
 
@@ -56,7 +76,7 @@ async def test_delegate_task_max_depth_exceeded():
     for i in range(6):  # Depth 6 > Default 5
         trace = trace.child(f"agent_{i}")
 
-    deps = MockDeps(config=MockConfig(allow_delegation_to=["next_agent"]), trace=trace)
+    deps = MockDeps(trace=trace)
     ctx = MagicMock(spec=RunContext)
     ctx.deps = deps
 
@@ -69,12 +89,24 @@ async def test_delegate_task_max_depth_exceeded():
 async def test_delegate_task_success():
     # Setup
     mock_agent = AsyncMock()
-    mock_agent.run.return_value = AgentResult(data="Success", metadata={})
+    # PydanticAI Agent.run returns a result object with .data
+    result_mock = MagicMock()
+    result_mock.data = "Success"
+    mock_agent.run.return_value = result_mock
 
     mock_factory = MagicMock()
-    mock_factory.load.return_value = mock_agent
+    mock_factory.create.return_value = mock_agent
 
-    deps = MockDeps(config=MockConfig(allow_delegation_to=["agent_b"]), factory=mock_factory)
+    flow = FlowConfig(
+        name="Test",
+        description="Test",
+        entry_agent="agent_a",
+        participants=["agent_a", "agent_b"],
+        global_instructions="",
+        delegation_rules={"agent_a": {"allow_delegation_to": ["agent_b"]}},
+    )
+    trace = TraceID.new().child("agent_a")
+    deps = MockDeps(flow=flow, trace=trace, factory=mock_factory)
     ctx = MagicMock(spec=RunContext)
     ctx.deps = deps
     ctx.usage = MagicMock()
@@ -84,9 +116,9 @@ async def test_delegate_task_success():
 
     # Assert
     assert result == "Success"
-    mock_factory.load.assert_called_with("agent_b")
+    mock_factory.create.assert_called_with("agent_b", flow)
     mock_agent.run.assert_called_once()
     # Check that child deps were passed
     call_kwargs = mock_agent.run.call_args.kwargs
     assert "deps" in call_kwargs
-    assert call_kwargs["deps"].trace.path == ["agent_b"]  # Assuming root was empty
+    assert call_kwargs["deps"].trace.path == ["agent_a", "agent_b"]

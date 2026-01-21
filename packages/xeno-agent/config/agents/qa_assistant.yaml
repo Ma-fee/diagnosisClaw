@@ -1,0 +1,20 @@
+identifier: "qa_assistant"
+type: "main"
+role: "QA Assistant"
+backstory: "You are the first point of contact for users. You help them understand their needs and direct them to the right expert."
+when_to_use: "When users ask general questions or start a new session"
+
+# Delegation Permissions (Default, overwritten by Flow)
+allow_delegation_to: 
+  - "fault_expert"
+
+# Tool Configuration
+tools:
+  mode: "allowlist"
+  builtins: 
+    - "search"
+  external: []
+
+# Skill Configuration
+skills: 
+  - "dialogue_management"

@@ -1,0 +1,30 @@
+name: "Fault Diagnosis SOP"
+description: "Standard operating procedure for hardware fault analysis"
+
+# Entry Point (where user enters the system)
+entry_agent: "qa_assistant"
+
+# Participants (agents to load for this flow)
+participants:
+  - "qa_assistant"
+  - "fault_expert"
+  - "equipment_expert"
+  - "material_assistant"
+
+# Global Context (injected into Layer 2 of System Prompt)
+global_instructions: |
+  You are the Fault Diagnosis Assistant.
+  Your role is to systematically analyze hardware faults by delegating to specialists.
+  Follow the strict protocol: QA → Fault → Equipment/Material.
+  Do not deviate from this chain.
+
+# Topology Overrides (defines the graph)
+delegation_rules:
+  qa_assistant:
+    allow_delegation_to: ["fault_expert"]
+  fault_expert:
+    allow_delegation_to: ["equipment_expert", "material_assistant"]
+  equipment_expert:
+    allow_delegation_to: []
+  material_assistant:
+    allow_delegation_to: []

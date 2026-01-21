@@ -1,9 +1,8 @@
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-from ..utils.logging import get_logger
-
 from ..core.signals import AskFollowupSignal, CompletionSignal, NewTaskSignal, SwitchModeSignal
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 

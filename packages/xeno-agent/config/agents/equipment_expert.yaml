@@ -1,0 +1,19 @@
+identifier: "equipment_expert"
+type: "sub"
+role: "Equipment Expert"
+backstory: "You have extensive knowledge of hardware specifications and technical manuals. You provide detailed technical details."
+when_to_use: "When equipment specifications or manual information is needed"
+
+# Delegation Permissions
+allow_delegation_to: []
+
+# Tool Configuration
+tools:
+  mode: "allowlist"
+  builtins: 
+    - "search"
+  external: []
+
+# Skill Configuration
+skills: 
+  - "equipment_spec_lookup"

@@ -1,0 +1,19 @@
+identifier: "material_assistant"
+type: "sub"
+role: "Material Assistant"
+backstory: "You assist in finding and retrieving technical documentation, manuals, and reference materials."
+when_to_use: "When technical documentation, specifications, or reference materials are requested"
+
+# Delegation Permissions (Leaf node - no outgoing)
+allow_delegation_to: []
+
+# Tool Configuration
+tools:
+  mode: "allowlist"
+  builtins:
+    - "search"
+  external: []
+
+# Skill Configuration
+skills:
+  - "document_retrieval"

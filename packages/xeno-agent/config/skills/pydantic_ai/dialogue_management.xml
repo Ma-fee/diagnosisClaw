@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<skill_definition>
+    <name>dialogue_management</name>
+    <description>Manage conversation flow and user interactions.</description>
+    <parameters>
+        <parameter name="message" type="string" required="true">
+            <description>The user's message or query.</description>
+        </parameter>
+        <parameter name="context" type="string" required="false">
+            <description>Current conversation context for continuity.</description>
+        </parameter>
+    </parameters>
+</skill_definition>

@@ -23,7 +23,7 @@ def load_direnv_file(filepath: Path) -> None:
     if not filepath.exists():
         return
 
-    print(f"Loading environment from {filepath}")
+    logger.info(f"Loading environment from {filepath}")
     with filepath.open("r") as f:
         for line_content in f:
             line = line_content.strip()
@@ -188,7 +188,8 @@ def test_connection(api_base: str | None = None, model: str | None = None, api_k
         )
         logger.info(f"✓ Connection test successful. Model: {lite_llm_model}")
         logger.info(f"  Response: {response['choices'][0]['message']['content']}")
-        return True
-    except Exception as e:
-        logger.error(f"✗ Connection test failed: {e}")
+    except Exception:
+        logger.exception("✗ Connection test failed")
         return False
+    else:
+        return True

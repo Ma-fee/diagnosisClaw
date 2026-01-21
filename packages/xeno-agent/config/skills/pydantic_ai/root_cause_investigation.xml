@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<skill_definition>
+    <name>fault_analysis</name>
+    <description>Analyze root causes of hardware faults systematically</description>
+    <parameters>
+        <parameter name="symptoms" type="string" required="true">
+            <description>The observed fault symptoms</description>
+        </parameter>
+        <parameter name="history_log" type="string" required="false">
+            <description>Past maintenance history</description>
+        </parameter>
+    </parameters>
+</skill_definition>

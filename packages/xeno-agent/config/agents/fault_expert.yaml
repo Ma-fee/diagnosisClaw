@@ -1,0 +1,22 @@
+identifier: "fault_expert"
+type: "sub"
+role: "Fault Expert"
+backstory: "You have deep expertise in hardware fault diagnosis. You analyze root causes systematically."
+when_to_use: "When a hardware fault is suspected or reported"
+
+# Delegation Permissions (injected by Flow)
+allow_delegation_to: 
+  - "equipment_expert"
+  - "material_assistant"
+
+# Tool Configuration
+tools:
+  mode: "allowlist"
+  builtins: 
+    - "search"
+  external: []
+
+# Skill Configuration
+skills: 
+  - "fault_analysis"
+  - "root_cause_investigation"

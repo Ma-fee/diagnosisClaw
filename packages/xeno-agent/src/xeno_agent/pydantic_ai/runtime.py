@@ -1,25 +1,31 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
-from pydantic_ai import RunContext
+from pydantic_ai import Agent, RunContext
 
 from xeno_agent.pydantic_ai.interfaces import AgentResult, AgentRuntime
+from xeno_agent.pydantic_ai.models import FlowConfig
 from xeno_agent.pydantic_ai.trace import TraceID
 
 MAX_DELEGATION_DEPTH = 5
+
+
+@runtime_checkable
+class AgentFactoryProtocol(Protocol):
+    def create(self, agent_id: str, flow_config: FlowConfig) -> Agent[Any, str]: ...
 
 
 @dataclass
 class RuntimeDeps:
     """Dependencies passed to agents."""
 
-    config: Any  # Config object containing allow_delegation_to permissions
+    flow: FlowConfig
     trace: TraceID
-    factory: Any  # AgentFactory protocol/instance
+    factory: AgentFactoryProtocol
 
     def child(self, target: str) -> "RuntimeDeps":
         """Create a child dependency context."""
-        return RuntimeDeps(config=self.config, trace=self.trace.child(target), factory=self.factory)
+        return RuntimeDeps(flow=self.flow, trace=self.trace.child(target), factory=self.factory)
 
 
 async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: str) -> str:
@@ -35,13 +41,19 @@ async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: s
         raise RecursionError(f"Cycle detected: {target_agent} already in call stack {deps.trace.path}")
 
     # 2. Check permissions
-    # Assuming config has allow_delegation_to list or dict logic
-    # We'll need to define the Config interface more strictly later
-    if hasattr(deps.config, "allow_delegation_to") and target_agent not in deps.config.allow_delegation_to:
-        raise PermissionError(f"Delegation to {target_agent} not allowed")
+    # Get delegation rules for the CURRENT agent (the one calling the tool)
+    current_agent_id = deps.trace.path[-1] if deps.trace.path else None
+
+    # Simple whitelist check from flow config
+    allowed = []
+    if current_agent_id and current_agent_id in deps.flow.delegation_rules:
+        allowed = deps.flow.delegation_rules[current_agent_id].get("allow_delegation_to", [])
+
+    if target_agent not in allowed:
+        raise PermissionError(f"Delegation from {current_agent_id} to {target_agent} not allowed by flow policy")
 
     # 3. Load Target Agent
-    agent = deps.factory.load(target_agent)
+    agent = deps.factory.create(target_agent, deps.flow)
 
     # 4. Execute (Recursive Call)
     new_deps = deps.child(target_agent)
@@ -54,27 +66,24 @@ async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: s
 class LocalAgentRuntime(AgentRuntime):
     """Local implementation of AgentRuntime using PydanticAI."""
 
-    def __init__(self, factory: Any, config: Any):
+    def __init__(self, factory: AgentFactoryProtocol, flow_config: FlowConfig):
         self.factory = factory
-        self.config = config
+        self.flow_config = flow_config
 
     async def invoke(self, agent_id: str, message: str, **kwargs: Any) -> AgentResult:
         """Invoke the entry point agent."""
-        agent = self.factory.load(agent_id)
+        agent = self.factory.create(agent_id, self.flow_config)
 
         # Initialize Trace
         trace = TraceID.new().child(agent_id)
 
         # Initialize Deps
-        deps = RuntimeDeps(config=self.config, trace=trace, factory=self.factory)
+        deps = RuntimeDeps(flow=self.flow_config, trace=trace, factory=self.factory)
 
         result = await agent.run(message, deps=deps)
 
         return AgentResult(data=str(result.data), metadata={"trace_id": trace.trace_id, "usage": result.usage()})
 
     async def delegate(self, target_agent: str, task: str, **kwargs: Any) -> AgentResult:
-        """Manual delegation entry point (if needed outside tool)."""
-        # This might reuse the same logic as invoke but usually
-        # delegation happens inside the tool.
-        # If called externally, it acts like a new invocation.
+        """Manual delegation entry point."""
         return await self.invoke(target_agent, task, **kwargs)

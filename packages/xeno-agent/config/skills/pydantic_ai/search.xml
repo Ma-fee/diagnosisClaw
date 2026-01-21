@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<skill_definition>
+    <name>search</name>
+    <description>Search through available knowledge base</description>
+    <parameters>
+        <parameter name="query" type="string" required="true">
+            <description>The search query</description>
+        </parameter>
+    </parameters>
+</skill_definition>
