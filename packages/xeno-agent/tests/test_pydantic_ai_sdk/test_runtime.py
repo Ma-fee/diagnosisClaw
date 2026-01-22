@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock, MagicMock
+from contextlib import asynccontextmanager
 
 import pytest
 from pydantic_ai import RunContext
@@ -8,9 +9,14 @@ from xeno_agent.pydantic_ai.runtime import delegate_task
 from xeno_agent.pydantic_ai.trace import TraceID
 
 
+@asynccontextmanager
+async def null_mcp_servers(*args, **kwargs):
+    yield
+
+
 # Mock Deps Structure
 class MockDeps:
-    def __init__(self, flow=None, trace=None, factory=None):
+    def __init__(self, flow=None, trace=None, factory=None, message_history=None, session_id=None):
         self.flow = flow or FlowConfig(
             name="Test",
             description="Test",
@@ -21,9 +27,11 @@ class MockDeps:
         )
         self.trace = trace or TraceID.new()
         self.factory = factory
+        self.message_history = message_history or []
+        self.session_id = session_id
 
     def child(self, target):
-        return MockDeps(flow=self.flow, trace=self.trace.child(target), factory=self.factory)
+        return MockDeps(flow=self.flow, trace=self.trace.child(target), factory=self.factory, message_history=self.message_history, session_id=self.session_id)
 
 
 @pytest.mark.asyncio
@@ -93,9 +101,10 @@ async def test_delegate_task_success():
     result_mock = MagicMock()
     result_mock.data = "Success"
     mock_agent.run.return_value = result_mock
+    mock_agent.run_mcp_servers = null_mcp_servers  # Mock async context manager
 
     mock_factory = MagicMock()
-    mock_factory.create.return_value = mock_agent
+    mock_factory.create = AsyncMock(return_value=mock_agent)  # Must be AsyncMock for await
 
     flow = FlowConfig(
         name="Test",
