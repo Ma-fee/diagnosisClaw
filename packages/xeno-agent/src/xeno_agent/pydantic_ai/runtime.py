@@ -1,3 +1,5 @@
+import logging
+import time
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
@@ -7,12 +9,14 @@ from xeno_agent.pydantic_ai.interfaces import AgentResult, AgentRuntime
 from xeno_agent.pydantic_ai.models import FlowConfig
 from xeno_agent.pydantic_ai.trace import TraceID
 
+logger = logging.getLogger(__name__)
+
 MAX_DELEGATION_DEPTH = 5
 
 
 @runtime_checkable
 class AgentFactoryProtocol(Protocol):
-    def create(self, agent_id: str, flow_config: FlowConfig) -> Agent[Any, str]: ...
+    async def create(self, agent_id: str, flow_config: FlowConfig) -> Agent[Any, str]: ...
 
 
 @dataclass
@@ -53,13 +57,17 @@ async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: s
         raise PermissionError(f"Delegation from {current_agent_id} to {target_agent} not allowed by flow policy")
 
     # 3. Load Target Agent
-    agent = deps.factory.create(target_agent, deps.flow)
+    agent = await deps.factory.create(target_agent, deps.flow)
 
     # 4. Execute (Recursive Call)
     new_deps = deps.child(target_agent)
 
     # Pass usage=ctx.usage to track tokens across the chain
-    result = await agent.run(task, deps=new_deps, usage=ctx.usage)
+    start_time = time.perf_counter()
+    async with agent.run_mcp_servers(model=agent.model):
+        result = await agent.run(task, deps=new_deps, usage=ctx.usage)
+    duration = time.perf_counter() - start_time
+    logger.info(f"Agent {target_agent} executed in {duration:.3f}s (Trace: {new_deps.trace.trace_id})")
     return str(result.data)
 
 
@@ -72,7 +80,7 @@ class LocalAgentRuntime(AgentRuntime):
 
     async def invoke(self, agent_id: str, message: str, **kwargs: Any) -> AgentResult:
         """Invoke the entry point agent."""
-        agent = self.factory.create(agent_id, self.flow_config)
+        agent = await self.factory.create(agent_id, self.flow_config)
 
         # Initialize Trace
         trace = TraceID.new().child(agent_id)
@@ -80,7 +88,11 @@ class LocalAgentRuntime(AgentRuntime):
         # Initialize Deps
         deps = RuntimeDeps(flow=self.flow_config, trace=trace, factory=self.factory)
 
-        result = await agent.run(message, deps=deps)
+        start_time = time.perf_counter()
+        async with agent.run_mcp_servers(model=agent.model):
+            result = await agent.run(message, deps=deps)
+        duration = time.perf_counter() - start_time
+        logger.info(f"Entry agent {agent_id} executed in {duration:.3f}s (Trace: {trace.trace_id})")
 
         return AgentResult(data=str(result.data), metadata={"trace_id": trace.trace_id, "usage": result.usage()})
 
