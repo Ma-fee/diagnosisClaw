@@ -5,16 +5,19 @@ backstory: "You are the first point of contact for users. You help them understa
 when_to_use: "When users ask general questions or start a new session"
 
 # Delegation Permissions (Default, overwritten by Flow)
-allow_delegation_to: 
+allow_delegation_to:
   - "fault_expert"
 
 # Tool Configuration
 tools:
   mode: "allowlist"
-  builtins: 
+  builtins:
     - "search"
-  external: []
+  external:
+    - "search_database"
+  mcp_servers:
+    - "http://10.147.254.3:7006/mcp"
 
 # Skill Configuration
-skills: 
+skills:
   - "dialogue_management"

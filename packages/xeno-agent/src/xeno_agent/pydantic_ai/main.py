@@ -57,6 +57,7 @@ async def run_flow(flow_id: str, message: str, model: str, interactive: bool, co
     # 3. Execution Loop
     if interactive:
         logger.info("Interactive mode enabled (type 'exit' or 'quit' to stop)")
+        session_id: str | None = None
         while True:
             try:
                 user_input = input("\n👤 User: ").strip()
@@ -66,8 +67,11 @@ async def run_flow(flow_id: str, message: str, model: str, interactive: bool, co
                     break
 
                 logger.info("Thinking...")
-                result = await runtime.invoke(flow_config.entry_agent, user_input)
+                result = await runtime.invoke(flow_config.entry_agent, user_input, session_id=session_id)
                 logger.info(f"Agent: {result.data}")
+
+                # Update session_id for subsequent interactions
+                session_id = result.metadata.get("session_id")
 
                 if "trace_id" in result.metadata:
                     logger.info(f"TraceID: {result.metadata['trace_id']}")
