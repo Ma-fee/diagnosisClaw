@@ -1,4 +1,5 @@
 import uuid
+from typing import Optional
 from dataclasses import dataclass, field
 
 
@@ -10,9 +11,10 @@ class TraceID:
     path: list[str] = field(default_factory=list)
 
     @classmethod
-    def new(cls) -> "TraceID":
-        """Start a new trace."""
-        return cls(trace_id=str(uuid.uuid4()), span_id=str(uuid.uuid4()), parent_id=None, path=[])
+    def new(cls, root_trace_id: Optional[str] = None) -> "TraceID":
+        """Start a new trace (optionally continuing an existing session)."""
+        trace_id = root_trace_id if root_trace_id is not None else str(uuid.uuid4())
+        return cls(trace_id=trace_id, span_id=str(uuid.uuid4()), parent_id=None, path=[])
 
     def child(self, current_agent: str) -> "TraceID":
         """Create a child trace for a new span."""

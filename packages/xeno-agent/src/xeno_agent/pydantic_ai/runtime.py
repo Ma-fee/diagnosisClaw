@@ -1,9 +1,11 @@
 import logging
 import time
-from dataclasses import dataclass
+import uuid
+from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.messages import ModelMessage
 
 from xeno_agent.pydantic_ai.interfaces import AgentResult, AgentRuntime
 from xeno_agent.pydantic_ai.models import FlowConfig
@@ -26,10 +28,12 @@ class RuntimeDeps:
     flow: FlowConfig
     trace: TraceID
     factory: AgentFactoryProtocol
+    message_history: list[ModelMessage] = field(default_factory=list)
+    session_id: str | None = None
 
     def child(self, target: str) -> "RuntimeDeps":
         """Create a child dependency context."""
-        return RuntimeDeps(flow=self.flow, trace=self.trace.child(target), factory=self.factory)
+        return RuntimeDeps(flow=self.flow, trace=self.trace.child(target), factory=self.factory, message_history=self.message_history, session_id=self.session_id)
 
 
 async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: str) -> str:
@@ -65,9 +69,15 @@ async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: s
     # Pass usage=ctx.usage to track tokens across the chain
     start_time = time.perf_counter()
     async with agent.run_mcp_servers(model=agent.model):
-        result = await agent.run(task, deps=new_deps, usage=ctx.usage)
+        result = await agent.run(task, deps=new_deps, usage=ctx.usage, message_history=new_deps.message_history)
     duration = time.perf_counter() - start_time
-    logger.info(f"Agent {target_agent} executed in {duration:.3f}s (Trace: {new_deps.trace.trace_id})")
+
+    all_messages = result.all_messages()
+    if len(all_messages) > len(new_deps.message_history):
+        new_messages = all_messages[len(new_deps.message_history) :]
+        new_deps.message_history.extend(new_messages)
+
+    logger.info(f"Agent {target_agent} executed in {duration:.3f}s (Trace: {new_deps.trace.trace_id}, Session: {new_deps.session_id}, Messages: {len(new_deps.message_history)})")
     return str(result.data)
 
 
@@ -77,24 +87,38 @@ class LocalAgentRuntime(AgentRuntime):
     def __init__(self, factory: AgentFactoryProtocol, flow_config: FlowConfig):
         self.factory = factory
         self.flow_config = flow_config
+        self._active_sessions: dict[str, RuntimeDeps] = {}
 
-    async def invoke(self, agent_id: str, message: str, **kwargs: Any) -> AgentResult:
-        """Invoke the entry point agent."""
+    async def invoke(self, agent_id: str, message: str, session_id: str | None = None, **kwargs: Any) -> AgentResult:
         agent = await self.factory.create(agent_id, self.flow_config)
 
-        # Initialize Trace
-        trace = TraceID.new().child(agent_id)
-
-        # Initialize Deps
-        deps = RuntimeDeps(flow=self.flow_config, trace=trace, factory=self.factory)
+        if session_id and session_id in self._active_sessions:
+            deps = self._active_sessions[session_id]
+            trace = TraceID.new(root_trace_id=deps.trace.trace_id).child(agent_id)
+        else:
+            session_id = session_id or str(uuid.uuid4())
+            trace = TraceID.new().child(agent_id)
+            deps = RuntimeDeps(flow=self.flow_config, trace=trace, factory=self.factory, session_id=session_id)
 
         start_time = time.perf_counter()
         async with agent.run_mcp_servers(model=agent.model):
-            result = await agent.run(message, deps=deps)
+            result = await agent.run(message, deps=deps, message_history=deps.message_history)
         duration = time.perf_counter() - start_time
-        logger.info(f"Entry agent {agent_id} executed in {duration:.3f}s (Trace: {trace.trace_id})")
+        logger.info(f"Entry agent {agent_id} executed in {duration:.3f}s (Trace: {trace.trace_id}, Session: {session_id})")
 
-        return AgentResult(data=str(result.data), metadata={"trace_id": trace.trace_id, "usage": result.usage()})
+        all_messages = result.all_messages()
+        if len(all_messages) > len(deps.message_history):
+            new_messages = all_messages[len(deps.message_history) :]
+            deps.message_history.extend(new_messages)
+
+        if session_id not in self._active_sessions:
+            self._active_sessions[session_id] = deps
+        else:
+            self._active_sessions[session_id].message_history = deps.message_history
+
+        return AgentResult(
+            data=str(result.data), metadata={"trace_id": trace.trace_id, "usage": result.usage(), "session_id": session_id, "message_count": len(deps.message_history)}
+        )
 
     async def delegate(self, target_agent: str, task: str, **kwargs: Any) -> AgentResult:
         """Manual delegation entry point."""
