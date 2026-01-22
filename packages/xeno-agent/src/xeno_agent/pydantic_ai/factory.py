@@ -4,6 +4,7 @@ from xeno_agent.pydantic_ai.interfaces import ConfigLoader, SkillLoader
 from xeno_agent.pydantic_ai.models import FlowConfig
 from xeno_agent.pydantic_ai.prompts import PromptBuilder
 from xeno_agent.pydantic_ai.runtime import RuntimeDeps, delegate_task
+from xeno_agent.pydantic_ai.skills import SkillRegistry
 
 
 class AgentFactory:
@@ -11,10 +12,12 @@ class AgentFactory:
         self,
         config_loader: ConfigLoader,
         skill_loader: SkillLoader | None = None,
-        model: str = "openai:gpt-4o",
+        skill_registry: SkillRegistry | None = None,
+        model: str = "litellm/openai/gpt-4o",
     ):
         self.config_loader = config_loader
         self.skill_loader = skill_loader
+        self.skill_registry = skill_registry
         self.model = model
 
     def create(self, agent_id: str, flow_config: FlowConfig) -> Agent[RuntimeDeps, str]:
@@ -34,5 +37,15 @@ class AgentFactory:
         # 4. Attach Tools
         # Attach delegation tool (Universal)
         agent.tool(delegate_task)
+
+        # Attach Agent-specific skills
+        if agent_config.skills and self.skill_registry:
+            for skill_id in agent_config.skills:
+                try:
+                    skill_func = self.skill_registry.get(skill_id)
+                    agent.tool(skill_func)
+                except KeyError:
+                    # Skill not registered in Python, though it might be in XML
+                    continue
 
         return agent

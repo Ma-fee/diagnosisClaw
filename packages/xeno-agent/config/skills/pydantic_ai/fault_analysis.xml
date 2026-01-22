@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<skill_definition>
+    <name>fault_analysis</name>
+    <description>Perform detailed hardware fault analysis and diagnosis</description>
+    <parameters>
+        <parameter name="fault_description" type="string" required="true">
+            <description>The description of the hardware fault to analyze</description>
+        </parameter>
+    </parameters>
+</skill_definition>

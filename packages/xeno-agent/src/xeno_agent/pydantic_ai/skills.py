@@ -63,11 +63,17 @@ class SkillRegistry:
         """Register a function as a skill and validate its signature."""
         if expected_params:
             sig = inspect.signature(func)
-            func_params = sig.parameters
+            func_params = list(sig.parameters.values())
 
+            # Skip context parameter if present
+            # In PydanticAI, tools can take RunContext[Deps] as the first argument
+            if func_params and (func_params[0].name == "ctx" or "RunContext" in str(func_params[0].annotation)):
+                func_params = func_params[1:]
+
+            param_names = [p.name for p in func_params]
             missing_params = []
             if isinstance(expected_params, list | dict):
-                missing_params.extend(param_name for param_name in expected_params if param_name not in func_params)
+                missing_params.extend(param_name for param_name in expected_params if param_name not in param_names)
 
             if missing_params:
                 # Create a dynamic model to trigger a real ValidationError
