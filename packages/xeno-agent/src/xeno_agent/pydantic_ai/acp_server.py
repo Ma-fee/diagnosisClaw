@@ -6,7 +6,7 @@ from acp import Agent, schema
 from acp.interfaces import Client
 
 if TYPE_CHECKING:
-    pass
+    from xeno_agent.pydantic_ai.tool_manager import FlowToolManager
 
 from xeno_agent.pydantic_ai.models import FlowConfig
 from xeno_agent.pydantic_ai.runtime import AgentFactoryProtocol, RuntimeDeps
@@ -14,26 +14,14 @@ from xeno_agent.pydantic_ai.trace import TraceID
 
 logger = logging.getLogger(__name__)
 
-try:
-    from pydantic_ai.mcp import MCPServerStdio, MCPServerStreamableHTTP
-except ImportError:
-    logger.warning("pydantic_ai MCP support not available")
-
-    class MCPServerStdio:
-        def __init__(self, *args, **kwargs):
-            raise NotImplementedError("pydantic_ai MCP support not available")
-
-    class MCPServerStreamableHTTP:
-        def __init__(self, *args, **kwargs):
-            raise NotImplementedError("pydantic_ai MCP support not available")
-
 
 class ACPAgent(Agent):
-    """ACP Agent implementation using the official agent-client-protocol SDK."""
+    """ACP Agent implementation using official agent-client-protocol SDK."""
 
-    def __init__(self, factory: AgentFactoryProtocol, flow_config: FlowConfig):
+    def __init__(self, factory: AgentFactoryProtocol, flow_config: FlowConfig, tool_manager: "FlowToolManager"):
         self.factory = factory
         self.flow_config = flow_config
+        self.tool_manager = tool_manager
         self.sessions: dict[str, dict] = {}
         self._conn: Client | None = None
 
@@ -59,23 +47,17 @@ class ACPAgent(Agent):
     async def new_session(
         self,
         cwd: str,
-        mcp_servers: list[Any],
         **kwargs: Any,
     ) -> schema.NewSessionResponse:
         session_id = str(uuid.uuid4())
 
-        pydantic_mcp = []
-        for s in mcp_servers:
-            if isinstance(s, schema.HttpMcpServer | schema.SseMcpServer):
-                pydantic_mcp.append(MCPServerStreamableHTTP(s.url, headers=s.headers))
-            elif isinstance(s, schema.McpServerStdio):
-                pydantic_mcp.append(MCPServerStdio(s.command, args=s.args, env=s.env))
-
+        # Create agent with flow-scoped tool manager
+        # NOTE: MCP servers are now managed at flow level, not session level
+        # The mcp_servers parameter from protocol is ignored
         agent = await self.factory.create(
             self.flow_config.entry_agent,
             self.flow_config,
-            use_cache=False,
-            extra_mcp_servers=pydantic_mcp,
+            self.tool_manager,
         )
         self.sessions[session_id] = {"agent": agent, "history": []}
         return schema.NewSessionResponse(sessionId=session_id)
@@ -95,11 +77,12 @@ class ACPAgent(Agent):
                 flow=self.flow_config,
                 trace=TraceID.new(),
                 factory=self.factory,
+                tool_manager=self.tool_manager,
                 session_id=session_id,
                 message_history=history,
             )
-            async with agent.run_mcp_servers():
-                result = await agent.run(text, deps=deps, message_history=history)
+            # NOTE: No longer need async with agent.run_mcp_servers() - tools are pre-bound
+            result = await agent.run(text, deps=deps, message_history=history)
             session_data["history"] = result.all_messages()
             return schema.PromptResponse(stopReason="end_turn")
         except Exception:

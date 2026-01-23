@@ -1,13 +1,15 @@
-from typing import Any
+from typing import TYPE_CHECKING
 
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.mcp import MCPServerStdio, MCPServerStreamableHTTP
 
 from xeno_agent.pydantic_ai.interfaces import ConfigLoader, SkillLoader
 from xeno_agent.pydantic_ai.models import FlowConfig
 from xeno_agent.pydantic_ai.prompts import PromptBuilder
 from xeno_agent.pydantic_ai.runtime import RuntimeDeps, delegate_task
 from xeno_agent.pydantic_ai.skills import SkillRegistry
+
+if TYPE_CHECKING:
+    from xeno_agent.pydantic_ai.tool_manager import FlowToolManager
 
 
 class AgentFactory:
@@ -24,62 +26,37 @@ class AgentFactory:
         self.model = model
         self._agent_cache: dict[str, Agent[RuntimeDeps, str]] = {}
 
-    async def create(self, agent_id: str, flow_config: FlowConfig, use_cache: bool = True, extra_mcp_servers: list[Any] | None = None) -> Agent[RuntimeDeps, str]:
+    async def create(
+        self,
+        agent_id: str,
+        flow_config: FlowConfig,
+        tool_manager: "FlowToolManager",
+        use_cache: bool = True,
+    ) -> Agent[RuntimeDeps, str]:
         if use_cache and agent_id in self._agent_cache:
             return self._agent_cache[agent_id]
 
         # 1. Load Agent Config
         agent_config = self.config_loader.load_agent_config(agent_id)
 
-        # 2. Build Agent
-        mcp_servers = []
-        if agent_config.tools.mcp_servers:
-            for srv in agent_config.tools.mcp_servers:
-                if isinstance(srv, str):
-                    mcp_servers.append(MCPServerStreamableHTTP(srv))
-                elif srv.url:
-                    mcp_servers.append(
-                        MCPServerStreamableHTTP(
-                            srv.url,
-                            headers=srv.headers,
-                            sse_read_timeout=srv.read_timeout,
-                            tool_prefix=srv.tool_prefix,
-                            timeout=srv.timeout,
-                            allow_sampling=srv.allow_sampling,
-                            log_level=srv.log_level,
-                        ),
-                    )
-                elif srv.command:
-                    mcp_servers.append(
-                        MCPServerStdio(
-                            srv.command,
-                            args=srv.args,
-                            env=srv.env,
-                            cwd=srv.cwd,
-                            tool_prefix=srv.tool_prefix,
-                            timeout=srv.timeout,
-                            allow_sampling=srv.allow_sampling,
-                            log_level=srv.log_level,
-                        ),
-                    )
+        # 2. Resolve Tools
+        # AgentConfig.tools is now list[str] - using tool_manager to get Tool objects
+        tools = tool_manager.get_tools(agent_config.tools)
 
-        if extra_mcp_servers:
-            mcp_servers.extend(extra_mcp_servers)
+        # 3. Build Agent
+        agent = Agent(self.model, deps_type=RuntimeDeps, tools=tools)
 
-        agent = Agent(self.model, deps_type=RuntimeDeps, mcp_servers=mcp_servers)
-
-        # 3. Attach System Prompt
+        # 4. Attach System Prompt
         builder = PromptBuilder(agent_config, flow_config, self.skill_loader)
 
         @agent.system_prompt
         def render_system_prompt(ctx: RunContext[RuntimeDeps]) -> str:
             return builder.build_system_prompt()
 
-        # 4. Attach Tools
-        # Attach delegation tool (Universal)
+        # 5. Attach Universal Delegation Tool
         agent.tool(delegate_task)
 
-        # Attach Agent-specific skills
+        # 6. Attach Agent-specific skills
         if agent_config.skills and self.skill_registry:
             for skill_id in agent_config.skills:
                 try:

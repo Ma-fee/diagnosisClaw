@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ModelMessage
@@ -11,6 +11,9 @@ from xeno_agent.pydantic_ai.interfaces import AgentResult, AgentRuntime
 from xeno_agent.pydantic_ai.models import FlowConfig
 from xeno_agent.pydantic_ai.trace import TraceID
 
+if TYPE_CHECKING:
+    from xeno_agent.pydantic_ai.tool_manager import FlowToolManager
+
 logger = logging.getLogger(__name__)
 
 MAX_DELEGATION_DEPTH = 5
@@ -18,7 +21,7 @@ MAX_DELEGATION_DEPTH = 5
 
 @runtime_checkable
 class AgentFactoryProtocol(Protocol):
-    async def create(self, agent_id: str, flow_config: FlowConfig) -> Agent[Any, str]: ...
+    async def create(self, agent_id: str, flow_config: FlowConfig, tool_manager: "FlowToolManager") -> Agent[Any, str]: ...
 
 
 @dataclass
@@ -28,12 +31,20 @@ class RuntimeDeps:
     flow: FlowConfig
     trace: TraceID
     factory: AgentFactoryProtocol
+    tool_manager: "FlowToolManager"
     message_history: list[ModelMessage] = field(default_factory=list)
     session_id: str | None = None
 
     def child(self, target: str) -> "RuntimeDeps":
         """Create a child dependency context."""
-        return RuntimeDeps(flow=self.flow, trace=self.trace.child(target), factory=self.factory, message_history=self.message_history, session_id=self.session_id)
+        return RuntimeDeps(
+            flow=self.flow,
+            trace=self.trace.child(target),
+            factory=self.factory,
+            tool_manager=self.tool_manager,
+            message_history=self.message_history,
+            session_id=self.session_id,
+        )
 
 
 async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: str) -> str:
@@ -49,7 +60,7 @@ async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: s
         raise RecursionError(f"Cycle detected: {target_agent} already in call stack {deps.trace.path}")
 
     # 2. Check permissions
-    # Get delegation rules for the CURRENT agent (the one calling the tool)
+    # Get delegation rules for CURRENT agent (the one calling the tool)
     current_agent_id = deps.trace.path[-1] if deps.trace.path else None
 
     # Simple whitelist check from flow config
@@ -61,15 +72,15 @@ async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: s
         raise PermissionError(f"Delegation from {current_agent_id} to {target_agent} not allowed by flow policy")
 
     # 3. Load Target Agent
-    agent = await deps.factory.create(target_agent, deps.flow)
+    agent = await deps.factory.create(target_agent, deps.flow, deps.tool_manager)
 
     # 4. Execute (Recursive Call)
     new_deps = deps.child(target_agent)
 
     # Pass usage=ctx.usage to track tokens across the chain
+    # NOTE: No longer need async with agent.run_mcp_servers() - tools are pre-bound in FlowToolManager
     start_time = time.perf_counter()
-    async with agent.run_mcp_servers(model=agent.model):
-        result = await agent.run(task, deps=new_deps, usage=ctx.usage, message_history=new_deps.message_history)
+    result = await agent.run(task, deps=new_deps, usage=ctx.usage, message_history=new_deps.message_history)
     duration = time.perf_counter() - start_time
 
     all_messages = result.all_messages()
@@ -84,13 +95,14 @@ async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: s
 class LocalAgentRuntime(AgentRuntime):
     """Local implementation of AgentRuntime using PydanticAI."""
 
-    def __init__(self, factory: AgentFactoryProtocol, flow_config: FlowConfig):
+    def __init__(self, factory: AgentFactoryProtocol, flow_config: FlowConfig, tool_manager: "FlowToolManager"):
         self.factory = factory
         self.flow_config = flow_config
+        self.tool_manager = tool_manager
         self._active_sessions: dict[str, RuntimeDeps] = {}
 
     async def invoke(self, agent_id: str, message: str, session_id: str | None = None, **kwargs: Any) -> AgentResult:
-        agent = await self.factory.create(agent_id, self.flow_config)
+        agent = await self.factory.create(agent_id, self.flow_config, self.tool_manager)
 
         if session_id and session_id in self._active_sessions:
             deps = self._active_sessions[session_id]
@@ -98,11 +110,11 @@ class LocalAgentRuntime(AgentRuntime):
         else:
             session_id = session_id or str(uuid.uuid4())
             trace = TraceID.new().child(agent_id)
-            deps = RuntimeDeps(flow=self.flow_config, trace=trace, factory=self.factory, session_id=session_id)
+            deps = RuntimeDeps(flow=self.flow_config, trace=trace, factory=self.factory, tool_manager=self.tool_manager, session_id=session_id)
 
         start_time = time.perf_counter()
-        async with agent.run_mcp_servers(model=agent.model):
-            result = await agent.run(message, deps=deps, message_history=deps.message_history)
+        # NOTE: No longer need async with agent.run_mcp_servers() - tools are pre-bound
+        result = await agent.run(message, deps=deps, message_history=deps.message_history)
         duration = time.perf_counter() - start_time
         logger.info(f"Entry agent {agent_id} executed in {duration:.3f}s (Trace: {trace.trace_id}, Session: {session_id})")
 
@@ -117,7 +129,8 @@ class LocalAgentRuntime(AgentRuntime):
             self._active_sessions[session_id].message_history = deps.message_history
 
         return AgentResult(
-            data=str(result.data), metadata={"trace_id": trace.trace_id, "usage": result.usage(), "session_id": session_id, "message_count": len(deps.message_history)}
+            data=str(result.data),
+            metadata={"trace_id": trace.trace_id, "usage": result.usage(), "session_id": session_id, "message_count": len(deps.message_history)},
         )
 
     async def delegate(self, target_agent: str, task: str, **kwargs: Any) -> AgentResult:
