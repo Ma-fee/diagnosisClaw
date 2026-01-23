@@ -4,7 +4,10 @@ import asyncio
 import logging
 from pathlib import Path
 
+from acp import run_agent
+
 from xeno_agent.pydantic_ai import tools
+from xeno_agent.pydantic_ai.acp_server import ACPAgent
 from xeno_agent.pydantic_ai.config_loader import YAMLConfigLoader
 from xeno_agent.pydantic_ai.factory import AgentFactory
 from xeno_agent.pydantic_ai.runtime import LocalAgentRuntime
@@ -55,32 +58,7 @@ async def run_flow(flow_id: str, message: str, model: str, interactive: bool, co
     logger.info(f"Model: {model}")
 
     # 3. Execution Loop
-    if interactive:
-        logger.info("Interactive mode enabled (type 'exit' or 'quit' to stop)")
-        session_id: str | None = None
-        while True:
-            try:
-                user_input = input("\n👤 User: ").strip()
-                if not user_input:
-                    continue
-                if user_input.lower() in ["exit", "quit"]:
-                    break
-
-                logger.info("Thinking...")
-                result = await runtime.invoke(flow_config.entry_agent, user_input, session_id=session_id)
-                logger.info(f"Agent: {result.data}")
-
-                # Update session_id for subsequent interactions
-                session_id = result.metadata.get("session_id")
-
-                if "trace_id" in result.metadata:
-                    logger.info(f"TraceID: {result.metadata['trace_id']}")
-
-            except KeyboardInterrupt:
-                break
-            except Exception:
-                logger.exception("Error during execution")
-    else:
+    if not interactive:
         # Single-shot run
         logger.info(f"User: {message}")
         logger.info("Thinking...")
@@ -90,6 +68,52 @@ async def run_flow(flow_id: str, message: str, model: str, interactive: bool, co
             logger.info(f"Completed | TraceID: {result.metadata.get('trace_id')}")
         except Exception:
             logger.exception("Error during execution")
+        return
+
+    # Interactive mode
+    logger.info("Interactive mode enabled (type 'exit' or 'quit' to stop)")
+    session_id: str | None = None
+    while True:
+        try:
+            user_input = input("\n👤 User: ").strip()
+            if not user_input:
+                continue
+            if user_input.lower() in ["exit", "quit"]:
+                break
+
+            logger.info("Thinking...")
+            result = await runtime.invoke(flow_config.entry_agent, user_input, session_id=session_id)
+            logger.info(f"Agent: {result.data}")
+
+            # Update session_id for subsequent interactions
+            session_id = result.metadata.get("session_id")
+
+            if "trace_id" in result.metadata:
+                logger.info(f"TraceID: {result.metadata['trace_id']}")
+
+        except KeyboardInterrupt:
+            break
+        except Exception:
+            logger.exception("Error during execution")
+
+
+async def run_acp(flow_id: str, model: str, config_path: Path, skills_path: Path):
+    config_path = Path(config_path)
+    skills_path = Path(skills_path)
+
+    if not config_path.exists():
+        logger.error(f"Configuration directory not found at {config_path}")
+        return
+
+    loader = YAMLConfigLoader(base_path=config_path)
+    factory = AgentFactory(config_loader=loader, model=model)
+    flow_config = loader.load_flow_config(flow_id)
+
+    acp_agent = ACPAgent(factory=factory, flow_config=flow_config)
+    logger.info(f"Starting ACPAgent for flow: {flow_id}")
+    logger.info(f"Model: {model}")
+
+    await run_agent(acp_agent, transport="stdio")
 
 
 def main():

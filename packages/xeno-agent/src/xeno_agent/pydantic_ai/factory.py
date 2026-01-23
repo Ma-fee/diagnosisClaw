@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import MCPServerStdio, MCPServerStreamableHTTP
 
@@ -22,8 +24,8 @@ class AgentFactory:
         self.model = model
         self._agent_cache: dict[str, Agent[RuntimeDeps, str]] = {}
 
-    async def create(self, agent_id: str, flow_config: FlowConfig) -> Agent[RuntimeDeps, str]:
-        if agent_id in self._agent_cache:
+    async def create(self, agent_id: str, flow_config: FlowConfig, use_cache: bool = True, extra_mcp_servers: list[Any] | None = None) -> Agent[RuntimeDeps, str]:
+        if use_cache and agent_id in self._agent_cache:
             return self._agent_cache[agent_id]
 
         # 1. Load Agent Config
@@ -60,6 +62,9 @@ class AgentFactory:
                             log_level=srv.log_level,
                         ),
                     )
+
+        if extra_mcp_servers:
+            mcp_servers.extend(extra_mcp_servers)
 
         agent = Agent(self.model, deps_type=RuntimeDeps, mcp_servers=mcp_servers)
 

@@ -20,6 +20,7 @@ dependencies = [
     "apscheduler~=3.10.4",
     "fastapi-sso>=0.17.0",
     "pydantic-ai>=0.0.18",
+    "agent-client-protocol>=0.7.1",
 ]
 
 [project.scripts]

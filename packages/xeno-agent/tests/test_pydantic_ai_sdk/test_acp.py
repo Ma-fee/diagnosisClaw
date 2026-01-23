@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from xeno_agent.pydantic_ai.acp import ACPAgentRuntime, ACPClient, Transport
+from xeno_agent.pydantic_ai.acp_legacy import ACPAgentRuntime, ACPClient, Transport
 
 
 class MockTransport(Transport):
