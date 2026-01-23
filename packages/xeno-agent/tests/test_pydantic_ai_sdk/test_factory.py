@@ -19,7 +19,7 @@ async def test_create_agent_with_flow():
     factory = AgentFactory(config_loader, model="test")
     flow_config = FlowConfig(name="Test Flow", description="Test description", entry_agent="qa", participants=["qa"], global_instructions="Test everything")
 
-    agent = await factory.create("qa", flow_config)
+    agent = await factory.create("qa", flow_config, tool_manager=MagicMock())
     assert agent is not None
 
     # Check if dependency type is set (sanity check)

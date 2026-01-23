@@ -9,13 +9,13 @@ from xeno_agent.pydantic_ai.models import AgentConfig, FlowConfig
 def sample_agent_yaml(tmp_path):
     path = tmp_path / "qa_assistant.yaml"
     content = {
+        "name": "qa_assistant",
+        "description": "QA Assistant",
         "identifier": "qa_assistant",
-        "type": "main",
         "role": "QA Assistant",
         "backstory": "You help users.",
-        "when_to_use": "General questions",
         "allow_delegation_to": ["fault_expert"],
-        "tools": {"mode": "allowlist", "builtins": ["search"], "external": []},
+        "tools": ["search"],
         "skills": ["dialogue_management"],
     }
     path.write_text(yaml.dump(content))
@@ -29,7 +29,7 @@ def sample_flow_yaml(tmp_path):
         "name": "Fault Diagnosis",
         "description": "SOP",
         "entry_agent": "qa_assistant",
-        "participants": ["qa_assistant", "fault_expert"],
+        "participants": [{"id": "qa_assistant", "role": "QA"}, {"id": "fault_expert", "role": "Expert"}],
         "global_instructions": "Follow protocol",
         "delegation_rules": {"qa_assistant": {"allow_delegation_to": ["fault_expert"]}},
     }
@@ -44,7 +44,7 @@ def test_load_agent_config(sample_agent_yaml):
     assert isinstance(config, AgentConfig)
     assert config.identifier == "qa_assistant"
     assert config.role == "QA Assistant"
-    assert config.tools.mode == "allowlist"
+    assert "search" in config.tools
     assert "fault_expert" in config.allow_delegation_to
 
 

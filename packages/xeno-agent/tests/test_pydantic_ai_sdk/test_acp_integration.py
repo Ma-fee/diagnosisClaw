@@ -45,13 +45,13 @@ async def test_acp_agent_initialize():
     agent = ACPAgent(factory=factory, flow_config=flow_config)
 
     response = await agent.initialize(
-        protocol_version="2025",
+        protocol_version=1,
         capabilities={},
         client_info={"name": "test-client", "version": "1.0"},
     )
 
-    assert response.protocol_version == 2025
-    assert response.agent_info.name == "ACPAgent"
+    assert response.protocol_version == 1
+    assert response.agent_info.name == "xeno-agent"
     assert response.agent_capabilities.session_capabilities is not None
 
 

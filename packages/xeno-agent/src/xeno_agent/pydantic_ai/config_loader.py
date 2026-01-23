@@ -11,7 +11,12 @@ class YAMLConfigLoader(ConfigLoader):
         self.base_path = Path(base_path)
 
     def load_agent_config(self, agent_id: str) -> AgentConfig:
-        candidates = [self.base_path / f"{agent_id}.yaml", self.base_path / "agents" / f"{agent_id}.yaml"]
+        candidates = [
+            self.base_path / f"{agent_id}.yaml",
+            self.base_path / "agents" / f"{agent_id}.yaml",
+            self.base_path / "roles" / f"{agent_id}.yaml",
+            self.base_path / "roles" / f"{agent_id}_agent.yaml",  # Common naming pattern
+        ]
 
         for path in candidates:
             if path.exists():
