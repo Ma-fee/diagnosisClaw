@@ -1,8 +1,0 @@
-name: mcp_flow
-description: "Flow using external MCP tool."
-initial_mode: database_searcher
-agents:
-  - database_searcher
-tools:
-  - search_database
-  - attempt_completion
