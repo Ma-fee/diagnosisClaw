@@ -1,10 +1,11 @@
+import asyncio
 import logging
 from contextlib import AsyncExitStack
 from typing import Any
 
 from mcp.types import ImageContent, TextContent
 from pydantic_ai import RunContext, Tool
-from pydantic_ai.mcp import MCPServer, MCPServerHTTP, MCPServerStdio
+from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
 
 from .models import FlowToolsConfig
 
@@ -24,56 +25,79 @@ class FlowToolManager:
         self._servers: dict[str, MCPServer] = {}
         self._all_tools: dict[str, Tool] = {}
 
-    async def initialize(self):
+    async def initialize(self, skip_mcp: bool = False, mcp_timeout: float = 30.0):
         """
         Initialize all configured MCP servers and pre-fetch tool definitions.
+
+        Args:
+            skip_mcp: If True, skip MCP server initialization (useful for quick startup)
+            mcp_timeout: Timeout in seconds for MCP server connections (default: 30s)
         """
         self._stack = AsyncExitStack()
         try:
+            if skip_mcp:
+                logger.info("Skipping MCP tool initialization (--skip-mcp-tools enabled)")
+                return
+
             for server_config in self.config.mcp_servers:
-                # User requested format: {mcp_name}__{tool_name}
-                tool_prefix = f"{server_config.name}__"
+                # Don't use tool_prefix here - we'll handle it manually to get {mcp_name}__{tool_name}
+                # The server returns tool names with _ prefix (e.g., _search_database)
+                # We'll construct the final name as: {mcp_name}__{tool_name}
 
                 server: MCPServer
                 if server_config.url:
-                    server = MCPServerHTTP(
+                    # Use empty tool_prefix to get raw tool names from server
+                    server = MCPServerStreamableHTTP(
                         url=server_config.url,
-                        tool_prefix=tool_prefix,
+                        tool_prefix="",  # No prefix - we'll add {mcp_name}__ manually
                     )
                 elif server_config.command:
                     server = MCPServerStdio(
                         command=server_config.command,
                         args=server_config.args,
                         env=server_config.env,
-                        tool_prefix=tool_prefix,
+                        tool_prefix="",  # No prefix - we'll add {mcp_name}__ manually
                     )
                 else:
                     logger.warning(f"Skipping invalid MCP server config: {server_config.name}")
                     continue
 
-                # Manage server lifecycle
-                await self._stack.enter_async_context(server)
-                self._servers[server_config.name] = server
+                # Manage server lifecycle with timeout
+                try:
+                    server_ctx = server.__aenter__()
+                    await asyncio.wait_for(server_ctx, timeout=mcp_timeout)
+                    await self._stack.enter_async_context(server)
+                    self._servers[server_config.name] = server
+                except TimeoutError:
+                    logger.exception(f"Timeout connecting to MCP server '{server_config.name}' after {mcp_timeout}s. Server will be skipped.")
+                    continue
 
                 # Pre-fetch and wrap tools
                 try:
-                    tools_defs = await server.list_tools()
+                    tools_defs = await asyncio.wait_for(server.list_tools(), timeout=mcp_timeout)
                     for tool_def in tools_defs:
-                        # Construct the fully qualified tool name
+                        # Construct fully qualified tool name
                         full_name = f"{server_config.name}__{tool_def.name}"
 
                         # Create a bound runner function
                         runner = self._create_runner(server, tool_def.name)
+
+                        # Get input schema from ToolDefinition (using snake_case attribute)
+                        input_schema = getattr(tool_def, "input_schema", None)
+                        if input_schema is None:
+                            logger.warning(f"No input_schema found for tool {full_name}")
 
                         # Create PydanticAI Tool
                         tool = Tool.from_schema(
                             function=runner,
                             name=full_name,
                             description=tool_def.description,
-                            json_schema=tool_def.inputSchema,
+                            json_schema=input_schema,
                         )
                         self._all_tools[full_name] = tool
                         logger.debug(f"Registered MCP tool: {full_name}")
+                except TimeoutError:
+                    logger.exception(f"Timeout listing tools from MCP server '{server_config.name}' after {mcp_timeout}s. Tools from this server will be unavailable.")
                 except Exception:
                     logger.exception(f"Failed to list tools for server {server_config.name}")
 

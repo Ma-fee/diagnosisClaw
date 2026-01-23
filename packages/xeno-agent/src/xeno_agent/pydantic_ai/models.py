@@ -41,9 +41,22 @@ class AgentConfig(BaseModel):
     tools: list[str] = Field(default_factory=list)
 
 
+class ParticipantConfig(BaseModel):
+    id: str
+    role: str
+
+
+class DelegationRuleConfig(BaseModel):
+    from_agent: str
+    to_agent: str
+    condition: str
+
+
 class FlowConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
     description: str | None = None
     tools: FlowToolsConfig = Field(default_factory=FlowToolsConfig)
+    participants: list[ParticipantConfig] = Field(default_factory=list)
+    delegation_rules: list[DelegationRuleConfig] = Field(default_factory=list)

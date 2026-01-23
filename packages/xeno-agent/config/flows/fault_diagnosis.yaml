@@ -15,9 +15,9 @@ participants:
     role: "Proposing and verifying solutions"
 
 delegation_rules:
-  - from: "qa_assistant"
-    to: "diagnostician"
+  - from_agent: "qa_assistant"
+    to_agent: "diagnostician"
     condition: "Initial data gathered"
-  - from: "diagnostician"
-    to: "remediation_expert"
+  - from_agent: "diagnostician"
+    to_agent: "remediation_expert"
     condition: "Root cause identified"
