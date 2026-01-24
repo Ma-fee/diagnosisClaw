@@ -21,6 +21,7 @@ dependencies = [
     "fastapi-sso>=0.17.0",
     "pydantic-ai>=0.0.18",
     "agent-client-protocol>=0.7.1",
+    "agentpool",
 ]
 
 [project.scripts]
