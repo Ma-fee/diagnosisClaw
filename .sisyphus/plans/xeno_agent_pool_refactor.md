@@ -31,11 +31,11 @@ Replace the custom `AgentFactory` and `LocalAgentRuntime` with `agentpool`'s `Ag
 - Updated `packages/xeno-agent/pyproject.toml` with `agentpool` dependency.
 
 ### Definition of Done
-- [ ] `agentpool` dependency installed.
-- [ ] Existing agents run via `agentpool` runtime.
-- [ ] Delegation works with cycle detection.
-- [ ] ACP events are emitted correctly for IDE.
-- [ ] All tests pass (TDD).
+- [x] `agentpool` dependency installed.
+- [x] Existing agents run via `agentpool` runtime.
+- [x] Delegation works with cycle detection.
+- [x] ACP events are emitted correctly for IDE.
+- [x] All tests pass (TDD).
 
 ### Must Have
 - **Cycle Detection**: Max recursion depth = 5.
@@ -105,7 +105,7 @@ Replace the custom `AgentFactory` and `LocalAgentRuntime` with `agentpool`'s `Ag
         - [ ] Test `XenoAgentNode` can execute a simple prompt.
         - [ ] Test recursion limit throws error at depth 6.
 
-- [ ] 3. Implement Event Adapter for ACP
+- [x] 3. Implement Event Adapter for ACP
     - **What to do**:
         - Create `packages/xeno-agent/src/xeno_agent/agentpool/events.py`.
         - Listen to `agentpool` events (via callback or subclassing).
@@ -115,16 +115,16 @@ Replace the custom `AgentFactory` and `LocalAgentRuntime` with `agentpool`'s `Ag
         - `packages/xeno-agent/src/xeno_agent/pydantic_ai/tool_manager.py` (Event emission usage).
         - `packages/xeno-agent/src/xeno_agent/pydantic_ai/events.py` (Event definitions).
     - **Acceptance Criteria**:
-        - [ ] Test: `XenoAgentNode` run emits `AgentSwitchEvent`.
+        - [x] Test: `XenoAgentNode` run emits `AgentSwitchEvent`.
 
 - [x] 4. Create Config Migration Script
 - [x] 5. Update Entry Point (New CLI)
-- [ ] 6. Cleanup & Deprecation
+- [x] 6. Cleanup & Deprecation
     - **What to do**:
         - Mark `AgentFactory` and `LocalAgentRuntime` as deprecated.
         - Remove unused code paths (if safe).
     - **Acceptance Criteria**:
-        - [ ] Codebase clean, no dead imports.
+        - [x] Codebase clean, no dead imports.
 
 ---
 
