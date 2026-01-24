@@ -88,8 +88,8 @@ Replace the custom `AgentFactory` and `LocalAgentRuntime` with `agentpool`'s `Ag
         - Create `packages/xeno-agent/tests/test_agentpool_integration.py`.
         - Write failing test: `test_agentpool_import` and `test_node_creation`.
     - **Acceptance Criteria**:
-        - [ ] `uv pip install -e .` succeeds.
-        - [ ] `pytest packages/xeno-agent/tests/test_agentpool_integration.py` passes (after impl).
+        - [x] `uv pip install -e .` succeeds.
+        - [x] `pytest packages/xeno-agent/tests/test_agentpool_integration.py` passes (after impl).
 
 - [x] 2. Implement `XenoAgentNode` Wrapper (The Bridge)
     - **What to do**:
@@ -102,8 +102,8 @@ Replace the custom `AgentFactory` and `LocalAgentRuntime` with `agentpool`'s `Ag
         - `packages/xeno-agent/src/xeno_agent/pydantic_ai/runtime.py:105-148` (Safety Logic).
         - `agentpool/agents/base.py` (MessageNode interface - strictly follow library).
     - **Acceptance Criteria**:
-        - [ ] Test `XenoAgentNode` can execute a simple prompt.
-        - [ ] Test recursion limit throws error at depth 6.
+        - [x] Test `XenoAgentNode` can execute a simple prompt.
+        - [x] Test recursion limit throws error at depth 6.
 
 - [x] 3. Implement Event Adapter for ACP
     - **What to do**:
@@ -129,6 +129,6 @@ Replace the custom `AgentFactory` and `LocalAgentRuntime` with `agentpool`'s `Ag
 ---
 
 ## Success Criteria
-- [ ] `pytest` suite passes with new tests.
-- [ ] Agent behavior (delegation, tools) remains identical.
-- [ ] Safety limits (recursion) are enforced.
+- [x] `pytest` suite passes with new tests.
+- [x] Agent behavior (delegation, tools) remains identical.
+- [x] Safety limits (recursion) are enforced.
