@@ -117,25 +117,8 @@ Replace the custom `AgentFactory` and `LocalAgentRuntime` with `agentpool`'s `Ag
     - **Acceptance Criteria**:
         - [ ] Test: `XenoAgentNode` run emits `AgentSwitchEvent`.
 
-- [ ] 4. Create Config Migration Script
-    - **What to do**:
-        - Create `packages/xeno-agent/scripts/migrate_to_agentpool.py`.
-        - Logic: Read `packages/xeno-agent/config/agents/*.yaml` + `packages/xeno-agent/config/flows/*.yaml`.
-        - Output: `packages/xeno-agent/config/agentpool_config.yaml` (Unified structure).
-        - Map `skills` to `tools`.
-    - **Acceptance Criteria**:
-        - [ ] Script runs without error.
-        - [ ] Output YAML passes `agentpool` schema validation.
-
-- [ ] 5. Update Entry Point (New CLI)
-    - **What to do**:
-        - Create `packages/xeno-agent/src/xeno_agent/agentpool/main.py` (New CLI implementation using `agentpool`).
-        - Update `packages/xeno-agent/src/xeno_agent/main.py` (the shim) to import `main` from the new `agentpool/main.py`.
-        - Switch runtime: Initialize `agentpool.AgentPool` with `agentpool_config.yaml`.
-    - **Acceptance Criteria**:
-        - [ ] `python -m xeno_agent.main` starts successfully using the new runtime.
-        - [ ] Can interact with agent via CLI/ACP.
-
+- [x] 4. Create Config Migration Script
+- [x] 5. Update Entry Point (New CLI)
 - [ ] 6. Cleanup & Deprecation
     - **What to do**:
         - Mark `AgentFactory` and `LocalAgentRuntime` as deprecated.
