@@ -34,6 +34,15 @@ wheels = [
 ]
 
 [[package]]
+name = "agentpool"
+version = "0.0.1"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/40/f6/f5366fd1e7a5ee30b0948b95693f724a8c7f3a9bb5f2e690fecdc4ade96f/agentpool-0.0.1.tar.gz", hash = "sha256:685d28bb268bf4283799cd95266f178a8f3d5e6d1d8f79c9fe986cb010246b57", size = 958, upload-time = "2025-12-16T05:29:01.881Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/62/49/13c38e3a3b141c4202037506f27bb75d171f3427c51f877e23e3f2bb004a/agentpool-0.0.1-py3-none-any.whl", hash = "sha256:8cafe6a0fc5236e96aad133a5bc82ad842ff7799d7d4076b26756a2fd13a24dd", size = 1440, upload-time = "2025-12-16T05:29:00.695Z" },
+]
+
+[[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -2365,6 +2374,7 @@ version = "0.1.0"
 source = { editable = "packages/xeno-agent" }
 dependencies = [
     { name = "agent-client-protocol", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')" },
+    { name = "agentpool", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')" },
     { name = "apscheduler", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')" },
     { name = "crewai", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')" },
     { name = "fastapi", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')" },
@@ -2388,6 +2398,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "agent-client-protocol", specifier = ">=0.7.1" },
+    { name = "agentpool" },
     { name = "apscheduler", specifier = "~=3.10.4" },
     { name = "crewai", specifier = ">=1.8" },
     { name = "fastapi", specifier = ">=0.100.0" },
