@@ -694,3 +694,186 @@ Task 5 complete. The new CLI is working and ready for:
 - Future: Full ACP integration with `InteractionManager` (replace placeholder)
 - Future: Resolve missing skill file issues
 - Future: Fix MCP connection cleanup errors (pre-existing issue)
+
+---
+
+## Task 6: Cleanup & Deprecation
+
+### Completed Items
+- ✅ Added `warnings` import to `factory.py` and `runtime.py`
+- ✅ Marked `AgentFactory` class as deprecated with docstring
+- ✅ Added `warnings.warn()` in `AgentFactory.__init__()` with `DeprecationWarning`
+- ✅ Marked `LocalAgentRuntime` class as deprecated with docstring
+- ✅ Added `warnings.warn()` in `LocalAgentRuntime.__init__()` with `DeprecationWarning`
+- ✅ Marked `delegate_task` function as deprecated with docstring
+- ✅ Added `warnings.warn()` in `delegate_task()` with `DeprecationWarning`
+- ✅ All deprecation warnings point to new `agentpool` implementation
+- ✅ Verified warnings appear with test script (AgentFactory and LocalAgentRuntime)
+- ✅ Lint checks pass: `uv run ruff check` on both files
+- ✅ Code formatting verified: `uv run ruff format` on both files
+
+### Test Results
+- **Deprecation warnings verified**: Both `AgentFactory` and `LocalAgentRuntime` correctly emit `DeprecationWarning` when instantiated
+- **Warning message format**:
+  - "AgentFactory is deprecated. Use the new agentpool implementation instead. See packages/xeno-agent/src/xeno_agent/agentpool/ for details."
+  - "LocalAgentRuntime is deprecated. Use the new AgentPoolRuntime from agentpool instead. See packages/xeno-agent/src/xeno_agent/agentpool/ for details."
+  - "delegate_task is deprecated. Use the new agentpool implementation instead. See packages/xeno-agent/src/xeno_agent/agentpool/ for details."
+- **stacklevel=2**: Ensures warnings point to caller's code, not deprecated implementation internals
+
+### Key Findings
+
+1. **Docstring deprecation pattern**: Using Sphinx-style `.. deprecated::` directive for documentation generators:
+   ```python
+   """
+   .. deprecated:: 0.1.0
+       Use the new `agentpool` implementation instead.
+       This class is deprecated and will be removed in a future release.
+   """
+   ```
+
+2. **Clear migration paths**: Each deprecation includes:
+   - What's deprecated and why
+   - Benefits of new implementation
+   - Migration guide with code examples
+   - Path to new implementation
+
+3. **Three components deprecated**:
+   - `AgentFactory` in `factory.py` - Creates pydantic_ai agents
+   - `LocalAgentRuntime` in `runtime.py` - Executes agents locally
+   - `delegate_task` in `runtime.py` - Universal delegation tool
+
+4. **No deletion yet**: Following the task requirement to mark as deprecated without deleting, allowing existing code to continue working while warning developers.
+
+5. **LSP errors pre-existing**: Multiple LSP errors about `pydantic_ai`, `mcp`, and `acp` imports existed in the codebase before this task and are not specific to the deprecation changes.
+
+### Implementation Details
+
+#### Deprecation Warning Pattern
+```python
+warnings.warn(
+    "ComponentName is deprecated. Use the new agentpool implementation instead. "
+    "See packages/xeno-agent/src/xeno_agent/agentpool/ for details.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+```
+
+#### Docstring Template
+```python
+"""
+.. deprecated:: 0.1.0
+    Use the new `agentpool` implementation instead.
+    This class is deprecated and will be removed in a future release.
+
+The new agentpool-based implementation provides:
+- Better scalability with agent pooling
+- Improved performance for multi-agent workflows
+- Cleaner separation of concerns
+
+**Migration Guide:**
+    Replace imports and usage with:
+    ```python
+    # Old (deprecated)
+    from xeno_agent.pydantic_ai.factory import AgentFactory
+    from xeno_agent.pydantic_ai.runtime import LocalAgentRuntime
+
+    # New (recommended)
+    from xeno_agent.agentpool.runtime import AgentPoolRuntime
+    from xeno_agent.agentpool.config import AgentPoolConfig
+    ```
+
+For more information, see the new implementation at:
+`packages/xeno-agent/src/xeno_agent/agentpool/`
+"""
+```
+
+### Migration Guide for Users
+
+#### For AgentFactory Users
+**Old (deprecated):**
+```python
+from xeno_agent.pydantic_ai.factory import AgentFactory
+from xeno_agent.pydantic_ai.config_loader import YAMLConfigLoader
+
+loader = YAMLConfigLoader(base_path="config")
+factory = AgentFactory(config_loader=loader)
+```
+
+**New (recommended):**
+```python
+# Agent creation now handled internally by AgentPoolRuntime
+# No need to create factory directly
+from xeno_agent.agentpool.runtime import AgentPoolRuntime
+```
+
+#### For LocalAgentRuntime Users
+**Old (deprecated):**
+```python
+from xeno_agent.pydantic_ai.runtime import LocalAgentRuntime
+
+runtime = LocalAgentRuntime(factory=factory, flow_config=flow_config)
+async with runtime:
+    result = await runtime.invoke("qa_assistant", "Hello")
+```
+
+**New (recommended):**
+```python
+from xeno_agent.agentpool.loop import InteractionManager
+
+manager = InteractionManager(factory=factory, flow_config=flow_config)
+async for event in manager.stream("qa_assistant", "Hello"):
+    # Handle events (ContentEvent, ThoughtEvent, etc.)
+    pass
+```
+
+#### For delegate_task Users
+**Old (deprecated):**
+```python
+from xeno_agent.pydantic_ai.runtime import delegate_task
+
+# Tool was automatically attached to agents
+```
+
+**New (recommended):**
+```python
+# Delegation is now handled automatically by AgentPoolRuntime
+# No need to use delegate_task directly
+```
+
+### Design Decisions
+
+1. **Use `DeprecationWarning` instead of `FutureWarning`**: Following Python convention where `DeprecationWarning` is the default for deprecated APIs. Users who don't enable warnings won't see them, but developers testing their code will.
+
+2. **stacklevel=2**: Ensures the warning points to where the user called the deprecated function, not where the warning was raised. This makes debugging easier.
+
+3. **Clear path to new implementation**: All warnings explicitly mention `packages/xeno-agent/src/xeno_agent/agentpool/` as the location of the new implementation.
+
+4. **Comprehensive docstrings**: Each deprecated component has a detailed docstring with:
+   - Deprecation version (0.1.0)
+   - Benefits of new implementation
+   - Migration guide with code examples
+   - Path to new implementation
+
+5. **No removal yet**: Following deprecation best practices by warning first, then removing in a future release (not specified in this task).
+
+### File Changes
+- ✅ Modified: `packages/xeno-agent/src/xeno_agent/pydantic_ai/factory.py`
+  - Added `warnings` import
+  - Added deprecation docstring to `AgentFactory` class
+  - Added `warnings.warn()` call in `__init__()` method
+
+- ✅ Modified: `packages/xeno-agent/src/xeno_agent/pydantic_ai/runtime.py`
+  - Added `warnings` import
+  - Added deprecation docstring to `delegate_task` function
+  - Added `warnings.warn()` call in `delegate_task()` function
+  - Added deprecation docstring to `LocalAgentRuntime` class
+  - Added `warnings.warn()` call in `__init__()` method
+
+### Next Steps
+Task 6 complete. The deprecation warnings guide developers to the new agentpool implementation. Users will see clear warnings when using the old implementation, with actionable migration guidance.
+
+Future tasks may include:
+- Remove deprecated code after a grace period
+- Update existing documentation to use agentpool
+- Add deprecation warnings to other pydantic_ai components (e.g., `YAMLConfigLoader`)
+- Create migration guide documentation for users

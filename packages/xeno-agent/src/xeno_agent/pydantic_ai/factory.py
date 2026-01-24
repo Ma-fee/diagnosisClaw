@@ -1,3 +1,4 @@
+import warnings
 from typing import TYPE_CHECKING
 
 from pydantic_ai import Agent, RunContext
@@ -13,6 +14,32 @@ if TYPE_CHECKING:
 
 
 class AgentFactory:
+    """
+    .. deprecated:: 0.1.0
+        Use the new `agentpool` implementation instead.
+        This class is deprecated and will be removed in a future release.
+
+    The new agentpool-based implementation provides:
+    - Better scalability with agent pooling
+    - Improved performance for multi-agent workflows
+    - Cleaner separation of concerns
+
+    **Migration Guide:**
+        Replace imports and usage with:
+        ```python
+        # Old (deprecated)
+        from xeno_agent.pydantic_ai.factory import AgentFactory
+        from xeno_agent.pydantic_ai.runtime import LocalAgentRuntime
+
+        # New (recommended)
+        from xeno_agent.agentpool.runtime import AgentPoolRuntime
+        from xeno_agent.agentpool.config import AgentPoolConfig
+        ```
+
+    For more information, see the new implementation at:
+    `packages/xeno-agent/src/xeno_agent/agentpool/`
+    """
+
     def __init__(
         self,
         config_loader: ConfigLoader,
@@ -20,6 +47,11 @@ class AgentFactory:
         skill_registry: SkillRegistry | None = None,
         model: str = "openai:gpt-4o",
     ):
+        warnings.warn(
+            "AgentFactory is deprecated. Use the new agentpool implementation instead. See packages/xeno-agent/src/xeno_agent/agentpool/ for details.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.config_loader = config_loader
         self.skill_loader = skill_loader
         self.skill_registry = skill_registry

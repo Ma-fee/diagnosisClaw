@@ -1,6 +1,7 @@
 import logging
 import time
 import uuid
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
@@ -52,7 +53,30 @@ class RuntimeDeps:
 
 
 async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: str) -> str:
-    """Universal delegation tool."""
+    """
+    .. deprecated:: 0.1.0
+        Use the new `agentpool` delegation mechanism instead.
+        This function is deprecated and will be removed in a future release.
+
+    **Migration Guide:**
+        Replace usage with the new agentpool delegation system:
+        ```python
+        # Old (deprecated)
+        from xeno_agent.pydantic_ai.runtime import delegate_task
+
+        # New (recommended)
+        # Delegation is now handled automatically by AgentPoolRuntime
+        # See packages/xeno-agent/src/xeno_agent/agentpool/ for details
+        ```
+
+    For more information, see the new implementation at:
+    `packages/xeno-agent/src/xeno_agent/agentpool/`
+    """
+    warnings.warn(
+        "delegate_task is deprecated. Use the new agentpool implementation instead. See packages/xeno-agent/src/xeno_agent/agentpool/ for details.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     deps = ctx.deps
 
     # 1. Cycle Detection & Depth Check
@@ -98,9 +122,38 @@ async def delegate_task(ctx: RunContext[RuntimeDeps], target_agent: str, task: s
 
 
 class LocalAgentRuntime(AgentRuntime):
-    """Local implementation of AgentRuntime using PydanticAI."""
+    """
+    .. deprecated:: 0.1.0
+        Use the new `AgentPoolRuntime` from agentpool instead.
+        This class is deprecated and will be removed in a future release.
+
+    The new AgentPoolRuntime provides:
+    - Better resource management with agent pooling
+    - Improved scalability for multi-agent workflows
+    - Better performance characteristics
+
+    **Migration Guide:**
+        Replace imports and usage with:
+        ```python
+        # Old (deprecated)
+        from xeno_agent.pydantic_ai.runtime import LocalAgentRuntime
+        from xeno_agent.pydantic_ai.factory import AgentFactory
+
+        # New (recommended)
+        from xeno_agent.agentpool.runtime import AgentPoolRuntime
+        from xeno_agent.agentpool.config import AgentPoolConfig
+        ```
+
+    For more information, see the new implementation at:
+    `packages/xeno-agent/src/xeno_agent/agentpool/`
+    """
 
     def __init__(self, factory: AgentFactoryProtocol, flow_config: FlowConfig, tool_manager: FlowToolManager | None = None):
+        warnings.warn(
+            "LocalAgentRuntime is deprecated. Use the new AgentPoolRuntime from agentpool instead. See packages/xeno-agent/src/xeno_agent/agentpool/ for details.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.factory = factory
         self.flow_config = flow_config
         self._active_sessions: dict[str, RuntimeDeps] = {}
