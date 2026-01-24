@@ -22,10 +22,11 @@ dependencies = [
     "pydantic-ai>=0.0.18",
     "agent-client-protocol>=0.7.1",
     "agentpool",
+    "pyyaml>=6.0.3",
 ]
 
 [project.scripts]
-xeno-agent = "xeno_agent.pydantic_ai.main:main"
+xeno-agent = "xeno_agent.agentpool.main:main"
 
 [build-system]
 requires = ["uv_build>=0.9.22,<0.10.0"]
