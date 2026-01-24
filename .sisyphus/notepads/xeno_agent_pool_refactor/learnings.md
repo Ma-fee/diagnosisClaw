@@ -92,3 +92,126 @@ class MessageNode:
 ### Next Steps
 Task 2 complete. The wrapper is ready for integration with agentpool runtime once the library provides actual MessageNode implementation.
 
+
+---
+
+## Task 2: Implement XenoAgentNode Wrapper (The Bridge)
+
+### Completed Items
+- ✅ Created `packages/xeno-agent/src/xeno_agent/agentpool/` directory structure
+- ✅ Moved `MessageNode` and `XenoMessageNode` from `pydantic_ai/pool.py` to `agentpool/node.py`
+- ✅ Deleted `pydantic_ai/pool.py` (noted as completed - file ignored by git)
+- ✅ Implemented `XenoAgentNode` class with `run()` method
+- ✅ `XenoAgentNode.run()` integrates `AgentFactory`, `TraceID`, and recursion limit
+- ✅ Updated `test_agentpool_integration.py` with comprehensive XenoAgentNode tests
+- ✅ All 12 tests PASS
+
+### Test Results (12/12 PASSED)
+- `test_agentpool_import`: ✅ PASSED - agentpool package available
+- `test_message_node_base`: ✅ PASSED - Base MessageNode class works
+- `test_node_creation`: ✅ PASSED - XenoMessageNode.from_text() works
+- `test_xeno_message_node_from_model_response`: ✅ PASSED - Wraps ModelResponse correctly
+- `test_xeno_message_node_with_tool_calls`: ✅ PASSED - Handles ToolCallPart extraction
+- `test_xeno_message_node_with_tool_returns`: ✅ PASSED - Handles ToolReturnPart extraction
+- `test_xeno_message_node_to_dict`: ✅ PASSED - Serialization works
+- `test_xeno_message_node_inheritance`: ✅ PASSED - XenoMessageNode is subclass of MessageNode
+- `test_xeno_agent_node_initialization`: ✅ PASSED - XenoAgentNode initialization works
+- `test_xeno_agent_node_recursion_limit`: ✅ PASSED - Recursion depth check works
+- `test_xeno_agent_node_run_without_api`: ✅ PASSED - RuntimeDeps constructed correctly (mocked)
+- `test_xeno_agent_node_create_child`: ✅ PASSED - Child node creation works
+
+### Key Findings
+
+1. **Recursion limit check BEFORE agent creation** - Important to validate depth before attempting to create agent (which requires valid model)
+
+2. **Parent trace reconstruction issue** - When `parent_trace_id` is passed, we cannot reconstruct the full trace path from just the ID. Added `parent_depth` parameter to `run()` method to properly track depth.
+
+3. **Trace depth calculation** - `current_depth = len(trace.path) + parent_depth` ensures depth is correctly calculated across delegations.
+
+4. **Mocking async methods** - Used `AsyncMock` from `unittest.mock` for mocking `AgentFactory.create()` and `Agent.run()` methods.
+
+5. **Model validation** - Tests that don't require actual LLM API calls use mocks to avoid model availability issues (e.g., `gpt-4o-mini` not available in local environment).
+
+### XenoAgentNode Implementation Details
+
+#### Class Structure
+```python
+class XenoAgentNode:
+    """Bridge wrapper that executes pydantic_ai agents via agentpool interface."""
+
+    def __init__(self, agent_id, factory, flow_config, tool_manager, model=None):
+        self.agent_id = agent_id
+        self.factory = factory
+        self.flow_config = flow_config
+        self.tool_manager = tool_manager
+        self.model = model
+```
+
+#### run() Method Flow
+1. **Trace creation** - Creates new trace or child trace from `parent_trace_id`
+2. **Recursion check** - Validates `current_depth <= MAX_DELEGATION_DEPTH (5)`
+3. **Agent creation** - Calls `factory.create(agent_id, flow_config, tool_manager)`
+4. **RuntimeDeps injection** - Creates deps with `trace`, `factory`, `tool_manager`, `session_id`
+5. **Execution** - Calls `agent.run(message, deps=deps, message_history=deps.message_history)`
+6. **Result wrapping** - Wraps `ModelResponse` in `XenoMessageNode` with metadata
+
+#### create_child_node() Method
+Creates child node for delegation:
+```python
+def create_child_node(self, target_agent_id) -> XenoAgentNode:
+    return XenoAgentNode(
+        agent_id=target_agent_id,
+        factory=self.factory,
+        flow_config=self.flow_config,
+        tool_manager=self.tool_manager,
+        model=self.model,
+    )
+```
+
+### Testing Strategy
+
+#### Mock-based Testing
+Since actual LLM calls require valid API keys and available models, tests use mocks:
+- `AsyncMock(return_value=mock_result)` - For async method mocking
+- `patch.object(factory, "create", ...)` - For mocking factory creation
+- Mock `Agent` and `ModelResponse` - For simulating agent execution
+
+#### Test Coverage
+- **Initialization**: Verifies node setup with factory, flow_config, tool_manager
+- **Recursion limit**: Tests depth check with `parent_depth` parameter
+- **RuntimeDeps construction**: Verifies deps are built correctly when agent runs
+- **Child node creation**: Tests delegation capability
+- **MessageNode wrapping**: Verifies ModelResponse → XenoMessageNode conversion
+
+### Integration Points
+
+1. **AgentFactory** - `XenoAgentNode` uses `factory.create()` to get `Agent` instances
+2. **RuntimeDeps** - Injects `TraceID`, `factory`, `tool_manager` into deps
+3. **Message history** - Maintains history across multiple `run()` calls via `deps.message_history`
+4. **Token usage** - Captures usage from `result.usage()` and stores in metadata
+
+### Design Decisions
+
+1. **Added `parent_depth` parameter** - Allows explicit depth tracking when reconstructing traces from `parent_trace_id`
+2. **Separate `create_child_node()`** - Clean delegation pattern - parent creates child node
+3. **XenoMessageNode for wrapping** - Maintains compatibility with existing message node structure
+4. **MAX_DELEGATION_DEPTH = 5** - Enforced safety limit for recursion
+
+### Known Limitations
+
+1. **Trace path reconstruction** - When `parent_trace_id` is provided, we cannot reconstruct full path (only have root ID). This is mitigated by `parent_depth` parameter.
+2. **No ACP event emission** - Not yet implemented (Task 3)
+3. **No cycle detection** - Not yet tested (would need full trace path to check `has_cycle()`)
+
+### File Changes
+- ✅ Created: `packages/xeno-agent/src/xeno_agent/agentpool/__init__.py`
+- ✅ Created: `packages/xeno-agent/src/xeno_agent/agentpool/node.py` (MessageNode, XenoMessageNode, XenoAgentNode)
+- ❌ Deleted: `packages/xeno-agent/src/xeno_agent/pydantic_ai/pool.py` (ignored by git - not yet tracked)
+- ✅ Updated: `packages/xeno-agent/tests/test_agentpool_integration.py` (4 new tests for XenoAgentNode)
+
+### Next Steps
+Task 2 complete. The `XenoAgentNode` bridge is ready for:
+- Task 3: Event Adapter for ACP integration
+- Task 4: Config migration script
+- Task 5: Update entry point to use agentpool runtime
+

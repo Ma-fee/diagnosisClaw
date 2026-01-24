@@ -5,7 +5,11 @@ Tests for agentpool integration.
 import agentpool
 from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart, ToolReturnPart
 
-from xeno_agent.pydantic_ai.pool import MessageNode, XenoMessageNode
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
+from xeno_agent.agentpool.node import MessageNode, XenoMessageNode
 
 
 def test_agentpool_import():
@@ -132,3 +136,157 @@ def test_xeno_message_node_inheritance():
 
     assert isinstance(node, MessageNode)
     assert isinstance(node, XenoMessageNode)
+
+
+# ============================================================================
+# Tests for XenoAgentNode
+# ============================================================================
+
+from xeno_agent.agentpool.node import MAX_DELEGATION_DEPTH, XenoAgentNode
+from xeno_agent.pydantic_ai.config_loader import YAMLConfigLoader
+from xeno_agent.pydantic_ai.factory import AgentFactory
+from xeno_agent.pydantic_ai.tool_manager import FlowToolManager
+from pydantic_ai.messages import ModelResponse, TextPart
+
+
+@pytest.mark.asyncio
+async def test_xeno_agent_node_initialization():
+    """Test that XenoAgentNode can be initialized."""
+    # Setup
+    base_path = "packages/xeno-agent/config"
+    config_loader = YAMLConfigLoader(base_path=base_path)
+    factory = AgentFactory(config_loader=config_loader, model="test-model")
+
+    flow_config = config_loader.load_flow_config("fault_diagnosis")
+    tool_manager = FlowToolManager(flow_config.tools)
+
+    # Create XenoAgentNode
+    node = XenoAgentNode(
+        agent_id="qa_assistant",
+        factory=factory,
+        flow_config=flow_config,
+        tool_manager=tool_manager,
+        model="test-model",
+    )
+
+    # Verify initialization
+    assert node.agent_id == "qa_assistant"
+    assert node.factory is factory
+    assert node.flow_config is flow_config
+    assert node.tool_manager is tool_manager
+    assert node.model == "test-model"
+
+
+@pytest.mark.asyncio
+async def test_xeno_agent_node_recursion_limit():
+    """Test that XenoAgentNode throws RecursionError when depth exceeds limit."""
+    # Setup
+    base_path = "packages/xeno-agent/config"
+    config_loader = YAMLConfigLoader(base_path=base_path)
+    factory = AgentFactory(config_loader=config_loader, model="test-model")
+
+    flow_config = config_loader.load_flow_config("fault_diagnosis")
+    tool_manager = FlowToolManager(flow_config.tools)
+
+    # Create node
+    node = XenoAgentNode(
+        agent_id="qa_assistant",
+        factory=factory,
+        flow_config=flow_config,
+        tool_manager=tool_manager,
+    )
+
+    # The run() method should detect this depth and raise RecursionError
+    # Simulate deep recursion by passing parent_depth
+    with pytest.raises(RecursionError) as exc_info:
+        # Pass depth that would exceed limit when adding 1 for current agent
+        await node.run(
+            message="Test message",
+            parent_depth=MAX_DELEGATION_DEPTH,  # Already at limit, adding current agent would exceed
+        )
+
+    # Verify error message mentions depth limit
+    assert f"Max delegation depth ({MAX_DELEGATION_DEPTH}) exceeded" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_xeno_agent_node_run_without_api():
+    """Test that XenoAgentNode run() method constructs correct RuntimeDeps."""
+    from pydantic_ai import Agent
+    from pydantic_ai.messages import ModelResponse, TextPart
+
+    # Setup
+    base_path = "packages/xeno-agent/config"
+    config_loader = YAMLConfigLoader(base_path=base_path)
+    factory = AgentFactory(config_loader=config_loader, model="test-model")
+
+    flow_config = config_loader.load_flow_config("fault_diagnosis")
+    tool_manager = FlowToolManager(flow_config.tools)
+
+    node = XenoAgentNode(
+        agent_id="qa_assistant",
+        factory=factory,
+        flow_config=flow_config,
+        tool_manager=tool_manager,
+    )
+
+    # Create a mock agent
+    mock_agent = Mock(spec=Agent)
+
+    # Create a mock result with proper structure
+    mock_result = Mock()
+    mock_result.all_messages.return_value = [
+        ModelResponse(
+            parts=[TextPart(content="Mocked response")],
+            model_name="test-model",
+            timestamp=None,
+            usage=Mock(request_tokens=10, response_tokens=20, total_tokens=30),
+        ),
+    ]
+    mock_result.usage.return_value = Mock(request_tokens=10, response_tokens=20, total_tokens=30)
+    mock_result.data = "Mocked response"
+    mock_agent.run = AsyncMock(return_value=mock_result)
+
+    # Patch factory.create to return our mock agent
+    with patch("xeno_agent.pydantic_ai.factory.AgentFactory.create", AsyncMock(return_value=mock_agent)):
+        # Run the node
+        result_node = await node.run(message="Test message")
+
+        # Verify result node
+        assert isinstance(result_node, XenoMessageNode)
+        assert result_node.content == "Mocked response"
+        assert result_node.metadata["agent_id"] == "qa_assistant"
+        assert "trace_id" in result_node.metadata
+        assert result_node.metadata["depth"] == 1
+        assert "usage" in result_node.metadata
+        assert result_node.metadata["usage"]["total_tokens"] == 30
+
+
+@pytest.mark.asyncio
+async def test_xeno_agent_node_create_child():
+    """Test that XenoAgentNode can create child nodes for delegation."""
+    # Setup
+    base_path = "packages/xeno-agent/config"
+    config_loader = YAMLConfigLoader(base_path=base_path)
+    factory = AgentFactory(config_loader=config_loader, model="test-model")
+
+    flow_config = config_loader.load_flow_config("fault_diagnosis")
+    tool_manager = FlowToolManager(flow_config.tools)
+
+    # Create parent node
+    parent_node = XenoAgentNode(
+        agent_id="qa_assistant",
+        factory=factory,
+        flow_config=flow_config,
+        tool_manager=tool_manager,
+    )
+
+    # Create child node
+    child_node = parent_node.create_child_node("fault_expert")
+
+    # Verify child node
+    assert isinstance(child_node, XenoAgentNode)
+    assert child_node.agent_id == "fault_expert"
+    assert child_node.factory is parent_node.factory
+    assert child_node.flow_config is parent_node.flow_config
+    assert child_node.tool_manager is parent_node.tool_manager
