@@ -215,3 +215,150 @@ Task 2 complete. The `XenoAgentNode` bridge is ready for:
 - Task 4: Config migration script
 - Task 5: Update entry point to use agentpool runtime
 
+---
+
+## Task 3: Event-driven Loop (Interaction Manager)
+
+### Completed Items
+- ✅ Created `packages/xeno-agent/src/xeno_agent/agentpool/loop.py` with `InteractionManager` class
+- ✅ Implemented `stream()` method as `AsyncIterator[AgentEvent]` for event streaming
+- ✅ Implemented `_emit_events_from_node()` to convert `XenoMessageNode` to stream events
+- ✅ Event emission supports:
+  - `ContentEvent` - for text content from `TextPart`
+  - `ThoughtEvent` - for reasoning from `ThinkingPart`
+  - `ToolStartEvent` - for tool calls from `tool_calls` list
+  - `ToolResultEvent` - for tool returns from `tool_returns` list
+  - `AgentSwitchEvent` - for agent delegation detected via metadata
+- ✅ Created comprehensive test suite `tests/test_agentpool_loop.py` (12 tests)
+- ✅ All 12 tests PASS
+
+### Test Results (12/12 PASSED)
+- `test_init`: ✅ PASSED - InteractionManager initialization works
+- `test_create_node`: ✅ PASSED - Can create XenoAgentNode via InteractionManager
+- `test_stream_basic`: ✅ PASSED - Basic streaming with ContentEvent
+- `test_stream_with_thought`: ✅ PASSED - Streaming with ThoughtEvent and ContentEvent
+- `test_stream_with_tool_calls`: ✅ PASSED - ToolStartEvent, ToolResultEvent, ContentEvent in correct order
+- `test_stream_with_agent_switch`: ✅ PASSED - AgentSwitchEvent emitted on delegation
+- `test_stream_with_history_and_session`: ✅ PASSED - History and session_id passed correctly
+- `test_stream_empty_response`: ✅ PASSED - Empty responses handled gracefully
+- `test_emit_content_event`: ✅ PASSED - ContentEvent emission works
+- `test_emit_thought_event`: ✅ PASSED - ThoughtEvent emission works
+- `test_emit_multiple_parts`: ✅ PASSED - Multiple parts emitted in order
+- `test_emit_agent_switch_event`: ✅ PASSED - AgentSwitchEvent emission works
+
+### Key Findings
+
+1. **Post-execution event emission** - Current implementation emits events after agent completes. This is simpler to implement but doesn't provide true streaming.
+   - Tool events (start/result) are emitted first (before content)
+   - Then content events (text parts and thinking parts) are emitted
+   - Agent switch events are emitted first if detected
+
+2. **Event order** - The `_emit_events_from_node()` method emits events in this order:
+   1. `AgentSwitchEvent` (if metadata shows different agent_id)
+   2. `ToolStartEvent` (all tool calls)
+   3. `ToolResultEvent` (all tool returns)
+   4. `ContentEvent` (for each `TextPart`)
+   5. `ThoughtEvent` (for each `ThinkingPart` with content attribute)
+
+3. **Type hint complexity** - Union types for AsyncIterator can become verbose:
+   ```python
+   AsyncIterator[AgentSwitchEvent | ContentEvent | ThoughtEvent | ToolResultEvent | ToolStartEvent]
+   ```
+   This is necessary since we removed the base `AgentStreamEvent` import to fix circular dependency.
+
+4. **Circular dependency handling** - Had to move imports:
+   - `XenoAgentNode` import moved to TYPE_CHECKING block at top
+   - Import in `_create_node()` moved to top-level to avoid "import should be at top-level" ruff warning
+   - Actually kept it in method to avoid circular dependency with `node.py`
+
+5. **Tool call handling** - `XenoMessageNode` already has `tool_calls` and `tool_returns` populated, so event emission just iterates these lists.
+
+6. **Agent switch detection** - Uses `node.metadata.get("agent_id", agent_id)` to detect if the executing agent differs from the requested agent.
+
+7. **AsyncIterator from collections.abc** - Better practice than importing from `typing` module for `AsyncIterator` type hint.
+
+### InteractionManager Implementation Details
+
+#### Class Structure
+```python
+class InteractionManager:
+    """Manages agent interactions and emits stream events."""
+    
+    def __init__(self, factory, flow_config, tool_manager, model=None):
+        # Stores references for node creation and execution
+```
+
+#### Key Methods
+
+1. **`_create_node(agent_id: str) -> XenoAgentNode`**
+   - Creates a `XenoAgentNode` for the given agent ID
+   - Uses factory, flow_config, tool_manager, model from initialization
+
+2. **`stream(agent_id, message, history, session_id) -> AsyncIterator[...]`**
+   - Main entry point for event streaming
+   - Creates node, executes it, then emits events via `_emit_events_from_node()`
+
+3. **`_emit_events_from_node(node, agent_id) -> AsyncIterator[...]`**
+   - Converts `XenoMessageNode` to stream events
+   - Emits events in logical order (switch → tools → content)
+
+### Event Mapping Table
+
+| Source | Event Type | Data Source |
+|--------|-------------|--------------|
+| `node.metadata["agent_id"] != agent_id` | `AgentSwitchEvent` | Metadata comparison |
+| `node.tool_calls` (each) | `ToolStartEvent` | `tool_call_id`, `tool_name`, `args` |
+| `node.tool_returns` (each) | `ToolResultEvent` | `tool_call_id`, `content` |
+| `TextPart` (each) | `ContentEvent` | `part.content` |
+| `ThinkingPart` (each) | `ThoughtEvent` | `part.content` |
+
+### Testing Strategy
+
+#### Mock-based Approach
+Tests use mocks to avoid requiring actual LLM API calls:
+- Mock `XenoAgentNode.run()` to return prepared `XenoMessageNode`
+- Create `ModelResponse` with specific `parts` to test different event types
+- Add `tool_calls`/`tool_returns` lists to test tool events
+- Set `metadata["agent_id"]` to test agent switch detection
+
+#### Test Coverage
+- **Basic streaming**: Single content event
+- **Multiple parts**: Thought + content in sequence
+- **Tool interactions**: ToolStart + ToolResult + content
+- **Agent delegation**: AgentSwitch + content
+- **Empty response**: No events emitted
+- **History/session**: Parameters passed correctly
+
+### Design Decisions
+
+1. **Post-execution vs true streaming** - Chose post-execution for simplicity. True streaming would require:
+   - Modifying pydantic_ai runtime to emit intermediate events
+   - Handling streaming responses from LLM API
+   - More complex async coordination
+
+2. **Event ordering** - Tools before content reflects that tools are called before final content generation in typical LLM responses.
+
+3. **Agent switch detection via metadata** - Simple approach that works with current `XenoAgentNode` implementation.
+
+4. **Union type for AsyncIterator** - More verbose but accurate than using base `AgentStreamEvent` class.
+
+### Known Limitations
+
+1. **Not true streaming** - All events emitted after agent completes. Clients can't see partial responses during generation.
+
+2. **No `ToolOutputEvent`** - Incremental tool output not yet implemented (would need streaming from tool execution).
+
+3. **No intermediate events** - Delegation events only detected after child agent completes.
+
+4. **Tool events may be out of order** - If tool execution spans multiple messages, we only see start/result from final node.
+
+### File Changes
+- ✅ Created: `packages/xeno-agent/src/xeno_agent/agentpool/loop.py` (InteractionManager)
+- ✅ Created: `packages/xeno-agent/tests/test_agentpool_loop.py` (12 tests)
+
+### Next Steps
+Task 3 complete. The `InteractionManager` is ready for:
+- Integration with ACP runtime (Task 4 onwards)
+- True streaming support (future enhancement - would require pydantic_ai runtime modification)
+- ToolOutputEvent support (future enhancement - would require tool execution streaming)
+
