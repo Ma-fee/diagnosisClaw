@@ -2,14 +2,21 @@
 Tests for agentpool integration.
 """
 
-import agentpool
-from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart, ToolReturnPart
-
 from unittest.mock import AsyncMock, Mock, patch
 
+import agentpool
 import pytest
+from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart, ToolReturnPart
 
-from xeno_agent.agentpool.node import MessageNode, XenoMessageNode
+from xeno_agent.agentpool.node import (
+    MAX_DELEGATION_DEPTH,
+    MessageNode,
+    XenoAgentNode,
+    XenoMessageNode,
+)
+from xeno_agent.pydantic_ai.config_loader import YAMLConfigLoader
+from xeno_agent.pydantic_ai.factory import AgentFactory
+from xeno_agent.pydantic_ai.tool_manager import FlowToolManager
 
 
 def test_agentpool_import():
@@ -142,18 +149,12 @@ def test_xeno_message_node_inheritance():
 # Tests for XenoAgentNode
 # ============================================================================
 
-from xeno_agent.agentpool.node import MAX_DELEGATION_DEPTH, XenoAgentNode
-from xeno_agent.pydantic_ai.config_loader import YAMLConfigLoader
-from xeno_agent.pydantic_ai.factory import AgentFactory
-from xeno_agent.pydantic_ai.tool_manager import FlowToolManager
-from pydantic_ai.messages import ModelResponse, TextPart
-
 
 @pytest.mark.asyncio
 async def test_xeno_agent_node_initialization():
     """Test that XenoAgentNode can be initialized."""
     # Setup
-    base_path = "packages/xeno-agent/config"
+    base_path = "config"
     config_loader = YAMLConfigLoader(base_path=base_path)
     factory = AgentFactory(config_loader=config_loader, model="test-model")
 
@@ -181,7 +182,7 @@ async def test_xeno_agent_node_initialization():
 async def test_xeno_agent_node_recursion_limit():
     """Test that XenoAgentNode throws RecursionError when depth exceeds limit."""
     # Setup
-    base_path = "packages/xeno-agent/config"
+    base_path = "config"
     config_loader = YAMLConfigLoader(base_path=base_path)
     factory = AgentFactory(config_loader=config_loader, model="test-model")
 
@@ -213,10 +214,9 @@ async def test_xeno_agent_node_recursion_limit():
 async def test_xeno_agent_node_run_without_api():
     """Test that XenoAgentNode run() method constructs correct RuntimeDeps."""
     from pydantic_ai import Agent
-    from pydantic_ai.messages import ModelResponse, TextPart
 
     # Setup
-    base_path = "packages/xeno-agent/config"
+    base_path = "config"
     config_loader = YAMLConfigLoader(base_path=base_path)
     factory = AgentFactory(config_loader=config_loader, model="test-model")
 
@@ -266,7 +266,7 @@ async def test_xeno_agent_node_run_without_api():
 async def test_xeno_agent_node_create_child():
     """Test that XenoAgentNode can create child nodes for delegation."""
     # Setup
-    base_path = "packages/xeno-agent/config"
+    base_path = "config"
     config_loader = YAMLConfigLoader(base_path=base_path)
     factory = AgentFactory(config_loader=config_loader, model="test-model")
 

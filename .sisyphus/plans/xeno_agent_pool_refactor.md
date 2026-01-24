@@ -91,7 +91,7 @@ Replace the custom `AgentFactory` and `LocalAgentRuntime` with `agentpool`'s `Ag
         - [ ] `uv pip install -e .` succeeds.
         - [ ] `pytest packages/xeno-agent/tests/test_agentpool_integration.py` passes (after impl).
 
-- [ ] 2. Implement `XenoAgentNode` Wrapper (The Bridge)
+- [x] 2. Implement `XenoAgentNode` Wrapper (The Bridge)
     - **What to do**:
         - Create `packages/xeno-agent/src/xeno_agent/agentpool/node.py`.
         - Implement `class XenoAgentNode(MessageNode)`:
