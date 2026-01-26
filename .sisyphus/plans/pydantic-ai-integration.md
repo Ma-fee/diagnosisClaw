@@ -64,7 +64,7 @@ Build a fully functional Xeno Agent system that runs alongside standard AgentPoo
     2.  Implement `packages/xeno-agent/src/xeno_agent/agentpool/tools/routing.py`.
     3.  Verify: Tests pass.
 
-- [ ] 4. Implement XenoAgent (TDD - ALL 9 Abstract Methods)
+- [x] 4. Implement XenoAgent (TDD - ALL 9 Abstract Methods)
     **What to do**:
     1.  Create `packages/xeno-agent/tests/agentpool/test_agent.py`.
     2.  Implement `packages/xeno-agent/src/xeno_agent/agentpool/agent.py`:
