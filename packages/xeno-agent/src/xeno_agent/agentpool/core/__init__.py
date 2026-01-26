@@ -8,10 +8,22 @@ from xeno_agent.agentpool.core.config import (
     XenoRoleConfig,
 )
 from xeno_agent.agentpool.core.deps import XenoAgentDeps
+from xeno_agent.agentpool.core.routing import (
+    ask_followup,
+    attempt_completion,
+    new_task,
+    switch_mode,
+    update_todo,
+)
 
 __all__ = [
     "RoleType",
     "XenoAgentDeps",
     "XenoConfig",
     "XenoRoleConfig",
+    "ask_followup",
+    "attempt_completion",
+    "new_task",
+    "switch_mode",
+    "update_todo",
 ]

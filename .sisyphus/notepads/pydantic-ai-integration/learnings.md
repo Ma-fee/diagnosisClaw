@@ -344,6 +344,36 @@ if TYPE_CHECKING:
 - `agentpool.*`: `AgentContext`, `AgentPool`, `StorageManager`, `ToolManager`
 - Local modules: `RoleType`, `RoleTypeLiteral`, `XenoConfig`, `XenoRoleConfig`
 
+### Pattern 9: Top-Level Imports in Test Files
+**Ruff Error**: PLC0415 - `import` statements should be at top-level of a file, not inside functions.
+
+**Fix**: Moved all `from xeno_agent.agentpool.core.config import` statements to the top of `test_config.py`:
+
+```python
+"""Tests for Xeno configuration models."""
+
+from __future__ import annotations
+
+import pytest
+from pydantic import ValidationError
+
+from xeno_agent.agentpool.core.config import (
+    RoleType,
+    XenoConfig,
+    XenoRoleConfig,
+)
+
+# All test functions now use imports from top level
+```
+
+**Benefits**:
+- Follows Ruff code style
+- Improves readability (all imports at file start)
+- Faster execution (imports evaluated once)
+- Matches Python best practices
+
+**Learning**: Always check Ruff output for style violations before committing. Pre-commit hooks catch these automatically.
+
 ### Pattern 7: TDD Workflow
 Followed strict TDD approach:
 1. Write failing tests first
@@ -382,3 +412,159 @@ packages/xeno-agent/
 └── tests/agentpool/core/
     └── test_config.py             # 12 TDD tests
 ```
+
+---
+
+### Task 2: Recreate xeno_config.yaml from RFC 001
+
+**Files Created**:
+- `packages/xeno-agent/config/xeno_config.yaml` - Complete role configuration
+
+**Commit**: `feat(config): add xeno_config.yaml based on RFC 001`
+
+### Pattern 1: YAML Structure Matching Pydantic Model
+**Learning**: YAML keys must match Pydantic model field names exactly.
+
+**XenoConfig Structure** (from config.py):
+```yaml
+version: "1.0.0"
+roles:
+  <role_id>:              # Key for role lookup (e.g., "qa", "fault")
+    type: <RoleType>       # Enum: qa_assistant, fault_expert, etc.
+    name: <str>            # Human-readable identifier
+    description: <str | None>
+    system_prompt: <str>    # Multi-line string (using |)
+    model: <str>            # Model identifier (e.g., "openai:gpt-4o")
+    capabilities: <list[str] | None>
+```
+
+**Key Validations**:
+- `roles`: Must be a dictionary, not a list
+- `type`: Must match RoleType enum values exactly
+- Multi-line strings: Use YAML pipe (`|`) for system prompts
+- Lists: Use YAML dash syntax for capabilities
+
+### Pattern 2: RFC 001 Role Translations
+**Learning**: Translate RFC 001 role definitions into XenoRoleConfig fields.
+
+**Role Mapping**:
+
+1. **Q&A Assistant** (`qa_assistant`):
+   - Type: Gateway / Front Desk
+   - YAML key: `qa`
+   - Tools: ask_followup, attempt_completion, switch_mode
+   - Capabilities: intent_recognition, simple_query_handling, routing_to_experts
+   - System prompt: Gateway behavior, routing logic, tool usage
+
+2. **Fault Expert** (`fault_expert`):
+   - Type: Orchestrator / Diagnostician
+   - YAML key: `fault`
+   - Tools: ask_followup, attempt_completion, update_todo, new_task
+   - Capabilities: phenomenon_clarification, hypothesis_generation, diagnostic_planning
+   - System prompt: Orchestrator behavior, collaboration strategy, diagnostic approach
+
+3. **Equipment Expert** (`equipment_expert`):
+   - Type: Hybrid Worker+Active
+   - YAML key: `equipment`
+   - Tools: ask_followup, attempt_completion, update_todo
+   - Capabilities: image_analysis, diagram_analysis, step_by_step_guidance
+   - System prompt: Dual-mode behavior (Worker/Active), guidance approach
+
+4. **Material Assistant** (`material_assistant`):
+   - Type: Worker / Researcher
+   - YAML key: `material`
+   - Tools: attempt_completion, search_database
+   - Capabilities: document_retrieval, case_search, standard_lookup
+   - System prompt: Research behavior, citation rules, summarization
+
+### Pattern 3: System Prompt Formatting
+**Learning**: Use YAML multi-line strings (`|`) for readable system prompts.
+
+**Format**:
+```yaml
+system_prompt: |
+  You are a <Role Type> for <domain>.
+
+  Responsibilities:
+  - <responsibility 1>
+  - <responsibility 2>
+  - <responsibility 3>
+
+  Collaboration Strategy:
+  - <collaboration rule 1>
+  - <collaboration rule 2>
+
+  Tools Available:
+  - <tool 1>: <usage>
+  - <tool 2>: <usage>
+
+  Additional guidelines:
+  - <guideline 1>
+  - <guideline 2>
+```
+
+**Benefits**:
+- Readable in YAML file
+- Preserves formatting and indentation
+- Easy to maintain and update
+- Supports complex instructions
+
+### Pattern 4: Validation Script
+**Learning**: Create standalone validation scripts to test YAML against Pydantic models.
+
+**Validation Steps**:
+1. Load YAML with `yaml.safe_load()`
+2. Validate with `XenoConfig(**yaml_data)`
+3. Verify all required fields are present
+4. Check role types match enum values
+5. Confirm capabilities are defined for all roles
+
+**Example Output**:
+```
+=== YAML Structure ===
+Version: 1.0.0
+Number of roles: 4
+
+=== Roles ===
+qa:
+  type: qa_assistant
+  name: qa_agent
+  capabilities: ['intent_recognition', 'simple_query_handling', 'routing_to_experts']
+...
+
+=== Validating with XenoConfig ===
+✓ Validation successful!
+✓ Version: 1.0.0
+✓ Roles: ['qa', 'fault', 'equipment', 'material']
+```
+
+### Pattern 5: Role ID Naming Convention
+**Learning**: Use short, lowercase keys for role identifiers.
+
+**Convention**:
+- `qa` (not `qa_assistant` or `qa-agent`)
+- `fault` (not `fault_expert` or `fault-agent`)
+- `equipment` (not `equipment_expert`)
+- `material` (not `material_assistant`)
+
+**Benefits**:
+- Easy to reference in code: `config.get_role("qa")`
+- Concise delegation: `new_task(target="material")`
+- Consistent with switch_mode convention
+- Avoids confusion with role type enum values
+
+### Key Validation Results
+
+**All Checks Passed**:
+✓ 4 roles defined (qa, fault, equipment, material)
+✓ All roles have required fields (type, name, description, system_prompt, model)
+✓ All roles have capabilities defined
+✓ YAML structure matches XenoConfig model
+✓ System prompts are multi-line and readable
+✓ Role types match RFC 001 enum values
+✓ Model identifiers use standard format (openai:gpt-4o)
+
+**Commit Information**:
+- Commit hash: cd6aaa67
+- Message: `feat(config): add xeno_config.yaml based on RFC 001`
+- Files changed: 1 file, 128 insertions
