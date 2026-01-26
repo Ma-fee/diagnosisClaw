@@ -79,7 +79,7 @@ Build a fully functional Xeno Agent system that runs alongside standard AgentPoo
         - `set_model`: Implement (update internal state).
     3.  Verify: Tests pass.
 
-- [ ] 5. Implement Custom Entry Point & Fix Config
+- [x] 5. Implement Custom Entry Point & Fix Config
     **What to do**:
     1.  Update `packages/xeno-agent/pyproject.toml`: Set `[project.scripts] xeno-agent = "xeno_agent.main:main"`.
     2.  Create `packages/xeno-agent/tests/integration/test_server.py`.
