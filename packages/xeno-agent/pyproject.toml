@@ -12,7 +12,6 @@ dependencies = [
     "mcp>=1.0.0",
     "httpx>=0.25.0",
     "pydantic-ai",
-    "agent-client-protocol>=0.7.1",
     "agentpool[coding,default,zed]>=2.8",
     "pyyaml>=6.0.3",
     "alembic>=1.18.1",
@@ -27,7 +26,7 @@ requires = ["uv_build>=0.9.22,<0.10.0"]
 build-backend = "uv_build"
 
 [tool.uv.sources]
-agentpool = { path = "/Users/yuchen.liu/src/agentpool", editable = true }
+agentpool = { path = "../agentpool", editable = true }
 
 [dependency-groups]
 dev = [

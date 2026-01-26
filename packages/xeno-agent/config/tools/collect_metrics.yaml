@@ -1,9 +1,0 @@
-name: collect_metrics
-description: "收集系统的性能指标、错误率等数据"
-parameters:
-  metric_types:
-    description: "Types of metrics to collect (cpu, memory, errors, latency, all)"
-    default: "all"
-    type: string
-python_module: "xeno_agent.skills.builtin.diagnostic_tools"
-python_class: "CollectMetricsTool"

@@ -1,8 +1,0 @@
-name: query_knowledge_base
-description: "查询诊断知识库，获取历史案例和解决方案"
-parameters:
-  query:
-    description: "Search query for knowledge base"
-    type: string
-python_module: "xeno_agent.skills.builtin.diagnostic_tools"
-python_class: "QueryKnowledgeBaseTool"

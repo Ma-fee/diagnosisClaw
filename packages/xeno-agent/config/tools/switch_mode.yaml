@@ -1,4 +1,0 @@
-name: switch_mode
-description: "Use to switch roles."
-python_module: "xeno_agent.skills.builtin.meta_tools"
-python_class: "SwitchModeTool"

@@ -1,3 +1,9 @@
 [submodule "agent-client-protocol"]
 	path = packages/agent-client-protocol
 	url = https://github.com/agentclientprotocol/agent-client-protocol
+[submodule "packages/agentpool"]
+	path = packages/agentpool
+	url = https://github.com/phil65/agentpool
+[submodule "packages/pydantic-ai"]
+	path = packages/pydantic-ai
+	url = https://github.com/pydantic/pydantic-ai
