@@ -21,4 +21,10 @@
 00834|     - `SessionData` requires `agent_name` during initialization.
 00835|     - Testing async methods requires `@pytest.mark.asyncio`.
 00836|     - `ModeCategory` uses `available_modes` attribute, not `modes`.
+00837| 
+00838| ## Task 5: ACP Server Implementation
+00839| - **ACP Protocol**: The `Agent` protocol requires implementing `initialize`, `new_session`, `load_session`, `list_sessions`, `prompt`, `cancel`, `fork_session`, `resume_session`, `authenticate`, `set_session_mode`, `set_session_model`, `set_session_config_option`, `ext_method`, `ext_notification`.
+00840| - **Typer & Subcommands**: When using `typer.Typer()` with a single command, Typer treats it as the main command by default. Adding a second command (e.g., `version`) forces subcommand mode, which is often safer for preserving explicit `cli command` syntax.
+00841| - **ACP Serve**: Using `acp.serve` simplifies server implementation compared to manually managing `AgentSideConnection` and stdio streams.
+00842| - **Initialization Response**: The `InitializeResponse.create` helper puts agent name into `agentInfo`. Tests should check `result["agentInfo"]["name"]` rather than top-level `name`.
 </file>
