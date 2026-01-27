@@ -237,4 +237,4 @@ class XenoConfig(Schema):
         else:
             # It's already a RoleTypeLiteral (string literal)
             role_type_str = role_type
-        return [role for role in self.roles.values() if str(role.type) == str(role_type_str)]
+        return [role for role in self.roles.values() if str(role.type) == str(role_type_str) or getattr(role.type, "value", str(role.type)) == role_type_str]

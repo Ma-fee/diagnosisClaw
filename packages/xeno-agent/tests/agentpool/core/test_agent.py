@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from agentpool.agents.base_agent import BaseAgent
-from agentpool.messaging import ChatMessage
 from agentpool.sessions import SessionData
 
 from xeno_agent.agentpool.core.agent import XenoAgent
@@ -141,25 +140,57 @@ class TestXenoAgent:
         assert xeno_agent._cancelled
 
     @pytest.mark.asyncio
-    async def test_stream_events_simple(self, xeno_agent):
-        """Test basic streaming execution with PydanticAI."""
-        # Mock PydanticAgent
-        with patch("xeno_agent.agentpool.core.agent.PydanticAgent") as MockPydanticAgent:
-            mock_agent_instance = MagicMock()
-            MockPydanticAgent.return_value = mock_agent_instance
+    async def test_list_sessions_filters(self, xeno_agent, mock_agent_pool):
+        """Test listing sessions with filters."""
+        sess1 = SessionData(session_id="sess1", agent_name="xeno_test", cwd="project_root/session_1")
+        sess2 = SessionData(session_id="sess2", agent_name="xeno_test", cwd="project_root/session_2")
+        sess3 = SessionData(session_id="sess3", agent_name="xeno_test", cwd="project_root/session_1")
 
-            # Mock iter context manager
-            mock_run = MagicMock()
-            mock_run.usage.return_value = None
-            mock_run.result = ChatMessage(content="Test response", role="assistant")
+        mock_agent_pool.sessions.store.list_sessions = AsyncMock(return_value=["sess1", "sess2", "sess3"])
 
-            # Setup async iterator for the run
-            async def async_iter():
-                yield MagicMock()  # Yield a dummy node/event
+        # Mock load to return sessions
+        async def mock_load(sid):
+            if sid == "sess1":
+                return sess1
+            if sid == "sess2":
+                return sess2
+            if sid == "sess3":
+                return sess3
+            return None
 
-            mock_agent_instance.iter.return_value.__aenter__.return_value = mock_run
-            mock_agent_instance.iter.return_value.__aenter__.return_value.__aiter__.side_effect = async_iter
+        mock_agent_pool.sessions.store.load = AsyncMock(side_effect=mock_load)
 
-            # Just verify it doesn't crash and attempts to run
-            # We need to mock _stream_events implementation details more if we want to test event yielding
-            # But for TDD start, ensuring the method exists and has correct signature is key.
+        # Test cwd filter
+        sessions = await xeno_agent.list_sessions(cwd="project_root/session_1")
+        assert len(sessions) == 2
+        assert sessions[0].session_id == "sess1"
+        assert sessions[1].session_id == "sess3"
+
+        # Test limit
+        sessions = await xeno_agent.list_sessions(limit=1)
+        assert len(sessions) == 1
+        assert sessions[0].session_id == "sess1"
+
+    @pytest.mark.asyncio
+    async def test_load_session_no_pool(self, xeno_agent):
+        """Test load_session returns None if no agent pool."""
+        xeno_agent.agent_pool = None
+        loaded = await xeno_agent.load_session("sess1")
+        assert loaded is None
+
+    @pytest.mark.asyncio
+    async def test_list_sessions_no_pool(self, xeno_agent):
+        """Test list_sessions returns empty list if no agent pool."""
+        xeno_agent.agent_pool = None
+        sessions = await xeno_agent.list_sessions()
+        assert sessions == []
+
+    @pytest.mark.asyncio
+    async def test_interrupt_with_task(self, xeno_agent):
+        """Test interrupt cancels the current task."""
+        mock_task = MagicMock()
+        mock_task.done.return_value = False
+        xeno_agent._current_stream_task = mock_task
+
+        await xeno_agent._interrupt()
+        mock_task.cancel.assert_called_once()
