@@ -13,12 +13,9 @@ Tools:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from pydantic_ai import RunContext
 
-if TYPE_CHECKING:
-    from xeno_agent.agentpool.core.deps import XenoAgentDeps
+from xeno_agent.agentpool.core.deps import XenoAgentDeps
 
 
 def ask_followup(question: str, ctx: RunContext[XenoAgentDeps]) -> str:

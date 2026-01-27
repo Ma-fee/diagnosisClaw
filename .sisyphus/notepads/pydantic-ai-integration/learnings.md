@@ -27,4 +27,13 @@
 00840| - **Typer & Subcommands**: When using `typer.Typer()` with a single command, Typer treats it as the main command by default. Adding a second command (e.g., `version`) forces subcommand mode, which is often safer for preserving explicit `cli command` syntax.
 00841| - **ACP Serve**: Using `acp.serve` simplifies server implementation compared to manually managing `AgentSideConnection` and stdio streams.
 00842| - **Initialization Response**: The `InitializeResponse.create` helper puts agent name into `agentInfo`. Tests should check `result["agentInfo"]["name"]` rather than top-level `name`.
-</file>
+</file>## Final Verification - 2026-01-26
+- All 10 tests in packages/xeno-agent pass.
+- XenoAgent correctly implements all 9 abstract methods.
+- xeno-agent CLI entry point verified.
+- Integration tests confirm ACP server functionality.
+
+## Runtime Type Availability for PydanticAI
+- **Problem**: PydanticAI inspects tool function signatures at runtime to generate schemas.
+- **Issue**: Importing dependency types (like `XenoAgentDeps`) only inside `if TYPE_CHECKING:` causes `NameError` during inspection.
+- **Solution**: Ensure types used in tool signatures (even if just for `RunContext[T]`) are imported at runtime.

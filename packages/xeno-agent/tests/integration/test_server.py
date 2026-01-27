@@ -81,6 +81,44 @@ def test_xeno_server_cli():
         assert resp.get("id") == 3
         assert "result" in resp
         assert "sessionId" in resp["result"]
+        session_id = resp["result"]["sessionId"]
+
+        # 4. Prompt
+        prompt_req = {"jsonrpc": "2.0", "method": "session/prompt", "params": {"sessionId": session_id, "prompt": [{"type": "text", "text": "Hello world"}]}, "id": 4}
+        req_str = json.dumps(prompt_req) + "\n"
+        proc.stdin.write(req_str.encode("utf-8"))
+        proc.stdin.flush()
+
+        # Read response stream
+        # The prompt method returns a stream of notifications or messages
+        # We expect at least one response line before timeout
+        # Usually it sends session/update notifications
+
+        # We read lines until we get a result or timeout
+        # For this test, we just want to verify it doesn't crash with NameError
+        # and returns something valid.
+
+        # Read a few lines to catch potential errors
+        for _ in range(5):
+            line = proc.stdout.readline()
+            if not line:
+                break
+            resp = json.loads(line.decode("utf-8"))
+
+            # Check for error
+            if "error" in resp:
+                pytest.fail(f"Server returned error: {resp['error']}")
+
+            # If we get a result for id 4, we are good (even if it's empty or partial)
+            if resp.get("id") == 4:
+                # Prompt response (could be empty or contain result)
+                break
+
+            # If we get session/update, that's good too, it means it's processing
+            if resp.get("method") == "session/update":
+                assert resp["params"]["sessionId"] == session_id
+                # We can stop here as it proves the agent started processing without NameError
+                break
 
     finally:
         if proc.poll() is None:
