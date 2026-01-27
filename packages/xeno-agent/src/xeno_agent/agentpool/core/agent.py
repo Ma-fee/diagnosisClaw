@@ -59,7 +59,7 @@ class XenoAgent(BaseAgent[XenoAgentDeps, str]):
         *,
         xeno_config: XenoConfig,
         agent_pool: AgentPool | None = None,
-        model: str | PydanticModel = "openai:gpt-4o",
+        model: str | PydanticModel | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize Xeno agent.
@@ -78,7 +78,7 @@ class XenoAgent(BaseAgent[XenoAgentDeps, str]):
             **kwargs,
         )
         self.xeno_config: XenoConfig = xeno_config
-        self._default_model: str | PydanticModel = model
+        self._default_model: str | PydanticModel | None = model or None
 
         # Default to first role if available, otherwise "qa"
         self._active_role_id: str = next(iter(xeno_config.roles.keys()), "qa")
