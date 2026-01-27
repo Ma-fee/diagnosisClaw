@@ -53,6 +53,7 @@ format = "flat"
 
 [dependency-groups]
 dev = [
+    "defusedxml>=0.8.0rc2",
     "pre-commit>=4.5.0",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.6",

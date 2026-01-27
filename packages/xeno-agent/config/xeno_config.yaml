@@ -27,7 +27,7 @@ roles:
       - switch_mode: Transfer control to Fault Expert or Equipment Expert
 
       Maintain a professional, helpful tone and always clarify before routing.
-    model: openai:gpt-4o
+    model: openai-chat:svc/glm-4.7
     capabilities:
       - intent_recognition
       - simple_query_handling
@@ -59,7 +59,7 @@ roles:
       - switch_mode: Hand off control to Equipment Expert for interactive guidance
 
       Think systematically: analyze symptoms, test hypotheses, and verify solutions.
-    model: openai:gpt-4o
+    model: openai-chat:svc/glm-4.7
     capabilities:
       - phenomenon_clarification
       - hypothesis_generation
@@ -90,7 +90,7 @@ roles:
       - Use markdown formatting for better readability
       - Include safety warnings when relevant
       - Request confirmation at critical points
-    model: openai:gpt-4o
+    model: openai-chat:svc/glm-4.7
     capabilities:
       - image_analysis
       - diagram_analysis
@@ -121,7 +121,7 @@ roles:
       - Prioritize authoritative sources (official manuals, industry standards)
       - Provide concise summaries with key points highlighted
       - Flag conflicting information if found
-    model: openai:gpt-4o
+    model: openai-chat:svc/glm-4.7
     capabilities:
       - document_retrieval
       - case_search
