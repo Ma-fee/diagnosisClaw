@@ -209,12 +209,13 @@ def serve(config_path: str = "config/xeno_config.yaml"):
                 config_data = yaml.safe_load(f)
             xeno_config = XenoConfig.model_validate(config_data)
             logger.info(f"Loaded config from {path}")
+            logger.info(f"DEBUG: Loaded Xeno configuration with roles: {[(r_id, r.model) for r_id, r in xeno_config.roles.items()]}")
         else:
             raise FileNotFoundError(f"Config file not found: {path}")
 
     except Exception as e:
         logger.warning(f"Failed to load config: {e}. Using default.")
-        xeno_config = XenoConfig(roles={"qa": XenoRoleConfig(type=RoleType.QA_ASSISTANT, name="qa", system_prompt="You are Xeno.", model="openai:gpt-4o")})
+        xeno_config = XenoConfig(roles={"qa": XenoRoleConfig(type=RoleType.QA_ASSISTANT, name="qa", system_prompt="You are Xeno.", model="openai-chat:svc/glm-4.7")})
 
     async def run_server():
         await acp_serve(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
 
 from agentpool.agents.base_agent import BaseAgent
@@ -31,6 +32,8 @@ from xeno_agent.agentpool.core.routing import (
     switch_mode,
     update_todo,
 )
+
+logger = logging.getLogger("xeno-agent")
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -101,7 +104,7 @@ class XenoAgent(BaseAgent[XenoAgentDeps, str]):
                 type=RoleType.QA_ASSISTANT,
                 name="fallback",
                 system_prompt="You are a fallback assistant.",
-                model=str(self._default_model),
+                model=str(self._default_model) if self._default_model else "openai-chat:svc/glm-4.7",
             )
         return role
 
@@ -260,6 +263,8 @@ class XenoAgent(BaseAgent[XenoAgentDeps, str]):
             new_task,
             update_todo,
         ]
+
+        logger.info(f"DEBUG: XenoAgent using model '{role.model}' for role '{role.name}'")
 
         pydantic_agent: PydanticAgent[XenoAgentDeps, str] = PydanticAgent(
             name=role.name,
