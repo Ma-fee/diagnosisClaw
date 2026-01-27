@@ -18,21 +18,21 @@ from pydantic_ai import RunContext
 from xeno_agent.agentpool.core.deps import XenoAgentDeps
 
 
-def ask_followup(question: str, ctx: RunContext[XenoAgentDeps]) -> str:
+def ask_followup(ctx: RunContext[XenoAgentDeps], question: str) -> str:
     """Signal that the agent needs more information from the user.
 
     This tool is used when the agent requires additional context,
     clarification, or specific details to proceed with the task.
 
     Args:
-        question: The specific question or information request from the user
         ctx: RunContext containing XenoAgentDeps
+        question: The specific question or information request from the user
 
     Returns:
         A confirmation message indicating the question was presented
 
     Example:
-        >>> ask_followup(question="What is the device model number?", ctx=ctx)
+        >>> ask_followup(ctx=ctx, question="What is the device model number?")
         "Asking user: What is the device model number?"
     """
     # Access deps for future implementation
@@ -47,21 +47,21 @@ def ask_followup(question: str, ctx: RunContext[XenoAgentDeps]) -> str:
     return f"Asking user: {question}"
 
 
-def attempt_completion(answer: str, ctx: RunContext[XenoAgentDeps]) -> str:
+def attempt_completion(ctx: RunContext[XenoAgentDeps], answer: str) -> str:
     """Signal that the agent has completed its task or answered the query.
 
     This tool indicates that the agent has successfully completed
     the requested task or provided the requested information.
 
     Args:
-        answer: The final answer or completion message
         ctx: RunContext containing XenoAgentDeps
+        answer: The final answer or completion message
 
     Returns:
         A confirmation message indicating completion
 
     Example:
-        >>> attempt_completion(answer="The device is model X-2000 with firmware v3.2.1", ctx=ctx)
+        >>> attempt_completion(ctx=ctx, answer="The device is model X-2000 with firmware v3.2.1")
         "Task completed: The device is model X-2000 with firmware v3.2.1"
     """
     # Access deps for future implementation
@@ -76,7 +76,7 @@ def attempt_completion(answer: str, ctx: RunContext[XenoAgentDeps]) -> str:
     return f"Task completed: {answer}"
 
 
-def switch_mode(target: str, ctx: RunContext[XenoAgentDeps]) -> str:
+def switch_mode(ctx: RunContext[XenoAgentDeps], target: str) -> str:
     """Transition the current session to a different role in the Xeno system.
 
     This tool is used to switch from one agent role to another,
@@ -84,8 +84,8 @@ def switch_mode(target: str, ctx: RunContext[XenoAgentDeps]) -> str:
     from the Xeno configuration (e.g., "qa", "fault", "equipment", "material").
 
     Args:
-        target: The role ID to switch to (e.g., "fault", "equipment")
         ctx: RunContext containing XenoAgentDeps with access to configuration
+        target: The role ID to switch to (e.g., "fault", "equipment")
 
     Returns:
         A confirmation message indicating the role transition
@@ -94,10 +94,10 @@ def switch_mode(target: str, ctx: RunContext[XenoAgentDeps]) -> str:
         ValueError: If the target role is not found in the configuration
 
     Example:
-        >>> switch_mode(target="fault", ctx=ctx)
+        >>> switch_mode(ctx=ctx, target="fault")
         "Switched to Fault Expert role"
 
-    >>> switch_mode(target="equipment", ctx=ctx)
+    >>> switch_mode(ctx=ctx, target="equipment")
         "Switched to Equipment Expert role"
     """
     deps = ctx.deps
@@ -120,7 +120,7 @@ def switch_mode(target: str, ctx: RunContext[XenoAgentDeps]) -> str:
     return f"Switched to {role_name} role (ID: {target})"
 
 
-def new_task(target: str, task: str, ctx: RunContext[XenoAgentDeps]) -> str:
+def new_task(ctx: RunContext[XenoAgentDeps], target: str, task: str) -> str:
     """Delegate a new sub-task to another role in the Xeno system.
 
     This tool enables inter-agent delegation where one agent assigns
@@ -128,18 +128,18 @@ def new_task(target: str, task: str, ctx: RunContext[XenoAgentDeps]) -> str:
     will execute the task independently.
 
     Args:
+        ctx: RunContext containing XenoAgentDeps with access to agent pool
         target: The role ID to delegate to (e.g., "fault", "equipment", "material")
         task: A clear description of the task to delegate
-        ctx: RunContext containing XenoAgentDeps with access to agent pool
 
     Returns:
         A confirmation message indicating the task was delegated
 
     Example:
-        >>> new_task(target="fault", task="Analyze the error code E-404 on the device", ctx=ctx)
+        >>> new_task(ctx=ctx, target="fault", task="Analyze the error code E-404 on the device")
         "Delegated to Fault Expert: Analyze the error code E-404 on the device"
 
-    >>> new_task(target="material", task="Find technical documentation for model X-2000", ctx=ctx)
+    >>> new_task(ctx=ctx, target="material", task="Find technical documentation for model X-2000")
         "Delegated to Material Assistant: Find technical documentation for model X-2000"
     """
     deps = ctx.deps
@@ -163,7 +163,7 @@ def new_task(target: str, task: str, ctx: RunContext[XenoAgentDeps]) -> str:
     return f"Delegated to {role_name}: {task}"
 
 
-def update_todo(item: str, status: str, ctx: RunContext[XenoAgentDeps]) -> str:
+def update_todo(ctx: RunContext[XenoAgentDeps], item: str, status: str) -> str:
     """Update the session's internal todo list.
 
     This tool allows agents to track progress on complex tasks
@@ -171,18 +171,18 @@ def update_todo(item: str, status: str, ctx: RunContext[XenoAgentDeps]) -> str:
     "pending", "in_progress", "completed", "blocked".
 
     Args:
+        ctx: RunContext containing XenoAgentDeps
         item: The todo item description
         status: The status of the todo item (e.g., "pending", "in_progress", "completed")
-        ctx: RunContext containing XenoAgentDeps
 
     Returns:
         A confirmation message indicating the todo list was updated
 
     Example:
-        >>> update_todo(item="Investigate thermal paste condition", status="pending", ctx=ctx)
+        >>> update_todo(ctx=ctx, item="Investigate thermal paste condition", status="pending")
         "Todo updated: [pending] Investigate thermal paste condition"
 
-        >>> update_todo(item="Check firmware version", status="completed", ctx=ctx)
+        >>> update_todo(ctx=ctx, item="Check firmware version", status="completed")
         "Todo updated: [completed] Check firmware version"
     """
     # Access deps for future implementation

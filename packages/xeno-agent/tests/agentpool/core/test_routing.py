@@ -247,31 +247,31 @@ def test_tool_signatures() -> None:
     # Check ask_followup
     sig = signature(ask_followup)
     params = list(sig.parameters.keys())
+    assert params[0] == "ctx"
     assert "question" in params
-    assert "ctx" in params
 
     # Check attempt_completion
     sig = signature(attempt_completion)
     params = list(sig.parameters.keys())
+    assert params[0] == "ctx"
     assert "answer" in params
-    assert "ctx" in params
 
     # Check switch_mode
     sig = signature(switch_mode)
     params = list(sig.parameters.keys())
+    assert params[0] == "ctx"
     assert "target" in params
-    assert "ctx" in params
 
     # Check new_task
     sig = signature(new_task)
     params = list(sig.parameters.keys())
+    assert params[0] == "ctx"
     assert "target" in params
     assert "task" in params
-    assert "ctx" in params
 
     # Check update_todo
     sig = signature(update_todo)
     params = list(sig.parameters.keys())
+    assert params[0] == "ctx"
     assert "item" in params
     assert "status" in params
-    assert "ctx" in params
