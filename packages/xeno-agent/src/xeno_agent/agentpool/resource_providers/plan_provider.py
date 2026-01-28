@@ -6,6 +6,7 @@ position-based sorting, and custom field persistence.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, cast, override
 
@@ -21,6 +22,9 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from agentpool.tools.base import Tool
+
+
+logger = logging.getLogger(__name__)
 
 
 STATUS_ICONS = {"pending": "⬚", "in_progress": "◐", "completed": "✓", "skipped": "⊘"}
@@ -71,9 +75,14 @@ class XenoPlanProvider(ResourceProvider):
 
     kind = "tools"
 
-    def __init__(self) -> None:
-        """Initialize with hardcoded RFC defaults."""
-        super().__init__(name="xeno_plan")
+    def __init__(self, name: str | None = None, owner: str | None = None) -> None:
+        """Initialize with optional name parameter.
+
+        Args:
+            name: Optional name for the provider (defaults to "xeno_plan").
+            owner: Optional owner for the provider.
+        """
+        super().__init__(name=name or "xeno_plan", owner=owner)
 
     def _get_tracker(self, agent_ctx: AgentContext) -> TodoTracker | None:
         """Get the TodoTracker from the pool."""

@@ -133,9 +133,13 @@ agents:
           - ❌ Using this tool in non-interactive scenarios
           - ❌ Providing less than 2 or more than 4 enum options
         enabled: true
-      - type: subagent
-      - type: workers
+      # - type: subagent
+      # - type: workers
       - type: skills
+      - type: custom
+        import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
+      - type: custom
+        import_path: xeno_agent.agentpool.resource_providers.XenoPlanProvider
   # Q&A Assistant - Gateway/Front Desk
   qa_assistant:
     type: native

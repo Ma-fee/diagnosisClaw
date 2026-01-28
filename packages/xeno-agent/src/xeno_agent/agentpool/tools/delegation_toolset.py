@@ -6,7 +6,7 @@ from typing import override
 
 from agentpool.resource_providers import StaticResourceProvider
 
-from .delegation_provider import XenoDelegationProvider
+from ..resource_providers.delegation_provider import XenoDelegationProvider
 
 
 class XenoDelegationToolset(StaticResourceProvider):

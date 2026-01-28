@@ -101,9 +101,8 @@ class XenoDelegationProvider(StaticResourceProvider):
         async for event in stream:
             # Intercept attempt_completion
             if isinstance(event, ToolCallStartEvent) and event.tool_name == "attempt_completion":
-                # Capture result and stop execution
+                # Capture the 'result' parameter from tool input
                 args = event.raw_input
-                # Result might be in 'result' arg
                 final_result = str(args.get("result", ""))
                 # Break the loop to stop consuming the stream
                 break
