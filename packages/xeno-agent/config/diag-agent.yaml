@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/schema/config-schema.json
+# yaml-language-server: $schema=../../agentpool/schema/config-schema.json
 
 # Default/Primary agent for this configuration
 default_agent: fault_expert # Gateway agent is the primary entry point
@@ -6,6 +6,80 @@ default_agent: fault_expert # Gateway agent is the primary entry point
 # Storage configuration - disable automatic title generation to avoid Google model requirement
 storage:
   title_generation_model: null # Disable to avoid GOOGLE_API_KEY requirement
+
+# YAML Anchors for reusable configurations
+.anchors:
+  question_tool: &question_tool
+    type: question
+    name: ask_followup_question
+    description: |-
+      The sole interactive tool for obtaining information from users.
+
+      Tightly bound to UI input. Collects critical data needed to advance tasks by asking atomic questions with structured options using `response_schema`.
+
+      ### **When to Use This Tool**
+
+      **Mandatory Rule: All interactions requiring user input MUST use this tool. Directly outputting text and waiting for user response is PROHIBITED.**
+
+      **Scenarios requiring mandatory use:**
+
+      1. **Information Gap Supplement**
+         - User's initial request lacks critical information
+         - Example: Asking for equipment model, parameters, fault codes
+
+      2. **Check Results/Data Recovery**
+         - Recovering inspection results or measurement data after user completes an action
+         - Example: "Voltage measurement complete, please provide specific values"
+         - Example: "Component inspection complete, please feedback status"
+
+      3. **Multi-path Selection**
+         - Multiple feasible approaches exist, requiring user preference
+         - Example: "Please select priority inspection direction: Electrical system/Hydraulic system"
+
+      4. **Operation Confirmation & Preparation**
+         - Confirming user understands instructions and is ready to proceed
+         - Example: "Tools prepared, ready to start disassembly?"
+
+      5. **Next Step Decision**
+         - After completing current step, asking for subsequent operation direction
+         - Example: "This step complete, please select: Continue inspection/View diagnosis results"
+
+      6. **Capability/Condition Assessment**
+         - Determining if user has conditions or capabilities to perform operation
+         - Example: "This step requires a multimeter, do you have this tool?"
+
+      ### **How to Use Response Schema**
+
+      This tool requires a `response_schema` parameter with structured fields.
+
+      **Required Schema Format:**
+
+      ```json
+      {
+        "type": "string",              // "string" for single-choice, "array" for multi-choice
+        "enum": ["Option 1", "Option 2", "Option 3", "Option 4"],  // 2-4 required options
+        "x-option-descriptions": {     // Optional but recommended
+          "Option 1": "Description of option 1",
+          "Option 2": "Description of option 2"
+        }
+      }
+      ```
+
+      ### **Usage Principles**
+
+      1. **Atomic Questions**: Each call asks only one core question, focusing on a single information point
+      2. **Response Schema Required**: Must provide `response_schema` with `type` and `enum` fields
+      3. **Complete Options**: enum should contain 2-4 mutually exclusive options covering main scenarios
+      4. **Scenario Relevance**: Questions and options must be directly related to current task
+
+      ### **Common Pitfalls to Avoid**
+
+      - ❌ Directly outputting text and waiting for user response (not using tool)
+      - ❌ Questions containing multiple information points
+      - ❌ Missing `response_schema` or missing `enum` field
+      - ❌ Using this tool in non-interactive scenarios
+      - ❌ Providing less than 2 or more than 4 enum options
+    enabled: true
 
 model_variants:
   # 使用环境变量配置自定义模型
@@ -21,7 +95,11 @@ model_variants:
   # litellm_chat:
   #   type: import
   #   model: xeno_agent.model_providers.rootcloud_glm_47
-
+mcp_servers:
+  - type: streamable-http
+    url: http://10.147.254.3:7006/mcp
+    enabled_tools:
+      - search_database
 agents:
   # Fault Expert - Orchestrator/Diagnostician
   fault_expert:
@@ -57,11 +135,6 @@ agents:
           You should always speak and think in the "{{LANG}}" language.
 
           ====
-    mcp_servers:
-      - type: streamable-http
-        url: http://10.147.254.3:7006/mcp
-        enabled_tools:
-          - search_database
     tools:
       - type: question
         name: ask_followup_question
@@ -138,8 +211,15 @@ agents:
       - type: skills
       - type: custom
         import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
+        kw_args:
+          schemas:
+            new_task: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/new_task.yaml
+            attempt_completion: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
       - type: custom
         import_path: xeno_agent.agentpool.resource_providers.XenoPlanProvider
+        kw_args:
+          schemas:
+            update_todo_list: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml
   # Q&A Assistant - Gateway/Front Desk
   qa_assistant:
     type: native
@@ -179,76 +259,7 @@ agents:
 
           ====
     tools:
-      - type: question
-        name: ask_followup_question
-        description: |-
-          The sole interactive tool for obtaining information from users.
-
-          Tightly bound to UI input. Collects critical data needed to advance tasks by asking atomic questions with structured options using `response_schema`.
-
-          ### **When to Use This Tool**
-
-          **Mandatory Rule: All interactions requiring user input MUST use this tool. Directly outputting text and waiting for user response is PROHIBITED.**
-
-          **Scenarios requiring mandatory use:**
-
-          1. **Information Gap Supplement**
-             - User's initial request lacks critical information
-             - Example: Asking for equipment model, parameters, fault codes
-
-          2. **Check Results/Data Recovery**
-             - Recovering inspection results or measurement data after user completes an action
-             - Example: "Voltage measurement complete, please provide specific values"
-             - Example: "Component inspection complete, please feedback status"
-
-          3. **Multi-path Selection**
-             - Multiple feasible approaches exist, requiring user preference
-             - Example: "Please select priority inspection direction: Electrical system/Hydraulic system"
-
-          4. **Operation Confirmation & Preparation**
-             - Confirming user understands instructions and is ready to proceed
-             - Example: "Tools prepared, ready to start disassembly?"
-
-          5. **Next Step Decision**
-             - After completing current step, asking for subsequent operation direction
-             - Example: "This step complete, please select: Continue inspection/View diagnosis results"
-
-          6. **Capability/Condition Assessment**
-             - Determining if user has conditions or capabilities to perform operation
-             - Example: "This step requires a multimeter, do you have this tool?"
-
-          ### **How to Use Response Schema**
-
-          This tool requires a `response_schema` parameter with structured fields.
-
-          **Required Schema Format:**
-
-          ```json
-          {
-            "type": "string",              // "string" for single-choice, "array" for multi-choice
-            "enum": ["Option 1", "Option 2", "Option 3", "Option 4"],  // 2-4 required options
-            "x-option-descriptions": {     // Optional but recommended
-              "Option 1": "Description of option 1",
-              "Option 2": "Description of option 2"
-            }
-          }
-          ```
-
-          ### **Usage Principles**
-
-          1. **Atomic Questions**: Each call asks only one core question, focusing on a single information point
-          2. **Response Schema Required**: Must provide `response_schema` with `type` and `enum` fields
-          3. **Complete Options**: enum should contain 2-4 mutually exclusive options covering main scenarios
-          4. **Scenario Relevance**: Questions and options must be directly related to current task
-
-          ### **Common Pitfalls to Avoid**
-
-          - ❌ Directly outputting text and waiting for user response (not using tool)
-          - ❌ Questions containing multiple information points
-          - ❌ Missing `response_schema` or missing `enum` field
-          - ❌ Using this tool in non-interactive scenarios
-          - ❌ Providing less than 2 or more than 4 enum options
-        enabled: true
+      - *question_tool
       - type: subagent
       - type: skills
 
@@ -296,76 +307,10 @@ agents:
 
           ====
     tools:
-      - type: question
-        name: ask_followup_question
-        description: |-
-          The sole interactive tool for obtaining information from users.
-
-          Tightly bound to UI input. Collects critical data needed to advance tasks by asking atomic questions with structured options using `response_schema`.
-
-          ### **When to Use This Tool**
-
-          **Mandatory Rule: All interactions requiring user input MUST use this tool. Directly outputting text and waiting for user response is PROHIBITED.**
-
-          **Scenarios requiring mandatory use:**
-
-          1. **Information Gap Supplement**
-             - User's initial request lacks critical information
-             - Example: Asking for equipment model, parameters, fault codes
-
-          2. **Check Results/Data Recovery**
-             - Recovering inspection results or measurement data after user completes an action
-             - Example: "Voltage measurement complete, please provide specific values"
-             - Example: "Component inspection complete, please feedback status"
-
-          3. **Multi-path Selection**
-             - Multiple feasible approaches exist, requiring user preference
-             - Example: "Please select priority inspection direction: Electrical system/Hydraulic system"
-
-          4. **Operation Confirmation & Preparation**
-             - Confirming user understands instructions and is ready to proceed
-             - Example: "Tools prepared, ready to start disassembly?"
-
-          5. **Next Step Decision**
-             - After completing current step, asking for subsequent operation direction
-             - Example: "This step complete, please select: Continue inspection/View diagnosis results"
-
-          6. **Capability/Condition Assessment**
-             - Determining if user has conditions or capabilities to perform operation
-             - Example: "This step requires a multimeter, do you have this tool?"
-
-          ### **How to Use Response Schema**
-
-          This tool requires a `response_schema` parameter with structured fields.
-
-          **Required Schema Format:**
-
-          ```json
-          {
-            "type": "string",              // "string" for single-choice, "array" for multi-choice
-            "enum": ["Option 1", "Option 2", "Option 3", "Option 4"],  // 2-4 required options
-            "x-option-descriptions": {     // Optional but recommended
-              "Option 1": "Description of option 1",
-              "Option 2": "Description of option 2"
-            }
-          }
-          ```
-
-          ### **Usage Principles**
-
-          1. **Atomic Questions**: Each call asks only one core question, focusing on a single information point
-          2. **Response Schema Required**: Must provide `response_schema` with `type` and `enum` fields
-          3. **Complete Options**: enum should contain 2-4 mutually exclusive options covering main scenarios
-          4. **Scenario Relevance**: Questions and options must be directly related to current task
-
-          ### **Common Pitfalls to Avoid**
-
-          - ❌ Directly outputting text and waiting for user response (not using tool)
-          - ❌ Questions containing multiple information points
-          - ❌ Missing `response_schema` or missing `enum` field
-          - ❌ Using this tool in non-interactive scenarios
-          - ❌ Providing less than 2 or more than 4 enum options
-        enabled: true
+      - *question_tool
       - type: skills
       - type: custom
         import_path: xeno_agent.agentpool.resource_providers.XenoPlanProvider
+        kw_args:
+          schemas:
+            update_todo_list: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml

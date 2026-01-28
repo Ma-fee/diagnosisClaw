@@ -18,6 +18,8 @@ from agentpool.tools.base import ToolResult
 from agentpool.utils.streams import TodoEntry, TodoStatus, TodoTracker
 from defusedxml.ElementTree import ParseError, fromstring
 
+from xeno_agent.utils.tool_schema import load_tool_schema
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -75,14 +77,28 @@ class XenoPlanProvider(ResourceProvider):
 
     kind = "tools"
 
-    def __init__(self, name: str | None = None, owner: str | None = None) -> None:
-        """Initialize with optional name parameter.
+    def __init__(
+        self,
+        name: str | None = None,
+        owner: str | None = None,
+        schemas: dict[str, str] | None = None,
+    ) -> None:
+        """Initialize with optional parameters.
 
         Args:
             name: Optional name for the provider (defaults to "xeno_plan").
             owner: Optional owner for the provider.
+            schemas: Optional dictionary mapping tool names to schema file paths.
+                Supported keys: "update_todo_list" for the update_todo_list tool.
+                Example: {"update_todo_list": "/path/to/schema.yaml"}
         """
         super().__init__(name=name or "xeno_plan", owner=owner)
+
+        # Extract update_todo_list schema path from schemas dictionary
+        update_todo_list_schema_path = schemas.get("update_todo_list") if schemas else None
+
+        # Load schema override for update_todo_list tool
+        self._update_todo_list_schema_override = load_tool_schema(update_todo_list_schema_path)
 
     def _get_tracker(self, agent_ctx: AgentContext) -> TodoTracker | None:
         """Get the TodoTracker from the pool."""
@@ -93,7 +109,16 @@ class XenoPlanProvider(ResourceProvider):
     @override
     async def get_tools(self) -> Sequence[Tool]:
         """Get Xeno plan management tools."""
-        return [self.create_tool(self.update_todo_list, category="other")]
+        update_todo_list_schema = self._update_todo_list_schema_override or None
+        return [
+            self.create_tool(
+                self.update_todo_list,
+                category="other",
+                name_override=update_todo_list_schema.get("name") if update_todo_list_schema else None,
+                description_override=update_todo_list_schema.get("description") if update_todo_list_schema else None,
+                schema_override=self._update_todo_list_schema_override,
+            ),
+        ]
 
     def _sort_entries(self, entries: list[XenoTodoEntry]) -> list[XenoTodoEntry]:
         """Sort entries by pos field.
