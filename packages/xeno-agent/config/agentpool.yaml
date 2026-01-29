@@ -10,7 +10,8 @@ storage:
 # YAML Anchors for reusable configurations
 .anchors:
   question_tool: &question_tool
-    type: question
+    type: import
+    import_path: xeno_agent.tools.ask_followup_question:ask_followup_question
     name: ask_followup_question
     description: |-
       The sole interactive tool for obtaining information from users.
