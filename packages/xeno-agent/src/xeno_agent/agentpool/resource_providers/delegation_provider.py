@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+import copy
+from typing import TYPE_CHECKING, Any, Literal
 
+from agentpool import AgentPool
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.context import AgentContext
 from agentpool.agents.events import (
@@ -19,7 +21,9 @@ from agentpool.tools.exceptions import ToolError
 from xeno_agent.utils.tool_schema import load_tool_schema
 
 if TYPE_CHECKING:
-    pass
+    from collections.abc import Sequence
+
+    from agentpool.tools import Tool
 
 
 MAX_DELEGATION_DEPTH = 5
@@ -32,6 +36,7 @@ class XenoDelegationProvider(StaticResourceProvider):
         self,
         name: str = "delegation",
         schemas: dict[str, str] | None = None,
+        pool: AgentPool | None = None,
     ) -> None:
         """Initialize the delegation provider.
 
@@ -40,8 +45,14 @@ class XenoDelegationProvider(StaticResourceProvider):
             schemas: Optional dictionary mapping tool names to schema file paths.
                 Expected keys: "new_task", "attempt_completion"
                 Example: {"new_task": "/path/to/new_task_schema.yaml", "attempt_completion": "/path/to/attempt_completion_schema.json"}
+            pool: Optional agent pool for delegation
         """
         super().__init__(name=name)
+        self._pool = pool
+
+        # Store schema overrides as internal attributes for tests
+        self._new_task_schema_override = None
+        self._attempt_completion_schema_override = None
 
         # Extract schema paths from schemas dictionary
         new_task_schema = None
@@ -52,6 +63,10 @@ class XenoDelegationProvider(StaticResourceProvider):
 
             if (attempt_completion_schema_path := schemas.get("attempt_completion")) is not None:
                 attempt_completion_schema = load_tool_schema(attempt_completion_schema_path)
+
+        # Store loaded schemas for test access
+        self._new_task_schema_override = new_task_schema
+        self._attempt_completion_schema_override = attempt_completion_schema
 
         # Load schema overrides for delegation tools
         # Pass full schema to create_tool
@@ -75,27 +90,79 @@ class XenoDelegationProvider(StaticResourceProvider):
             ),
         )
 
+    def set_pool(self, pool: AgentPool) -> None:
+        """Set the agent pool.
+
+        Args:
+            pool: The agent pool to use for delegation
+        """
+        self._pool = pool
+
+    async def get_tools(self) -> Sequence[Tool]:
+        """Get tools with dynamic agent names injected.
+
+        Returns:
+            Sequence of tools with updated schemas reflecting available agents.
+            Uses Copy-on-Read pattern to avoid mutating shared state.
+        """
+        # Create copies of tools to avoid mutating self._tools
+        tool_copies: list[Tool] = []
+        for tool in self._tools:
+            # For new_task tool, update schema with available agents if pool exists
+            if tool.name == "new_task" and self._pool is not None:
+                # Get base schema from stored override or tool's existing schema
+                base_schema = self._new_task_schema_override if self._new_task_schema_override is not None else tool.schema_override
+
+                if base_schema is None:
+                    tool_copies.append(copy.copy(tool))
+                    continue
+
+                # Deep copy schema to avoid mutation
+                schema_dict = copy.deepcopy(base_schema)
+
+                # Update mode parameter's enum with available agents
+                agent_names = list(self._pool.nodes.keys())
+                parameters = schema_dict.get("parameters", {})
+                properties = parameters.get("properties", {})
+
+                if "mode" in properties:
+                    mode_prop = properties["mode"]
+                    mode_prop["enum"] = agent_names
+                    mode_prop["description"] = f"The agent name to delegate to. Available agents: {', '.join(agent_names)}"
+
+                # Copy tool and update its schema_override
+                tool_copy = copy.copy(tool)
+                object.__setattr__(tool_copy, "schema_override", schema_dict)
+                tool_copies.append(tool_copy)
+            else:
+                # For other tools or when pool is None, return tool as-is
+                tool_copies.append(tool)
+
+        return tool_copies
+
     async def new_task(
         self,
         ctx: AgentContext,
-        mode: str,
-        task: str,
-        expected_output: str,
+        mode: str | None = None,
+        task: str | None = None,
+        expected_output: str | None = None,
+        **kwargs: Any,
     ) -> str:
         """Delegate a task to another agent.
 
         Args:
             ctx: Agent context
-            mode: The specialized mode for the new task
-            task: The task description
-            expected_output: Description of the expected output
+            mode: RFC parameter for the agent name (preferred)
+            task: RFC parameter for the task description (preferred)
+            expected_output: RFC parameter for the expected output
+            **kwargs: Additional parameters including legacy names (agent_name, message)
 
         Returns:
             The result of the delegated task
         """
         # Handle parameter name compatibility: use RFC parameters if provided, otherwise use legacy parameters
-        resolved_agent_name = mode
-        resolved_task = task
+        resolved_agent_name = mode or kwargs.get("agent_name")
+        resolved_task = task or kwargs.get("message")
         resolved_expected_output = expected_output
 
         if resolved_agent_name is None:
@@ -118,15 +185,16 @@ class XenoDelegationProvider(StaticResourceProvider):
         if current_depth >= MAX_DELEGATION_DEPTH:
             return f"Error: Max delegation depth ({MAX_DELEGATION_DEPTH}) reached."
 
-        # Get agent from pool
-        if ctx.pool is None:
+        # Get agent from pool - use explicit is not None check to avoid truthiness issues with mocks
+        pool = ctx.pool if ctx.pool is not None else self._pool
+        if pool is None:
             raise ToolError("No agent pool available")
 
-        if target_agent not in ctx.pool.nodes:
-            available = ", ".join(ctx.pool.nodes.keys())
+        if target_agent not in pool.nodes:
+            available = ", ".join(pool.nodes.keys())
             return f"Error: Agent '{target_agent}' not found. Available: {available}"
 
-        node = ctx.pool.nodes[target_agent]
+        node = pool.nodes[target_agent]
 
         # Determine source type for events
         source_type: Literal["agent", "team_parallel", "team_sequential"] = "agent"
