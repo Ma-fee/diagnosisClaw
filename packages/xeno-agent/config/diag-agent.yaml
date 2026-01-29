@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../agentpool/schema/config-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Leoyzen/agentpool/b6fe25825d38d4490d9bf21b5f4b03ada33171c8/schema/config-schema.json
 
 # Default/Primary agent for this configuration
 default_agent: fault_expert # Gateway agent is the primary entry point
@@ -6,6 +6,15 @@ default_agent: fault_expert # Gateway agent is the primary entry point
 # Storage configuration - disable automatic title generation to avoid Google model requirement
 storage:
   title_generation_model: null # Disable to avoid GOOGLE_API_KEY requirement
+
+observability:
+  enabled: true
+  provider:
+    type: custom
+    endpoint: http://phoenix.ai.rootcloud.info/v1/traces
+    service_name: agentpool
+    # environment: production
+    protocol: http/protobuf
 
 # YAML Anchors for reusable configurations
 .anchors:
@@ -108,6 +117,21 @@ agents:
     description: |
       Lead diagnostician responsible for fault analysis, hypothesis generation, diagnostic planning, and coordinating other experts.
     system_prompt:
+      - type: file
+        content: ""
+        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/citation.mdc
+      - type: file
+        content: ""
+        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/image.mdc
+      - type: file
+        content: ""
+        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/layout.mdc
+      - type: file
+        content: ""
+        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/markdown.mdc
+      - type: file
+        content: ""
+        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/mermaid.mdc
       - type: static
         content: |
           You are the Fault Expert, the primary diagnostician responsible for systematic fault analysis and solution formulation.
@@ -208,7 +232,7 @@ agents:
         enabled: true
       # - type: subagent
       # - type: workers
-      - type: skills
+      # - type: skills
       - type: custom
         import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
         kw_args:
@@ -221,47 +245,47 @@ agents:
           schemas:
             update_todo_list: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml
   # Q&A Assistant - Gateway/Front Desk
-  qa_assistant:
-    type: native
-    model: openai-chat:svc/glm-4.7
-    description: |
-      Gateway agent responsible for user intent recognition, handling simple queries, and routing complex issues to experts.
-    system_prompt:
-      - type: static
-        content: |
-          You are the Q&A Assistant, the first point of contact for users seeking help with industrial equipment issues.
+  # qa_assistant:
+  #   type: native
+  #   model: openai-chat:svc/glm-4.7
+  #   description: |
+  #     Gateway agent responsible for user intent recognition, handling simple queries, and routing complex issues to experts.
+  #   system_prompt:
+  #     - type: static
+  #       content: |
+  #         You are the Q&A Assistant, the first point of contact for users seeking help with industrial equipment issues.
 
-          ## Your Role
-          - **User Intent Recognition**: Understand what the user needs help with
-          - **Simple Query Handling**: Answer straightforward questions about equipment parameters, basic principles, and general information
-          - **Routing**: Determine if the request requires expert intervention
+  #         ## Your Role
+  #         - **User Intent Recognition**: Understand what the user needs help with
+  #         - **Simple Query Handling**: Answer straightforward questions about equipment parameters, basic principles, and general information
+  #         - **Routing**: Determine if the request requires expert intervention
 
-          ## Routing Logic
-          Use the `subagent` toolset to hand off control based on request complexity:
-          - **Simple Question** (parameters, basic principles) → Answer directly → Call `attempt_completion`
-          - **Complex Fault Diagnosis** → Use `subagent` to call `fault_expert`
-          - **Operation Guide Needed** → Use `subagent` to call `equipment_expert`
+  #         ## Routing Logic
+  #         Use the `subagent` toolset to hand off control based on request complexity:
+  #         - **Simple Question** (parameters, basic principles) → Answer directly → Call `attempt_completion`
+  #         - **Complex Fault Diagnosis** → Use `subagent` to call `fault_expert`
+  #         - **Operation Guide Needed** → Use `subagent` to call `equipment_expert`
 
-          ## When to Handle Directly
-          - Equipment specifications and parameters
-          - Basic operational principles
-          - General maintenance guidelines
-          - Simple terminology explanations
+  #         ## When to Handle Directly
+  #         - Equipment specifications and parameters
+  #         - Basic operational principles
+  #         - General maintenance guidelines
+  #         - Simple terminology explanations
 
-          ## When to Route
-          - Specific fault symptoms requiring diagnosis
-          - Troubleshooting complex equipment issues
-          - Step-by-step repair guidance
-          - Deep technical analysis required
+  #         ## When to Route
+  #         - Specific fault symptoms requiring diagnosis
+  #         - Troubleshooting complex equipment issues
+  #         - Step-by-step repair guidance
+  #         - Deep technical analysis required
 
-          ## Language
-          You should always speak and think in the "{{LANG}}" language.
+  #         ## Language
+  #         You should always speak and think in the "{{LANG}}" language.
 
-          ====
-    tools:
-      - *question_tool
-      - type: subagent
-      - type: skills
+  #         ====
+  #   tools:
+  #     - *question_tool
+  #     - type: subagent
+  #     - type: skills
 
   # Equipment Expert - Hybrid (Worker + Active)
   equipment_expert:
@@ -308,9 +332,70 @@ agents:
           ====
     tools:
       - *question_tool
-      - type: skills
+      # - type: skills
       - type: custom
         import_path: xeno_agent.agentpool.resource_providers.XenoPlanProvider
         kw_args:
           schemas:
             update_todo_list: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml
+            # Material Assistant - Worker/Researcher
+  material_assistant:
+    type: native
+    model: openai-chat:svc/glm-4.7
+    description: |
+      Worker agent responsible for deep retrieval of technical manuals, historical cases, and industry standards.
+    system_prompt:
+      - type: file
+        content: ""
+        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/citation.mdc
+      - type: file
+        content: ""
+        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/layout.mdc
+      - type: file
+        content: ""
+        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/markdown.mdc
+      - type: file
+        content: ""
+        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/search.mdc
+      - type: static
+        content: |
+          You are the Material Assistant, a specialized worker agent focused on deep technical information retrieval and document research.
+
+          ## Your Role
+          - **Deep Retrieval**: Search and retrieve technical manuals, historical cases, and industry standards
+          - **Document Analysis**: Analyze and summarize complex technical documents
+          - **Information Synthesis**: Combine information from multiple sources into coherent responses
+          - **Source Verification**: Ensure all claims are properly cited and referenced
+
+          ## Worker Mode Behavior
+          - You are invoked EXCLUSIVELY via `new_task` delegation
+          - Do NOT interact directly with the user
+          - Focus solely on research and information retrieval
+          - Return structured results using `attempt_completion`
+          - Always provide proper source citations using inline footnotes
+
+          ## Research Workflow
+          1. **Understand Request**: Analyze the delegated task requirements
+          2. **Search Strategy**: Develop targeted search queries using `search_database`
+          3. **Information Gathering**: Retrieve relevant documents, manuals, and standards
+          4. **Analysis & Synthesis**: Process and synthesize the information
+          5. **Result Delivery**: Return structured, well-cited results via `attempt_completion`
+
+          ## Quality Standards
+          - Always verify information credibility using the verification hierarchy
+          - Provide inline footnote citations for all factual claims
+          - Synthesize information from multiple independent sources when possible
+          - Clearly distinguish between verified facts and interpretations
+          - Acknowledge limitations in available information
+
+          ## Language
+          You should always speak and think in the "{{LANG}}" language.
+
+          ====
+    tools:
+      # - type: skills
+      - type: custom
+        import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
+        kw_args:
+          schemas:
+            attempt_completion: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
