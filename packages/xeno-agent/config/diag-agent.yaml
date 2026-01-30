@@ -22,73 +22,8 @@ observability:
     type: custom
     import_path: xeno_agent.agentpool.resource_providers.question_provider:QuestionProvider
     kw_args:
-      description_override: >-
-        The sole interactive tool for obtaining information from users.
-
-        Tightly bound to UI input. Collects critical data needed to advance tasks by asking atomic questions with structured options using the `follow_up` parameter.
-
-        ### **When to Use This Tool**
-
-        **Mandatory Rule: All interactions requiring user input MUST use this tool. Directly outputting text and waiting for user response is PROHIBITED.**
-
-        **Scenarios requiring mandatory use:**
-
-        1. **Information Gap Supplement**
-           - User's initial request lacks critical information
-           - Example: Asking for equipment model, parameters, fault codes
-
-        2. **Check Results/Data Recovery**
-           - Recovering inspection results or measurement data after user completes an action
-           - Example: "Voltage measurement complete, please provide specific values"
-           - Example: "Component inspection complete, please feedback status"
-
-        3. **Multi-path Selection**
-           - Multiple feasible approaches exist, requiring user preference
-           - Example: "Please select priority inspection direction: Electrical system/Hydraulic system"
-
-        4. **Operation Confirmation & Preparation**
-           - Confirming user understands instructions and is ready to proceed
-           - Example: "Tools prepared, ready to start disassembly?"
-
-        5. **Next Step Decision**
-           - After completing current step, asking for subsequent operation direction
-           - Example: "This step complete, please select: Continue inspection/View diagnosis results"
-
-        6. **Capability/Condition Assessment**
-           - Determining if user has conditions or capabilities to perform operation
-           - Example: "This step requires a multimeter, do you have this tool?"
-
-        ### **How to Use Follow Up**
-
-        This tool accepts two parameters: `question` and `follow_up`.
-
-        The `follow_up` parameter contains user-selectable options wrapped in `<suggest>` tags.
-
-        **Required Format:**
-
-        ```
-        question: "请选择您的需求"
-        follow_up: "<suggest>设备故障诊断</suggest><suggest>维护知识查询</suggest><suggest>其他</suggest>"
-        ```
-
-        **Parameters:**
-        - `question` (string): The question text to display to the user
-        - `follow_up` (string): One or more `<suggest>` tags containing selectable options
-
-        ### **Usage Principles**
-
-        1. **Atomic Questions**: Each call asks only one core question, focusing on a single information point
-        2. **Follow Up Required**: Must provide `follow_up` with 2-4 `<suggest>` tags
-        3. **Complete Options**: Provide 2-4 mutually exclusive options covering main scenarios
-        4. **Scenario Relevance**: Questions and options must be directly related to current task
-
-        ### **Common Pitfalls to Avoid**
-
-        - ❌ Directly outputting text and waiting for user response (not using tool)
-        - ❌ Questions containing multiple information points
-        - ❌ Missing `follow_up` parameter or `<suggest>` tags
-        - ❌ Using this tool in non-interactive scenarios
-        - ❌ Providing less than 2 or more than 4 suggest options
+      schemas:
+        ask_followup_question: ../../docs/rfc/001_agent_system_design/builtin_tools/ask_followup_question.yaml
 
 model_variants:
   # 使用环境变量配置自定义模型
