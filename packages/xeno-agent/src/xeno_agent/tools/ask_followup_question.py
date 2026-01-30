@@ -4,17 +4,16 @@ from __future__ import annotations
 
 import html
 import re
-from typing import TYPE_CHECKING, Any, assert_never, cast
+from typing import Any, assert_never, cast
 
+from agentpool.agents.context import AgentContext
 from agentpool.tools.base import ToolResult
 from mcp.types import ElicitRequestFormParams, ErrorData
-
-if TYPE_CHECKING:
-    from agentpool.agents.context import AgentContext
 
 
 async def ask_followup_question(
     ctx: AgentContext,
+    question: str,
     follow_up: str,
 ) -> ToolResult:
     """Ask a follow-up question with suggestions.
@@ -23,6 +22,7 @@ async def ask_followup_question(
 
     Args:
         ctx: Agent execution context.
+        question: The main question to ask the user.
         follow_up: Question text containing <suggest> tags.
 
     Returns:
@@ -65,12 +65,7 @@ async def ask_followup_question(
     else:
         schema = {"type": "string"}
 
-    # Extract the main prompt by removing suggestion tags
-    prompt = re.sub(r"<suggest\s*[^>]*>.*?</suggest>", "", follow_up, flags=re.DOTALL).strip()
-    if not prompt:
-        prompt = follow_up
-
-    params = ElicitRequestFormParams(message=prompt, requestedSchema=schema)
+    params = ElicitRequestFormParams(message=question, requestedSchema=schema)
     result = await ctx.handle_elicitation(params)
 
     if isinstance(result, ErrorData):

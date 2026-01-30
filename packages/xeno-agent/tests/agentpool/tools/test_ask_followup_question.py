@@ -21,7 +21,7 @@ async def test_ask_followup_question_standard():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     follow_up = "Would you like to continue? <suggest>Yes</suggest> <suggest>No</suggest>"
-    result = await ask_followup_question(mock_ctx, follow_up)
+    result = await ask_followup_question(mock_ctx, "Would you like to continue?", follow_up)
 
     # Check that handle_elicitation was called with correct parameters
     mock_ctx.handle_elicitation.assert_called_once()
@@ -50,15 +50,15 @@ async def test_ask_followup_question_multiline():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     follow_up = """
-Select an option:
-<suggest>
-Option 1
-</suggest>
-<suggest>
-Option 2
-</suggest>
-"""
-    result = await ask_followup_question(mock_ctx, follow_up)
+    Select an option:
+    <suggest>
+    Option 1
+    </suggest>
+    <suggest>
+    Option 2
+    </suggest>
+    """
+    result = await ask_followup_question(mock_ctx, "Select an option:", follow_up)
 
     params = mock_ctx.handle_elicitation.call_args[0][0]
     assert params.message == "Select an option:"
@@ -81,7 +81,7 @@ async def test_ask_followup_question_with_attributes():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     follow_up = '<suggest type="input" next_action="foo">Action</suggest>'
-    result = await ask_followup_question(mock_ctx, follow_up)
+    result = await ask_followup_question(mock_ctx, follow_up, follow_up)
 
     params = mock_ctx.handle_elicitation.call_args[0][0]
     # In this case, prompt becomes follow_up because it's only suggestions
@@ -107,7 +107,7 @@ async def test_ask_followup_question_no_suggestions():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     follow_up = "Just a question without suggestions."
-    result = await ask_followup_question(mock_ctx, follow_up)
+    result = await ask_followup_question(mock_ctx, "Just a question without suggestions.", follow_up)
 
     params = mock_ctx.handle_elicitation.call_args[0][0]
     assert params.message == "Just a question without suggestions."
@@ -126,7 +126,7 @@ async def test_ask_followup_question_html_entities():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     follow_up = "What do you want? <suggest>Fish &amp; Chips</suggest>"
-    result = await ask_followup_question(mock_ctx, follow_up)
+    result = await ask_followup_question(mock_ctx, "What do you want?", follow_up)
 
     params = mock_ctx.handle_elicitation.call_args[0][0]
     assert params.requestedSchema == {
@@ -146,7 +146,7 @@ async def test_ask_followup_question_cancel():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     follow_up = "Question? <suggest>Yes</suggest>"
-    result = await ask_followup_question(mock_ctx, follow_up)
+    result = await ask_followup_question(mock_ctx, "Question?", follow_up)
 
     assert result.content == "User cancelled the request"
     assert result.metadata == {"answers": []}
@@ -162,7 +162,7 @@ async def test_ask_followup_question_decline():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     follow_up = "Question? <suggest>Yes</suggest>"
-    result = await ask_followup_question(mock_ctx, follow_up)
+    result = await ask_followup_question(mock_ctx, "Question?", follow_up)
 
     assert result.content == "User declined to answer"
     assert result.metadata == {"answers": []}
@@ -179,7 +179,7 @@ async def test_ask_followup_question_error_data():
     mock_ctx.handle_elicitation.return_value = mock_error
 
     follow_up = "Question? <suggest>Yes</suggest>"
-    result = await ask_followup_question(mock_ctx, follow_up)
+    result = await ask_followup_question(mock_ctx, "Question?", follow_up)
 
     assert result.content == "Error: Something went wrong"
     assert result.metadata == {"answers": []}
@@ -196,12 +196,12 @@ async def test_ask_followup_question_mixed_suggestions():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     follow_up = """
-Choose:
-<suggest>Yes</suggest>
-<suggest>No</suggest>
-<suggest type="input">Maybe</suggest>
-"""
-    await ask_followup_question(mock_ctx, follow_up)
+    Choose:
+    <suggest>Yes</suggest>
+    <suggest>No</suggest>
+    <suggest type="input">Maybe</suggest>
+    """
+    await ask_followup_question(mock_ctx, "Choose:", follow_up)
 
     params = mock_ctx.handle_elicitation.call_args[0][0]
     # input_suggestion "Maybe" should be added to enum
@@ -222,7 +222,7 @@ async def test_ask_followup_question_empty_prompt():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     follow_up = "<suggest>A</suggest>"
-    await ask_followup_question(mock_ctx, follow_up)
+    await ask_followup_question(mock_ctx, follow_up, follow_up)
 
     params = mock_ctx.handle_elicitation.call_args[0][0]
     # If stripping tags leaves empty prompt, use follow_up
@@ -241,7 +241,7 @@ async def test_ask_followup_question_non_dict_content():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     follow_up = "Question?"
-    result = await ask_followup_question(mock_ctx, follow_up)
+    result = await ask_followup_question(mock_ctx, "Question?", follow_up)
 
     assert result.content == "Direct Answer"
     assert result.metadata == {"answers": [["Direct Answer"]]}
