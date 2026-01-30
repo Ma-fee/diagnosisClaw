@@ -92,10 +92,17 @@ class XenoPlanProvider(ResourceProvider):
                 Supported keys: "update_todo_list" for the update_todo_list tool.
                 Example: {"update_todo_list": "/path/to/schema.yaml"}
         """
+        from pathlib import Path  # noqa: PLC0415
+
         super().__init__(name=name or "xeno_plan", owner=owner)
 
         # Extract update_todo_list schema path from schemas dictionary
         update_todo_list_schema_path = schemas.get("update_todo_list") if schemas else None
+        if update_todo_list_schema_path and not (update_todo_list_schema_path := Path(update_todo_list_schema_path)).is_absolute():
+            # Resolve path relative to this file if not absolute
+
+            this_file_dir = Path(__file__).parent
+            update_todo_list_schema_path = this_file_dir / update_todo_list_schema_path
 
         # Load schema override for update_todo_list tool
         self._update_todo_list_schema_override = load_tool_schema(update_todo_list_schema_path)

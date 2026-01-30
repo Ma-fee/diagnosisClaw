@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 from agentpool.agents.base_agent import BaseAgent
@@ -40,18 +41,30 @@ class XenoDelegationProvider(StaticResourceProvider):
             schemas: Optional dictionary mapping tool names to schema file paths.
                 Expected keys: "new_task", "attempt_completion"
                 Example: {"new_task": "/path/to/new_task_schema.yaml", "attempt_completion": "/path/to/attempt_completion_schema.json"}
+                Paths can be relative to this file's directory.
         """
         super().__init__(name=name)
+
+        # Get the directory containing this file for resolving relative paths
+        this_file_dir = Path(__file__).parent
 
         # Extract schema paths from schemas dictionary
         new_task_schema = None
         attempt_completion_schema = None
         if schemas:
             if (new_task_schema_path := schemas.get("new_task")) is not None:
-                new_task_schema = load_tool_schema(new_task_schema_path)
+                # Resolve path relative to this file if not absolute
+                schema_path = Path(new_task_schema_path)
+                if not schema_path.is_absolute():
+                    schema_path = this_file_dir / schema_path
+                new_task_schema = load_tool_schema(str(schema_path))
 
             if (attempt_completion_schema_path := schemas.get("attempt_completion")) is not None:
-                attempt_completion_schema = load_tool_schema(attempt_completion_schema_path)
+                # Resolve path relative to this file if not absolute
+                schema_path = Path(attempt_completion_schema_path)
+                if not schema_path.is_absolute():
+                    schema_path = this_file_dir / schema_path
+                attempt_completion_schema = load_tool_schema(str(schema_path))
 
         # Load schema overrides for delegation tools
         # Pass full schema to create_tool

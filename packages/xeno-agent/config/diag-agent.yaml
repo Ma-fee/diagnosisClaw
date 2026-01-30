@@ -120,19 +120,19 @@ agents:
     system_prompt:
       - type: file
         content: ""
-        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/citation.mdc
+        path: ../docs/rfc/001_agent_system_design/capability/citation.mdc
       - type: file
         content: ""
-        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/image.mdc
+        path: ../docs/rfc/001_agent_system_design/capability/image.mdc
       - type: file
         content: ""
-        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/layout.mdc
+        path: ../docs/rfc/001_agent_system_design/capability/layout.mdc
       - type: file
         content: ""
-        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/markdown.mdc
+        path: ../docs/rfc/001_agent_system_design/capability/markdown.mdc
       - type: file
         content: ""
-        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/mermaid.mdc
+        path: ../docs/rfc/001_agent_system_design/capability/mermaid.mdc
       - type: static
         content: |
           You are the Fault Expert, the primary diagnostician responsible for systematic fault analysis and solution formulation.
@@ -169,13 +169,13 @@ agents:
         import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
         kw_args:
           schemas:
-            new_task: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/new_task.yaml
-            attempt_completion: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+            new_task: ../../../../docs/rfc/001_agent_system_design/builtin_tools/new_task.yaml
+            attempt_completion: ../../../../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
       - type: custom
         import_path: xeno_agent.agentpool.resource_providers.XenoPlanProvider
         kw_args:
           schemas:
-            update_todo_list: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml
+            update_todo_list: ../../../../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml
   # Q&A Assistant - Gateway/Front Desk
   # qa_assistant:
   #   type: native
@@ -269,7 +269,7 @@ agents:
         import_path: xeno_agent.agentpool.resource_providers.XenoPlanProvider
         kw_args:
           schemas:
-            update_todo_list: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml
+            update_todo_list: ../../../../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml
             # Material Assistant - Worker/Researcher
   material_assistant:
     type: native
@@ -279,16 +279,16 @@ agents:
     system_prompt:
       - type: file
         content: ""
-        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/citation.mdc
+        path: ../docs/rfc/001_agent_system_design/capability/citation.mdc
       - type: file
         content: ""
-        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/layout.mdc
+        path: ../docs/rfc/001_agent_system_design/capability/layout.mdc
       - type: file
         content: ""
-        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/markdown.mdc
+        path: ../docs/rfc/001_agent_system_design/capability/markdown.mdc
       - type: file
         content: ""
-        path: packages/xeno-agent/docs/rfc/001_agent_system_design/capability/search.mdc
+        path: ../docs/rfc/001_agent_system_design/capability/search.mdc
       - type: static
         content: |
           You are the Material Assistant, a specialized worker agent focused on deep technical information retrieval and document research.
@@ -330,4 +330,4 @@ agents:
         import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
         kw_args:
           schemas:
-            attempt_completion: packages/xeno-agent/docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+            attempt_completion: ../../../../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
