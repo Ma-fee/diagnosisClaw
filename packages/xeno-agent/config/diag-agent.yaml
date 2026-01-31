@@ -17,7 +17,7 @@ anchors:
     import_path: "xeno_agent.agentpool.resource_providers.question_provider:QuestionProvider"
     kw_args:
       schemas:
-        ask_followup_question: ../docs/rfc/001_agent_system_design/builtin_tools/ask_followup_question.yaml
+        ask_followup_question: ../../../../docs/rfc/001_agent_system_design/builtin_tools/ask_followup_question.yaml
 
 model_variants:
   litellm_chat:
@@ -34,7 +34,7 @@ agents:
     system_prompt:
       - type: file
         content: ""
-        path: "prompts/roles/fault_expert.j2"
+        path: "/Users/yuchen.liu/src/yilab/iroot-llm/packages/xeno-agent/config/prompts/roles/fault_expert.j2"
         variables:
           LANG: "English"
     tools:
@@ -43,13 +43,13 @@ agents:
         import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
         kw_args:
           schemas:
-            new_task: ../docs/rfc/001_agent_system_design/builtin_tools/new_task.yaml
-            attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+            new_task: ../../../../docs/rfc/001_agent_system_design/builtin_tools/new_task.yaml
+            attempt_completion: ../../../../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
       - type: custom
         import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
         kw_args:
           schemas:
-            update_todo_list: "../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
+            update_todo_list: "../../../../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
 
   equipment_expert:
     type: native
@@ -60,15 +60,16 @@ agents:
     system_prompt:
       - type: file
         content: ""
-        path: "prompts/roles/equipment_expert.j2"
+        path: "/Users/yuchen.liu/src/yilab/iroot-llm/packages/xeno-agent/config//prompts/roles/equipment_expert.j2"
         variables:
           LANG: "English"
     tools:
       - type: custom
         import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
         kw_args:
+          enabled_tools: ["attempt_completion"]
           schemas:
-            update_todo_list: "../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
+            update_todo_list: "../../../../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
 
   material_assistant:
     type: native
@@ -79,16 +80,17 @@ agents:
     system_prompt:
       - type: file
         content: ""
-        path: "prompts/roles/material_assistant.j2"
+        path: "/Users/yuchen.liu/src/yilab/iroot-llm/packages/xeno-agent/config/prompts/roles/material_assistant.j2"
         variables:
           LANG: "English"
     mcp_servers:
       - type: streamable-http
         url: "http://10.147.254.3:7006/mcp"
-        enabled_tools: []
+        enabled_tools: ["search_database"]
     tools:
       - type: custom
         import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
         kw_args:
+          enabled_tools: ["attempt_completion"]
           schemas:
-            attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+            attempt_completion: ../../../../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml

@@ -33,6 +33,7 @@ class XenoDelegationProvider(StaticResourceProvider):
         self,
         name: str = "delegation",
         schemas: dict[str, str] | None = None,
+        enabled_tools: list[str] | None = None,
     ) -> None:
         """Initialize the delegation provider.
 
@@ -42,6 +43,9 @@ class XenoDelegationProvider(StaticResourceProvider):
                 Expected keys: "new_task", "attempt_completion"
                 Example: {"new_task": "/path/to/new_task_schema.yaml", "attempt_completion": "/path/to/attempt_completion_schema.json"}
                 Paths can be relative to this file's directory.
+            enabled_tools: Optional list of tools to enable. If None or empty, all tools are enabled.
+                Expected values: "new_task", "attempt_completion"
+                Example: ["new_task"] for main agent, ["attempt_completion"] for subagent
         """
         super().__init__(name=name)
 
@@ -68,31 +72,42 @@ class XenoDelegationProvider(StaticResourceProvider):
 
         # Load schema overrides for delegation tools
         # Pass full schema to create_tool
-        self.add_tool(
-            self.create_tool(
-                self.new_task,
-                name_override=new_task_schema.get("name") if new_task_schema else None,
-                description_override=new_task_schema.get("description") if new_task_schema else None,
-                category="other",
-                schema_override=new_task_schema,
-            ),
-        )
+        # Check which tools should be enabled
+        if enabled_tools is None or len(enabled_tools) == 0:
+            # Enable all tools if not specified
+            tools_to_enable = ["new_task", "attempt_completion"]
+        else:
+            tools_to_enable = enabled_tools
 
-        self.add_tool(
-            self.create_tool(
-                self.attempt_completion,
-                name_override=attempt_completion_schema.get("name") if attempt_completion_schema else None,
-                description_override=attempt_completion_schema.get("description") if attempt_completion_schema else None,
-                category="other",
-                schema_override=attempt_completion_schema,
-            ),
-        )
+        # Add new_task tool if enabled
+        if "new_task" in tools_to_enable:
+            self.add_tool(
+                self.create_tool(
+                    self.new_task,
+                    name_override=new_task_schema.get("name") if new_task_schema else None,
+                    description_override=new_task_schema.get("description") if new_task_schema else None,
+                    category="other",
+                    schema_override=new_task_schema,
+                ),
+            )
+
+        # Add attempt_completion tool if enabled
+        if "attempt_completion" in tools_to_enable:
+            self.add_tool(
+                self.create_tool(
+                    self.attempt_completion,
+                    name_override=attempt_completion_schema.get("name") if attempt_completion_schema else None,
+                    description_override=attempt_completion_schema.get("description") if attempt_completion_schema else None,
+                    category="other",
+                    schema_override=attempt_completion_schema,
+                ),
+            )
 
     async def new_task(
         self,
         ctx: AgentContext,
         mode: str,
-        task: str,
+        message: str,
         expected_output: str,
     ) -> str:
         """Delegate a task to another agent.
@@ -100,7 +115,7 @@ class XenoDelegationProvider(StaticResourceProvider):
         Args:
             ctx: Agent context
             mode: The specialized mode for the new task
-            task: The task description
+            message: The task description
             expected_output: Description of the expected output
 
         Returns:
@@ -108,7 +123,7 @@ class XenoDelegationProvider(StaticResourceProvider):
         """
         # Handle parameter name compatibility: use RFC parameters if provided, otherwise use legacy parameters
         resolved_agent_name = mode
-        resolved_task = task
+        resolved_task = message
         resolved_expected_output = expected_output
 
         if resolved_agent_name is None:

@@ -9,9 +9,8 @@ description: |-
 
   # Available Modes:
 
-  - [问答助手]: This role is applicable for assessing problem difficulty, collecting contextual information, and quickly responding to simple inquiries (basic troubleshooting methods, schematic / parameter / fault code queries, multimodal image-text processing). It also possesses the superpower of switching to the appropriate role based on the problem.
-  - [设备专家]: This role is suitable for offering interactive  execution monitoring, collecting information, understanding uploaded images, and assisting users in completing the actual equipment operations when providing guidance on the actual operation of the equipment (such as maintenance, servicing, disassembly, inspection, etc.).
-  - [资料助手]: Specialized in in-depth research for complex technical problems. Expert in multi-source information retrieval (technical documentation, industry standards, case libraries), providing comprehensive technical data collection and professional analysis services.
+  - `equipment_expert`: This role is suitable for offering interactive  execution monitoring, collecting information, understanding uploaded images, and assisting users in completing the actual equipment operations when providing guidance on the actual operation of the equipment (such as maintenance, servicing, disassembly, inspection, etc.).
+  - `material_assistant`: Specialized in in-depth research for complex technical problems. Expert in multi-source information retrieval (technical documentation, industry standards, case libraries), providing comprehensive technical data collection and professional analysis services.
 name: new_task
 parameters:
   type: object
