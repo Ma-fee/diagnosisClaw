@@ -43,7 +43,7 @@ agents:
         import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
         kw_args:
           schemas:
-            new_task: ../../../../docs/rfc/001_agent_system_design/builtin_tools/new_task.yaml
+            new_task: tools/new_task.yaml
             attempt_completion: ../../../../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
       - type: custom
         import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"

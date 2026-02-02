@@ -18,6 +18,8 @@ from agentpool.common_types import SupportsRunStream
 from agentpool.delegation import Team, TeamRun
 from agentpool.resource_providers import StaticResourceProvider
 from agentpool.tools.exceptions import ToolError
+from pydantic_ai import RunContext
+from pydantic_ai.tools import ToolDefinition
 
 from xeno_agent.utils.tool_schema import load_tool_schema
 
@@ -83,15 +85,15 @@ class XenoDelegationProvider(StaticResourceProvider):
 
         # Add new_task tool if enabled
         if "new_task" in tools_to_enable:
-            self.add_tool(
-                self.create_tool(
-                    self.new_task,
-                    name_override=new_task_schema.get("name") if new_task_schema else None,
-                    description_override=new_task_schema.get("description") if new_task_schema else None,
-                    category="switch_mode",
-                    schema_override=new_task_schema,
-                ),
+            new_task_tool = self.create_tool(
+                self.new_task,
+                name_override=new_task_schema.get("name") if new_task_schema else None,
+                description_override=new_task_schema.get("description") if new_task_schema else None,
+                category="switch_mode",
+                schema_override=new_task_schema,
             )
+            new_task_tool.prepare = self.prepare_new_task
+            self.add_tool(new_task_tool)
 
         # Add attempt_completion tool if enabled
         if "attempt_completion" in tools_to_enable:
@@ -104,6 +106,44 @@ class XenoDelegationProvider(StaticResourceProvider):
                     schema_override=attempt_completion_schema,
                 ),
             )
+
+    async def prepare_new_task(
+        self,
+        ctx: RunContext[AgentContext],
+        tool_def: ToolDefinition,
+    ) -> ToolDefinition:
+        """Prepare the new_task tool description dynamically.
+
+        Args:
+            ctx: Run context with AgentContext as deps
+            tool_def: The tool definition to customize
+
+        Returns:
+            The customized tool definition
+        """
+        pool = ctx.deps.pool
+        current_agent_name = ctx.deps.node.name if ctx.deps.node else None
+
+        if not pool:
+            return tool_def
+
+        # Strip existing # Available Modes: section from tool_def.description
+        description = tool_def.description or ""
+        if "# Available Modes:" in description:
+            description = description.split("# Available Modes:")[0].strip()
+
+        # Iterate pool.nodes, skipping the current agent
+        modes_section = "\n\n# Available Modes:"
+        for name, node in pool.nodes.items():
+            if name == current_agent_name:
+                continue
+
+            # Appends available agents and their descriptions to the tool description
+            node_description = getattr(node, "description", "") or ""
+            modes_section += f"\n- {name}: {node_description}"
+
+        tool_def.description = description + modes_section
+        return tool_def
 
     async def new_task(
         self,
