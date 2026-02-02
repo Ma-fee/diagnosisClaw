@@ -1,7 +1,7 @@
 default_agent: fault_expert
 
 storage:
-  title_generation_model: "litellm:svc/glm-4.7"
+  title_generation_model: "openai-chat:svc/glm-4.7"
 
 observability:
   enabled: true
@@ -22,7 +22,7 @@ anchors:
 model_variants:
   litellm_chat:
     type: string
-    identifier: "litellm:svc/glm-4.7"
+    identifier: "litellm:openai-chat:svc/glm-4.7"
 
 agents:
   fault_expert:
@@ -65,9 +65,14 @@ agents:
           LANG: "English"
     tools:
       - type: custom
-        import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
+        import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
         kw_args:
           enabled_tools: ["attempt_completion"]
+          schemas:
+            attempt_completion: ../../../../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+      - type: custom
+        import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
+        kw_args:
           schemas:
             update_todo_list: "../../../../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -10,6 +11,7 @@ from agentpool.agents.context import AgentContext
 from agentpool.agents.events import (
     StreamCompleteEvent,
     SubAgentEvent,
+    ToolCallCompleteEvent,
     ToolCallStartEvent,
 )
 from agentpool.common_types import SupportsRunStream
@@ -86,7 +88,7 @@ class XenoDelegationProvider(StaticResourceProvider):
                     self.new_task,
                     name_override=new_task_schema.get("name") if new_task_schema else None,
                     description_override=new_task_schema.get("description") if new_task_schema else None,
-                    category="other",
+                    category="switch_mode",
                     schema_override=new_task_schema,
                 ),
             )
@@ -125,6 +127,7 @@ class XenoDelegationProvider(StaticResourceProvider):
         resolved_agent_name = mode
         resolved_task = message
         resolved_expected_output = expected_output
+        # Note: Use task_description (not message) to avoid name collision with StreamCompleteEvent.message
 
         if resolved_agent_name is None:
             raise ToolError("Either 'mode' or 'agent_name' parameter must be provided")
@@ -179,40 +182,58 @@ class XenoDelegationProvider(StaticResourceProvider):
         if not isinstance(node, SupportsRunStream):
             raise ToolError(f"Node {target_agent} does not support streaming")
 
-        # Run subagent stream
-        stream = node.run_stream(formatted_prompt, deps=new_deps)
+        try:
+            # Run subagent stream
+            stream = node.run_stream(formatted_prompt, deps=new_deps)
 
-        async for event in stream:
-            # Intercept attempt_completion
-            if isinstance(event, ToolCallStartEvent) and event.tool_name == "attempt_completion":
-                # Capture the 'result' parameter from tool input
-                args = event.raw_input
-                final_result = str(args.get("result", ""))
-                # Break the loop to stop consuming the stream
-                break
+            async for event in stream:
+                match event:
+                    # Track when attempt_completion is called and stop subagent execution
+                    case ToolCallStartEvent(tool_name="attempt_completion", raw_input=args):
+                        # Capture the 'result' parameter from tool input
+                        final_result = str(args.get("result", ""))
+                        # Stop subagent from continuing execution
+                        break
 
-                # Handle SubAgentEvent wrapping
-            if isinstance(event, SubAgentEvent):
-                nested_event = SubAgentEvent(
-                    source_name=event.source_name,
-                    source_type=event.source_type,
-                    event=event.event,
-                    depth=event.depth + current_depth + 1,
-                )
-                await ctx.events.emit_event(nested_event)
-            else:
-                # Wrap other events
-                subagent_event = SubAgentEvent(
-                    source_name=target_agent,
-                    source_type=source_type,
-                    event=event,
-                    depth=current_depth + 1,
-                )
-                await ctx.events.emit_event(subagent_event)
+                    # Track when attempt_completion completes and capture final result
+                    case ToolCallCompleteEvent(tool_name="attempt_completion", tool_result=completion_result):
+                        # Capture the final result from the completed tool call
+                        final_result = str(completion_result) if completion_result else ""
+                        # Stop subagent from continuing execution
+                        break
 
-            # Capture final result from StreamCompleteEvent if attempt_completion wasn't used
-            if isinstance(event, StreamCompleteEvent) and not final_result:
-                final_result = str(event.message.content) if event.message.content else ""
+                    # Handle SubAgentEvent wrapping
+                    case SubAgentEvent(
+                        source_name=source_name,
+                        source_type=source_type,
+                        event=inner_event,
+                    ):
+                        nested_event = SubAgentEvent(
+                            source_name=source_name,
+                            source_type=source_type,
+                            event=inner_event,
+                        )
+                        await ctx.events.emit_event(nested_event)
+
+                    # Capture final result from StreamCompleteEvent if attempt_completion wasn't used
+                    case StreamCompleteEvent(message=final_message):  # type: ignore[reportAssignmentType, reportAttributeAccessIssue]
+                        if final_message and final_message.content:  # type: ignore[reportAttributeAccessIssue]
+                            final_result = str(final_message.content)  # type: ignore[reportAttributeAccessIssue]
+
+                    # Wrap other events
+                    case _:
+                        subagent_event = SubAgentEvent(
+                            source_name=target_agent,
+                            source_type=source_type,
+                            event=event,
+                            depth=current_depth + 1,
+                        )
+                        await ctx.events.emit_event(subagent_event)
+        except (GeneratorExit, asyncio.CancelledError):
+            # Stream was cancelled by break statement, which is expected behavior
+            # when attempt_completion is detected. This prevents cleanup code from
+            # running in a different async task context.
+            pass
 
         return final_result
 
