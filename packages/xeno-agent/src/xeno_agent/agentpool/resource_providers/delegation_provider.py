@@ -112,7 +112,7 @@ class XenoDelegationProvider(StaticResourceProvider):
         ctx: RunContext[AgentContext],
         tool_def: ToolDefinition,
     ) -> ToolDefinition:
-        """Prepare the new_task tool description dynamically.
+        """Prepare new_task tool description dynamically.
 
         Args:
             ctx: Run context with AgentContext as deps
@@ -121,11 +121,12 @@ class XenoDelegationProvider(StaticResourceProvider):
         Returns:
             The customized tool definition
         """
+        # Handle case where ctx.deps is None (e.g., during tool registration/setup)
+        if not ctx.deps or not ctx.deps.pool:
+            return tool_def
+
         pool = ctx.deps.pool
         current_agent_name = ctx.deps.node.name if ctx.deps.node else None
-
-        if not pool:
-            return tool_def
 
         # Strip existing # Available Modes: section from tool_def.description
         description = tool_def.description or ""
