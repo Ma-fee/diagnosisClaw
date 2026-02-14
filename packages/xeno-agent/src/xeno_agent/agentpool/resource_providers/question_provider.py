@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, override
 
 from agentpool.resource_providers import ResourceProvider
 from agentpool.resource_providers.base import ProviderKind
+from agentpool_config.context import CONFIG_DIR
 
 from xeno_agent.tools.ask_followup_question import ask_followup_question
 from xeno_agent.utils.tool_schema import load_tool_schema
@@ -28,7 +29,11 @@ class QuestionProvider(ResourceProvider):
 
     kind: ProviderKind = "tools"
 
-    def __init__(self, name: str = "question", schemas: dict[str, str] | None = None) -> None:
+    def __init__(
+        self,
+        name: str = "question",
+        schemas: dict[str, str] | None = None,
+    ) -> None:
         """Initialize question provider.
 
         Args:
@@ -36,21 +41,20 @@ class QuestionProvider(ResourceProvider):
             schemas: Optional dictionary mapping tool names to schema file paths.
                 Expected key: "ask_followup_question"
                 Example: {"ask_followup_question": "path/to/schema.yaml"}
-                Paths can be relative to this file's directory.
+                Paths are resolved relative to config directory using CONFIG_DIR context.
 
         """
         super().__init__(name=name)
 
-        # Get the directory containing this file for resolving relative paths
-        this_file_dir = Path(__file__).parent
-
         # Extract schema path from schemas dictionary
         ask_followup_question_schema = None
         if schemas and (schema_path := schemas.get("ask_followup_question")) is not None:
-            # Resolve path relative to this file if not absolute
+            # Resolve path using CONFIG_DIR context (RFC-0009 compliant)
             schema_path_resolved = Path(schema_path)
             if not schema_path_resolved.is_absolute():
-                schema_path_resolved = this_file_dir / schema_path_resolved
+                config_dir = CONFIG_DIR.get()
+                if config_dir is not None:
+                    schema_path_resolved = Path(str(config_dir)) / schema_path_resolved
             ask_followup_question_schema = load_tool_schema(str(schema_path_resolved))
 
         self.ask_followup_question_schema = ask_followup_question_schema

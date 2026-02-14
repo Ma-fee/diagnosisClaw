@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast, override
 
 from agentpool.agents.context import AgentContext
@@ -16,6 +17,7 @@ from agentpool.resource_providers import ResourceProvider
 from agentpool.resource_providers.plan_provider import PlanEntry
 from agentpool.tools.base import ToolResult
 from agentpool.utils.streams import TodoEntry, TodoStatus, TodoTracker
+from agentpool_config.context import CONFIG_DIR
 from defusedxml.ElementTree import ParseError, fromstring
 
 from xeno_agent.utils.tool_schema import load_tool_schema
@@ -91,18 +93,20 @@ class XenoPlanProvider(ResourceProvider):
             schemas: Optional dictionary mapping tool names to schema file paths.
                 Supported keys: "update_todo_list" for the update_todo_list tool.
                 Example: {"update_todo_list": "/path/to/schema.yaml"}
+                Paths are resolved relative to config directory using CONFIG_DIR context.
         """
-        from pathlib import Path  # noqa: PLC0415
-
         super().__init__(name=name or "xeno_plan", owner=owner)
 
         # Extract update_todo_list schema path from schemas dictionary
         update_todo_list_schema_path = schemas.get("update_todo_list") if schemas else None
-        if update_todo_list_schema_path and not (update_todo_list_schema_path := Path(update_todo_list_schema_path)).is_absolute():
-            # Resolve path relative to this file if not absolute
-
-            this_file_dir = Path(__file__).parent
-            update_todo_list_schema_path = this_file_dir / update_todo_list_schema_path
+        if update_todo_list_schema_path:
+            # Resolve path using CONFIG_DIR context (RFC-0009 compliant)
+            schema_path = Path(update_todo_list_schema_path)
+            if not schema_path.is_absolute():
+                config_dir = CONFIG_DIR.get()
+                if config_dir is not None:
+                    schema_path = Path(str(config_dir)) / schema_path
+            update_todo_list_schema_path = schema_path
 
         # Load schema override for update_todo_list tool
         self._update_todo_list_schema_override = load_tool_schema(update_todo_list_schema_path)

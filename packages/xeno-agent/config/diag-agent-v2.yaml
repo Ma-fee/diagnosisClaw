@@ -52,17 +52,20 @@ agents:
       - type: skills
         injection_mode: metadata
         max_skills: 10
-      - type: custom
-        import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
-        kw_args:
-          schemas:
-            new_task: ./tools/new_task.yaml
-            attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+      # - type: custom
+      #   import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
+      #   kw_args:
+      #     schemas:
+      #       new_task: ./tools/new_task.yaml
+      #       attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
       - type: custom
         import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
         kw_args:
           schemas:
             update_todo_list: "../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
+      - type: file_access
+        fs: "file:///tmp/test_scratch_pad/"
+        namespace: scratchpad_
 
   equipment_expert:
     type: native
@@ -80,17 +83,20 @@ agents:
       - type: skills
         injection_mode: metadata
         max_skills: 5
-      - type: custom
-        import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
-        kw_args:
-          enabled_tools: ["attempt_completion"]
-          schemas:
-            attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+      # - type: custom
+      #   import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
+      #   kw_args:
+      #     enabled_tools: ["attempt_completion"]
+      #     schemas:
+      #       attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
       - type: custom
         import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
         kw_args:
           schemas:
             update_todo_list: "../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
+      - type: file_access
+        fs: "file:///tmp/test_scratch_pad/"
+        namespace: scratchpad_
 
   material_assistant:
     type: native
@@ -111,9 +117,12 @@ agents:
     tools:
       - type: skills
         injection_mode: metadata
-      - type: custom
-        import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
-        kw_args:
-          enabled_tools: ["attempt_completion"]
-          schemas:
-            attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+      - type: file_access
+        fs: "file:///tmp/test_scratch_pad/"
+        namespace: scratchpad_
+      # - type: custom
+      #   import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
+      #   kw_args:
+      #     enabled_tools: ["attempt_completion"]
+      #     schemas:
+      #       attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml

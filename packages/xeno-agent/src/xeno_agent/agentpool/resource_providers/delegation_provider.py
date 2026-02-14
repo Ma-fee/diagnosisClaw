@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
+from agentpool import ChatMessage
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.context import AgentContext
 from agentpool.agents.events import (
+    SpawnSessionStart,
     StreamCompleteEvent,
     SubAgentEvent,
     ToolCallCompleteEvent,
@@ -18,6 +19,7 @@ from agentpool.common_types import SupportsRunStream
 from agentpool.delegation import Team, TeamRun
 from agentpool.resource_providers import StaticResourceProvider
 from agentpool.tools.exceptions import ToolError
+from agentpool_config.context import CONFIG_DIR
 from pydantic_ai import RunContext
 from pydantic_ai.tools import ToolDefinition
 
@@ -46,32 +48,33 @@ class XenoDelegationProvider(StaticResourceProvider):
             schemas: Optional dictionary mapping tool names to schema file paths.
                 Expected keys: "new_task", "attempt_completion"
                 Example: {"new_task": "/path/to/new_task_schema.yaml", "attempt_completion": "/path/to/attempt_completion_schema.json"}
-                Paths can be relative to this file's directory.
+                Paths are resolved relative to config directory using CONFIG_DIR context.
             enabled_tools: Optional list of tools to enable. If None or empty, all tools are enabled.
                 Expected values: "new_task", "attempt_completion"
                 Example: ["new_task"] for main agent, ["attempt_completion"] for subagent
         """
         super().__init__(name=name)
 
-        # Get the directory containing this file for resolving relative paths
-        this_file_dir = Path(__file__).parent
-
         # Extract schema paths from schemas dictionary
         new_task_schema = None
         attempt_completion_schema = None
         if schemas:
             if (new_task_schema_path := schemas.get("new_task")) is not None:
-                # Resolve path relative to this file if not absolute
+                # Resolve path using CONFIG_DIR context (RFC-0009 compliant)
                 schema_path = Path(new_task_schema_path)
                 if not schema_path.is_absolute():
-                    schema_path = this_file_dir / schema_path
+                    config_dir = CONFIG_DIR.get()
+                    if config_dir is not None:
+                        schema_path = Path(str(config_dir)) / schema_path
                 new_task_schema = load_tool_schema(str(schema_path))
 
             if (attempt_completion_schema_path := schemas.get("attempt_completion")) is not None:
-                # Resolve path relative to this file if not absolute
+                # Resolve path using CONFIG_DIR context (RFC-0009 compliant)
                 schema_path = Path(attempt_completion_schema_path)
                 if not schema_path.is_absolute():
-                    schema_path = this_file_dir / schema_path
+                    config_dir = CONFIG_DIR.get()
+                    if config_dir is not None:
+                        schema_path = Path(str(config_dir)) / schema_path
                 attempt_completion_schema = load_tool_schema(str(schema_path))
 
         # Load schema overrides for delegation tools
@@ -215,66 +218,100 @@ class XenoDelegationProvider(StaticResourceProvider):
             new_deps = {**ctx.data, **new_deps}
 
         # Format prompt with task and expected output
-        formatted_prompt = f"<task>{target_task}</task>\n<expected_output>{target_expected_output}</expected_output>"
+        formatted_prompt = f"<task>\n{target_task}\n</task>\n\n<expected_output>\n{target_expected_output}\n</expected_output>"
 
         final_result = ""
+
+        # Generate a unique session ID for this subagent session (RFC-0015)
+        from uuid import uuid4
+
+        child_session_id = str(uuid4())
+        parent_session_id = ctx.node.session_id
+        tool_call_id = ctx.tool_call_id
 
         # Check if node supports streaming
         if not isinstance(node, SupportsRunStream):
             raise ToolError(f"Node {target_agent} does not support streaming")
 
-        try:
-            # Run subagent stream
-            stream = node.run_stream(formatted_prompt, deps=new_deps)
+        # try:
+        # Run subagent stream
+        stream = node.run_stream(formatted_prompt, deps=new_deps)
 
-            async for event in stream:
-                match event:
-                    # Track when attempt_completion is called and stop subagent execution
-                    case ToolCallStartEvent(tool_name="attempt_completion", raw_input=args):
-                        # Capture the 'result' parameter from tool input
-                        final_result = str(args.get("result", ""))
-                        # Stop subagent from continuing execution
-                        break
+        # Emit SpawnSessionStart before streaming begins (RFC-0014)
+        spawn_event = SpawnSessionStart(
+            child_session_id=child_session_id,
+            parent_session_id=parent_session_id or "",
+            tool_call_id=tool_call_id,
+            spawn_mechanism="task",
+            source_name=target_agent,
+            source_type=source_type,
+            depth=current_depth + 1,
+            description=formatted_prompt,
+            # metadata={
+            #     "prompt": target_task[:201] if len(target_task) > 200 else target_task,
+            # },
+        )
+        await ctx.events.emit_event(spawn_event)
 
-                    # Track when attempt_completion completes and capture final result
-                    case ToolCallCompleteEvent(tool_name="attempt_completion", tool_result=completion_result):
-                        # Capture the final result from the completed tool call
-                        final_result = str(completion_result) if completion_result else ""
-                        # Stop subagent from continuing execution
-                        break
+        async for event in stream:
+            match event:
+                # Track when attempt_completion is called and stop subagent execution
+                case ToolCallStartEvent(tool_name="attempt_completion", raw_input=args):
+                    # Capture the 'result' parameter from tool input
+                    final_result = str(args.get("result", ""))
+                    # Stop subagent from continuing execution
+                    break
 
-                    # Handle SubAgentEvent wrapping
-                    case SubAgentEvent(
+                # Track when attempt_completion completes and capture final result
+                case ToolCallCompleteEvent(tool_name="attempt_completion", tool_result=completion_result):
+                    # Capture the final result from the completed tool call
+                    final_result = str(completion_result) if completion_result else ""
+                    ctx.events.emit_event(
+                        SubAgentEvent(
+                            source_name=target_agent,
+                            source_type=source_type,
+                            event=StreamCompleteEvent(message=ChatMessage(content=final_result, role="assistant")),
+                            child_session_id=child_session_id,
+                        ),
+                    )
+                    # Stop subagent from continuing execution
+                    break
+
+                # Handle SubAgentEvent wrapping - preserve child_session_id for navigation
+                case SubAgentEvent(
+                    source_name=source_name,
+                    source_type=source_type,
+                    event=inner_event,
+                    child_session_id=inner_child_session_id,
+                ):
+                    nested_event = SubAgentEvent(
                         source_name=source_name,
                         source_type=source_type,
                         event=inner_event,
-                    ):
-                        nested_event = SubAgentEvent(
-                            source_name=source_name,
-                            source_type=source_type,
-                            event=inner_event,
-                        )
-                        await ctx.events.emit_event(nested_event)
+                        child_session_id=inner_child_session_id or child_session_id,
+                    )
+                    await ctx.events.emit_event(nested_event)
 
-                    # Capture final result from StreamCompleteEvent if attempt_completion wasn't used
-                    case StreamCompleteEvent(message=final_message):  # type: ignore[reportAssignmentType, reportAttributeAccessIssue]
-                        if final_message and final_message.content:  # type: ignore[reportAttributeAccessIssue]
-                            final_result = str(final_message.content)  # type: ignore[reportAttributeAccessIssue]
+                # Capture final result from StreamCompleteEvent if attempt_completion wasn't used
+                case StreamCompleteEvent(message=final_message):  # type: ignore[reportAssignmentType, reportAttributeAccessIssue]
+                    if final_message and final_message.content:  # type: ignore[reportAttributeAccessIssue]
+                        final_result = str(final_message.content)  # type: ignore[reportAttributeAccessIssue]
 
-                    # Wrap other events
-                    case _:
-                        subagent_event = SubAgentEvent(
-                            source_name=target_agent,
-                            source_type=source_type,
-                            event=event,
-                            depth=current_depth + 1,
-                        )
-                        await ctx.events.emit_event(subagent_event)
-        except (GeneratorExit, asyncio.CancelledError):
-            # Stream was cancelled by break statement, which is expected behavior
-            # when attempt_completion is detected. This prevents cleanup code from
-            # running in a different async task context.
-            pass
+                # Wrap other events with session tracking (RFC-0015)
+                case _:
+                    subagent_event = SubAgentEvent(
+                        source_name=target_agent,
+                        source_type=source_type,
+                        event=event,
+                        depth=current_depth + 1,
+                        child_session_id=child_session_id,
+                    )
+                    await ctx.events.emit_event(subagent_event)
+        # except (GeneratorExit, asyncio.CancelledError):
+        #     # Stream was cancelled by break statement, which is expected behavior
+        #     # when attempt_completion is detected. This prevents cleanup code from
+        #     # running in a different async task context.
+        #     pass
 
         return final_result
 
