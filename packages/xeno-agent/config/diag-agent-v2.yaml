@@ -64,8 +64,6 @@ agents:
           schemas:
             update_todo_list: "../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
       - type: file_access
-        fs: "file:///tmp/test_scratch_pad/"
-        namespace: scratchpad_
 
   equipment_expert:
     type: native
@@ -95,8 +93,6 @@ agents:
           schemas:
             update_todo_list: "../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
       - type: file_access
-        fs: "file:///tmp/test_scratch_pad/"
-        namespace: scratchpad_
 
   material_assistant:
     type: native
@@ -118,8 +114,6 @@ agents:
       - type: skills
         injection_mode: metadata
       - type: file_access
-        fs: "file:///tmp/test_scratch_pad/"
-        namespace: scratchpad_
       # - type: custom
       #   import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
       #   kw_args:

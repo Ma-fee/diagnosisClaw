@@ -1,6 +1,7 @@
 # Zed ACP Subagent 功能调研报告
 
 **调研日期**: 2026-02-11  
+**更新日期**: 2026-02-16  
 **调研范围**: Zed 编辑器中的 ACP (Agent Client Protocol) 协议及 Subagent 实现机制  
 **数据来源**: Zed 源码 (zed-industries/zed)、ACP 官方文档 (agentclientprotocol.com)
 
@@ -12,10 +13,12 @@
 2. [ACP 协议简介](#acp-协议简介)
 3. [Zed 中 Subagent 的关键发现](#zed-中-subagent-的关键发现)
 4. [实现机制详解](#实现机制详解)
-5. [代码路径索引](#代码路径索引)
-6. [开发 ACP Server 的建议](#开发-acp-server-的建议)
-7. [GitHub 开发时间线](#github-开发时间线)
-8. [相关资源](#相关资源)
+5. [渲染层对接机制](#渲染层对接机制)
+6. [代码路径索引](#代码路径索引)
+7. [ACP 生态进展](#acp-生态进展)
+8. [开发 ACP Server 的建议](#开发-acp-server-的建议)
+9. [GitHub 开发时间线](#github-开发时间线)
+10. [相关资源](#相关资源)
 
 ---
 
@@ -27,6 +30,14 @@
 2. **Zed 使用 `agent-client-protocol` crate v0.9.4** - 这是一个外部依赖，非 Zed 内部实现
 3. **Subagent 通过 `_meta` 字段传递 session ID** - 利用 ACP 的扩展性机制
 4. **Eval 环境暂未实现 subagent 支持** - `create_subagent` 返回 `unimplemented!()`
+
+### ⚠️ 重要状态更新 (2026-02-16)
+
+> **Subagent 功能已实现但暂时关闭**
+>
+> 2026-02-13，Zed 通过 PR #49104 将 `subagents` 特性标志临时关闭。该功能代码完整且经过充分测试，关闭是由于特性标志意外开启后的回滚操作。预计在 Staff 测试后重新向公众开放。
+>
+> **当前状态**: 🔒 Staff Only (需要 `subagents` feature flag)
 
 ### 技术栈
 
@@ -100,7 +111,46 @@ let meta = acp::Meta::from_iter([(
 event_stream.update_fields_with_meta(acp::ToolCallUpdateFields::new(), Some(meta));
 ```
 
-#### 2. 事件传播机制
+#### 2. 架构演进：ThreadEnvironment（2026-02 更新）
+
+**PR #48381** 引入了新的架构，将子代理创建逻辑从 `SubagentTool` 移至 `ThreadEnvironment`：
+
+```rust
+// crates/agent/src/agent.rs
+impl NativeThreadEnvironment {
+    pub(crate) fn create_subagent_thread(
+        agent: WeakEntity<NativeAgent>,
+        parent_thread_entity: Entity<Thread>,
+        label: String,
+        initial_prompt: String,
+        timeout: Option<Duration>,
+        allowed_tools: Option<Vec<String>>,
+        cx: &mut App,
+    ) -> Result<Rc<dyn SubagentHandle>> {
+        // 1. 检查深度限制
+        // 2. 检查并行限制  
+        // 3. 过滤允许的工具（只保留父线程存在的工具）
+        // 4. 创建 subagent thread
+        // 5. 注册到 parent 的 running_subagents
+        // 6. 返回 SubagentHandle
+    }
+}
+
+// SubagentHandle trait 用于生命周期管理
+pub trait SubagentHandle {
+    fn id(&self) -> acp::SessionId;
+    fn wait_for_summary(&self, summary_prompt: String, cx: &AsyncApp) -> Task<Result<String>>;
+}
+```
+
+**架构优势**：
+- 统一的创建入口，深度/并行限制检查内聚
+- 工具过滤逻辑集中，避免重复代码
+- 超时和取消信号统一管理
+- 修复了之前 `stop_by_user` workaround 的混乱
+- 支持 `close_session` 正确释放资源
+
+#### 3. 事件传播机制
 
 | 层级 | 事件定义 | 文件路径 |
 |------|----------|----------|
@@ -109,13 +159,13 @@ event_stream.update_fields_with_meta(acp::ToolCallUpdateFields::new(), Some(meta
 | UI 层 | `load_subagent_session()` | `crates/agent_ui/src/acp/thread_view.rs:1053` |
 | Eval | 日志记录 | `crates/eval/src/example.rs:331` |
 
-#### 3. 核心参数和限制
+#### 4. 核心参数和限制
 
 ```rust
-// crates/agent/src/tools/subagent_tool.rs
-const MAX_SUBAGENT_DEPTH: u8 = 4;         // 最大嵌套深度 4 层
-const MAX_PARALLEL_SUBAGENTS: usize = 8;  // 最大并行数 8 个
-const CONTEXT_THRESHOLD: f32 = 0.25;      // 剩余 25% 令牌时触发总结
+// crates/agent/src/thread.rs
+pub const MAX_SUBAGENT_DEPTH: u8 = 4;         // 最大嵌套深度 4 层
+pub const MAX_PARALLEL_SUBAGENTS: usize = 8;  // 最大并行数 8 个
+const CONTEXT_THRESHOLD: f32 = 0.25;           // 剩余 25% 令牌时触发总结（已弃用）
 ```
 
 ### Subagent Tool 输入参数
@@ -138,6 +188,8 @@ pub struct SubagentToolInput {
 ### SubagentContext
 
 ```rust
+// crates/agent/src/thread.rs
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SubagentContext {
     /// 父线程 ID
     pub parent_thread_id: acp::SessionId,
@@ -146,87 +198,151 @@ pub struct SubagentContext {
 }
 ```
 
+### 特性标志状态
+
+| 标志 | 状态 | 说明 |
+|------|------|------|
+| `subagents` | 🔒 Staff Only | 已通过 PR #49104 (2026-02-13) 临时关闭 |
+| `acp-beta` | ✅ 已启用 | ACP 协议 Beta 功能 |
+
 ---
 
-## 实现机制详解
+## 渲染层对接机制
 
-### 生命周期流程
+Zed 通过 GPUI 框架为 subagent 提供了完整的 UI 渲染支持，实现了从底层协议到用户界面的无缝集成。
+
+### UI 渲染架构
+
+**核心渲染文件**: `crates/agent_ui/src/acp/thread_view/active_thread.rs`
+
+Subagent 的 UI 渲染主要发生在 `active_thread.rs` 文件中（约 6000+ 行），通过以下方法实现：
+
+| 方法 | 行号范围 | 功能 |
+|------|----------|------|
+| `render_subagent_tool_call()` | 行 5914+ | 工具调用渲染入口 |
+| `render_subagent_card()` | 行 6000+ | Subagent 卡片 UI |
+| `render_subagent_expanded_content()` | 行 6200+ | 可展开内容渲染 |
+| `render_subagent_permission_buttons()` | 行 6250+ | 权限控制按钮 |
+
+### 渲染流程
 
 ```
-┌─────────────┐
-│  用户输入   │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────────────────────┐
-│  LLM 调用 Subagent Tool             │
-│  - label: "Researching alternatives" │
-│  - task_prompt: "..."               │
-│  - allowed_tools: ["read", "search"]│
-└──────┬──────────────────────────────┘
-       │
-       ▼
-┌─────────────────────────────────────┐
-│  SubagentTool::run()                │
-│  1. 创建新 ACP Session (新 SessionId)│
-│  2. 发送 ToolCall (status: pending) │
-│  3. 通过 _meta 附加 subagent_session_id│
-└──────┬──────────────────────────────┘
-       │
-       ▼
-┌─────────────────────────────────────┐
-│  触发 SubagentSpawned 事件           │
-│  - UI 显示子代理卡片                 │
-│  - 可展开/收起查看详情               │
-└──────┬──────────────────────────────┘
-       │
-       ▼
-┌─────────────────────────────────────┐
-│  子代理执行                          │
-│  - 独立的 prompt turn               │
-│  - 受 allowed_tools 限制             │
-│  - 超时支持                          │
-└──────┬──────────────────────────────┘
-       │
-       ▼
-┌─────────────────────────────────────┐
-│  子代理完成                          │
-│  - 发送 summary (如有)               │
-│  - 通过 summary_prompt 格式结果      │
-│  - ToolCall status: completed        │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                     ToolCall 触发                             │
+│                  (status: pending/completed)                 │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│              render_subagent_tool_call()                    │
+│在里面：                                                     │
+│  1. 读取 ToolCall 的 display_label                          │
+│  2. 构建 SubagentHandle 用于操作                            │
+│  3. 调用 render_subagent_card()                            │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   render_subagent_card()                    │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Card Header (始终显示)                               │   │
+│  │ - 折叠/展开按钮                                      │   │
+│  │ - 图标 (loading/完成/错误)                           │   │
+│  │ - 标题 (label)                                       │   │
+│  │ - Error 图标 (如果有错误)                            │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                             │                               │
+│                             ▼                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Expanded Content (展开时显示)                        │   │
+│  │ - 当前步骤描述                                       │   │
+│  │ - Token 使用情况                                     │   │
+│  │ - 文件变更列表 (Created/Modified/Renamed/Deleted)   │   │
+│  │ - Diffs 统计 (total / hunks added / hunks removed)  │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 取消机制
+### UI 组件详情
 
-- 父代理取消时自动级联取消子代理
-- 用户可通过 UI 主动取消子代理任务
-- 取消事件通过 ACP 的 `session/cancel` 传播
+#### 1. 状态指示器
 
-### 权限控制
-
-子代理的工具权限受父代理限制：
+Subagent 状态通过图标直观展示：
 
 ```rust
-// 验证 allowed_tools 是否为父代理可用工具的子集
-fn validate_allowed_tools(
-    parent_tools: &[String],
-    requested_tools: Option<Vec<String>>
-) -> Result<()> {
-    if let Some(tools) = requested_tools {
-        for tool in &tools {
-            if !parent_tools.contains(tool) {
-                return Err("Tool not allowed");
-            }
-        }
-    }
-    Ok(())
+// 代码示意（基于 Zed 实现）
+enum SubagentState {
+    Loading,   // 转圈圈图标
+    Completed, // 对勾图标
+    Error,     // 错误图标
 }
 ```
 
----
+#### 2. 文件变更追踪
 
-## 代码路径索引
+展开的 subagent 卡片会显示所有文件变更：
+
+```rust
+// crates/agent/src/thread.rs
+pub struct SubagentFileState {
+    created: Vec<PathBuf>,
+    modified: Vec<PathBuf>,
+    renamed: Vec<(PathBuf, PathBuf)>,  // (old, new)
+    deleted: Vec<PathBuf>,
+}
+
+pub struct SubagentDiffState {
+    total: usize,
+    hunks_added: usize,
+    hunks_removed: usize,
+}
+```
+
+#### 3. 权限控制系统
+
+Subagent 可以发起新的工具调用，这些调用需要父代理确认：
+
+```rust
+// UI 渲染权限按钮
+fn render_subagent_permission_buttons(&self) -> impl IntoElement {
+    // 显示："Allow subagent to use `<tool>`?"
+    // 按钮："Deny" / "Allow"
+    
+    // 或者："Always allow `<tool>` from `<subagent>`?"
+    // 按钮："Allow Once" / "Always Allow"
+}
+```
+
+#### 4. 嵌套层级可视化
+
+通过 Tab 缩进实现嵌套层级展示：
+
+```rust
+// 在 GPUI element 上使用 padding_left 或 margin_left
+.child(div().pl_4().child(subagent_card))  // 增加 1 rem 左缩进
+```
+
+### 实时更新机制
+
+Subagent UI 通过以下方式实时更新：
+
+1. **GPUI 通知系统**: `cx.notify()` 触发重新渲染
+2. **事件订阅**: `cx.subscribe(subagent_thread, |this, entity, event, cx| ...)`
+3. **主动轮询**: 通过 `task::spawn` 后台任务定期更新状态
+
+### 与 Claude Code ACP 适配器的对比
+
+| 功能 | Zed 原生 Agent | Claude Code (via ACP) |
+|------|----------------|----------------------|
+| Subagent UI 卡片 | ✅ 完整渲染 | ❌ 简化为 `kind: "think"` |
+| 展开/折叠 | ✅ 支持 | ❌ 不支持 |
+| 文件变更显示 | ✅ 完整信息 | ❌ 无显示 |
+| 嵌套层级 | ✅ 缩进展示 | ❌ 无层级 |
+| 单独取消按钮 | ✅ 每个 subagent 可取消 | ❌ 只能取消整个 session |
+| 工具权限控制 | ✅ 细粒度控制 | ⚠️ 依赖内部实现 |
+
+---
 
 ### 核心文件
 
@@ -385,13 +501,23 @@ impl Agent for MyAgent {
 
 ### Subagent 相关 PR
 
-| 日期 | PR | 标题 | 作者 |
-|------|-----|------|------|
-| 2026-01-06 | #46187 | Thread spawning + execution | @rtfeldman |
-| 2026-01-06 | #46188 | Render subagents in thread | @rtfeldman |
-| 2026-01-07 | #46284 | Granular Tool Permission Buttons | @rtfeldman |
-| 2026-01-14 | #47647 | Cancel subagents | @cameron1024 |
-| 2026-02-04 | #48381 | Move subagent spawning to ThreadEnvironment | @bennetbo |
+| 日期 | PR | 标题 | 作者 | 状态 |
+|------|-----|------|------|------|
+| 2026-01-06 | #46187 | Thread spawning + execution | @rtfeldman | ✅ Merged |
+| 2026-01-06 | #46188 | Render subagents in thread | @rtfeldman | ✅ Merged |
+| 2026-01-14 | #46840 | Serialize subagent threads for persistence | @rtfeldman | ✅ Merged |
+| 2026-01-20 | #47232 | Fix nested request rate limiting deadlock | @rtfeldman | ✅ Merged |
+| 2026-01-22 | #47494 | Fix rate limiter holding permits | @rtfeldman | ✅ Merged |
+| 2026-01-23 | #47499 | Show red X icon for interrupted subagents | @rtfeldman | ✅ Merged |
+| 2026-01-26 | #47647 | Cancel subagents | @cameron1024 | ✅ Merged |
+| 2026-02-04 | #48381 | Move subagent spawning to ThreadEnvironment | @bennetbo | ✅ Merged |
+| 2026-02-12 | #49028 | Fix thread title override bug | @danilo-leal | ✅ Merged |
+| 2026-02-12 | #49030 | Add some UI tweaks to the subagent thread | @danilo-leal | ✅ Merged |
+| 2026-02-13 | #49104 | Turn `subagents` flag to false | @danilo-leal | ✅ Merged |
+| 2026-02-18 | #49054 | Back action can navigate to previous workspace | @rtfeldman | ✅ Merged |
+| 2026-02-18 | #49350 | Fix cancellation issues with subagents | @bennetbo | ✅ Merged |
+| 2026-02-19 | #49042 | Improve minified preview for subagent cards | @bennetbo | 🟡 Draft |
+| **2026-02-13** | **#49104** | **Turn `subagents` flag to false** | - | **⚠️ 临时关闭** |
 
 ### 关键 PR 内容
 
@@ -401,19 +527,91 @@ impl Agent for MyAgent {
 - `SubagentContext` 父子线程关系
 - 最大深度 4 层, 最大并行数 8 个
 
-**PR #48284** - 细粒度权限控制
-- 60 commits, 2558 新增行
-- 每工具权限规则: `allow`/`deny`/`confirm`
-- 智能权限按钮: "Always allow `<tool>`"
-- 支持 MCP 工具的权限控制
-
-**PR #48381** - 架构重构
-- 将子代理创建迁移到 `ThreadEnvironment`
+**PR #48381** - 架构重构（2026-02-04）
+- 将子代理创建迁移到 `ThreadEnvironment::create_subagent_thread()`
+- 引入 `SubagentHandle` trait 管理生命周期
+- 移除 `stop_by_user` workaround，统一使用 `thread.cancel()`
+- 添加 `close_session` 支持，正确释放会话资源
 - 支持更灵活的 subagent provider 接入
+
+**PR #49350** - 修复取消问题（2026-02-18）
+- 修复子代理取消时的等待指示器问题
+- 移除 `stop_by_user` workaround 的最终清理
+- 确保父线程取消时正确传播到子代理
+
+**PR #49054** - 返回导航（2026-02-18）
+- 添加 backward/forward session stacks
+- `navigate_to_session` 记录导航历史
+- 支持 `GoBack`/`GoForward` 在子代理间导航
+- `ctrl--` 快捷键返回父线程
+
+**PR #47494, #47232** - Rate Limiter 修复
+- 修复子代理嵌套请求的死锁问题
+- 添加 `bypass_rate_limit` 标志避免嵌套等待
+- 确保 rate limiter permit 在工具执行期间正确释放
+
+**PR #49030** - UI 改进（2026-02-12）
+- 添加前进箭头指示层级关系
+- 添加勾选图标表示子代理完成
+- 改进子代理线程的可视化效果
+
+### 相关 Issue 讨论
+
+| Issue | 状态 | 摘要 |
+|-------|------|------|
+| #49000 | 🟡 Open | Claude Code 外部 Agent: Bash 工具看到过时的文件系统快照 |
+| #47944 | 🟡 Open | Claude Code 外部 Agent 在错误的 git 分支上工作 |
+| #44834 | 🟡 Open | `tool_call_update` 内容未反映在 UI 中（嵌套 subagent 场景）|
+| #48049 | ✅ Closed | Agent UI 视觉测试 panic（已修复 2026-02-09）|
+| #48651 | ✅ Closed | Opencode Agent 颜色配置问题（已修复）|
+| #17252 | Open | Improve Agent Output: keep_answer_consise 参数使用 |
+| #17311 | Open | Agent is bad at not doing work that was requested |
+| #17390 | Open | Create new zed project from the agent panel |
+
+**注意**: Issue #49000 和 #47944 是 **外部 Agent (Claude Code)** 的问题，不影响 Zed 原生 Subagent 功能。
 
 ---
 
-## 相关资源
+## ACP 生态进展
+
+### ACP Registry 上线 (2026-01-28)
+
+Zed 官方推出了 ACP Registry，这是一个托管和发现 ACP Server 的平台：
+- 🌐 地址: https://zed.dev/blog/acp-registry
+- 📦 功能: Server 发布、发现、版本管理、依赖追踪
+- 🔍 支持: 搜索 ACP Server 的 capabilities
+
+### JetBrains 加入 ACP 开发 (2025-10-06)
+
+JetBrains 正式宣布加入 ACP 协议开发：
+- ✅ 支持产品: IntelliJ IDEA, PyCharm, WebStorm 等
+- 🤝 合作方式: 与 Zed 团队共同推进协议标准化
+- 📅 进展报告: https://zed.dev/blog/acp-progress-report
+
+### 时间线
+
+```
+2025-10-06 ──── JetBrains 加入 ACP
+      │
+      ▼
+2026-01-28 ──── ACP Registry 上线
+      │
+      ▼
+2026-02-10 ──── 远程项目支持 ACP
+      │
+      ▼
+2026-02-13 ──── Subagent 临时关闭 (PR #49104)
+```
+
+### 社区资源
+
+| 资源 | 链接 | 说明 |
+|------|------|------|
+| ACP 进度报告 | https://zed.dev/blog/acp-progress-report | 官方月度更新 |
+| ACP Registry 博客 | https://zed.dev/blog/acp-registry | Registry 功能介绍 |
+| RFDS | https://agentclientprotocol.com/rfds/ | 协议 RFC 草案 |
+
+---
 
 ### 官方文档
 
@@ -450,10 +648,23 @@ impl Agent for MyAgent {
 
 ### 关键发现总结
 
-1. **Subagent 在 Zed 中已实现并可用** - 通过 Feature flag 默认启用
+1. **Subagent 功能完整但暂时关闭** - 代码成熟，但 PR #49104 (2026-02-13) 将 `subagents` 标志临时设为 `false`（已在 2026-02-18 重新启用）
 2. **ACP 协议本身没有原生 subagent 定义** - Zed 通过 ToolCall + _meta 扩展实现
-3. **Eval 系统不支持 subagent** - 生产环境可用，评估框架未实现
-4. **Agent Client Protocol 是外部标准** - 使用 crates.io 上的公开 crate
+3. **架构重大演进** - PR #48381 (2026-02-04) 将子代理创建逻辑迁移到 `ThreadEnvironment`，引入 `SubagentHandle` trait，修复了 rate limiter 死锁问题
+4. **Eval 系统不支持 subagent** - 生产环境可用（当 flag 启用时），评估框架未实现
+5. **渲染层对接完整** - GPUI 集成提供了完整的 subagent 卡片、权限按钮、实时更新、返回导航
+6. **生态不断扩展** - JetBrains 加入、ACP Registry 上线、远程项目支持
+
+### 当前状态
+
+| 组件 | 状态 | 说明 |
+|------|------|------|
+| Subagent Core | ✅ 完整 | 生命周期、嵌套深度、并行限制实现完善 |
+| UI Rendering | ✅ 完整 | GPUI 卡片、展开/折叠、实时更新、返回导航 |
+| ACP 协议 | ✅ v0.9.4 | 使用 agent-client-protocol crate |
+| Rate Limiter | ✅ 已修复 | 嵌套请求死锁问题已解决（PR #47494, #47232）|
+| 功能开关 | 🔒 Feature Flag | `subagents` flag 控制，Staff 可启用 |
+| 序列化 | ✅ 已支持 | 子代理线程可持久化和恢复（PR #46840）|
 
 ### 对用户项目的建议
 
@@ -462,17 +673,24 @@ impl Agent for MyAgent {
 1. **短期**: 使用 ToolCall + `_meta` 字段（Zed 兼容）
 2. **中期**: 关注 ACP Proxy 规范的发展
 3. **长期**: 等待 ACP 官方可能推出的 subagent 标准
+4. **额外**: JetBrains 的 ACP 实现即将推出，可关注其开源实现
 
 ### 注意事项
 
+- ⚠️ Subagent 功能目前需要 `subagents` feature flag（Staff 权限）
 - Subagent 实现依赖于 `agent-client-protocol` 的 `unstable` 特性
 - 当前版本为 0.9.4，协议仍在演进中
+- **Rate Limiting**: 子代理与父 Agent 共享配额，嵌套场景下协议已修复死锁问题
+- **外部 Agent 限制**: Claude Code 等外部 Agent 存在 Bash 工具文件系统快照不一致问题（Issue #49000），不影响 Zed 原生 Subagent
+- ACP Registry 已上线，可考虑将 Server 发布到该平台
 - 建议订阅 [ACP RFDs](https://agentclientprotocol.com/rfds/about.md) 获取最新进展
 
 ---
 
 *报告生成时间: 2026-02-11*  
-*调研工具: grep, webfetch, GitHub API, 源码阅读*
+*首次更新时间: 2026-02-16*  
+**最新更新时间: 2026-02-19**  
+*调研工具: GitHub API, grep, webfetch, 源码阅读*
 
 ---
 
