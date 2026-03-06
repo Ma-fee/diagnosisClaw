@@ -1,12 +1,9 @@
-default_agent: fault_expert
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Leoyzen/agentpool/b6fe25825d38d4490d9bf21b5f4b03ada33171c8/schema/config-schema.json
 
-skills:
-  paths:
-    - "./skills/"
-  include_default: false
-  instruction:
-    mode: metadata
-    max_skills: 20
+# Default/Primary agent for this configuration
+default_agent: fault_expert # Gateway agent is the primary entry point
+
+# Storage configuration - disable automatic title generation to avoid Google model requirement
 storage:
   title_generation_model: "openai-chat:svc/glm-4.7"
 
@@ -18,13 +15,14 @@ observability:
     service_name: "agentpool"
     protocol: "http/protobuf"
 
-anchors:
+# YAML Anchors for reusable configurations
+.anchors:
   question_tool: &question_tool
     type: custom
-    import_path: "xeno_agent.agentpool.resource_providers.question_provider:QuestionProvider"
+    import_path: xeno_agent.agentpool.resource_providers.question_provider:QuestionProvider
     kw_args:
       schemas:
-        xeno_ask_followup_question: ../docs/rfc/001_agent_system_design/builtin_tools/ask_followup_question.yaml
+        ask_followup_question: ./tools/ask_followup_question.yaml
 
 model_variants:
   ack-dev:
@@ -35,13 +33,28 @@ model_variants:
     identifier: "openai-chat:svc/glm-4.7"
 
 agents:
+  # Fault Expert - Orchestrator/Diagnostician
   fault_expert:
     type: native
     model: ack-dev
     description: |
-      Fault diagnosis expert for systematic fault analysis,
-      hypothesis generation, and solution formulation.
+      Lead diagnostician responsible for fault analysis, hypothesis generation, diagnostic planning, and coordinating other experts.
     system_prompt:
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/citation.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/image.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/layout.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/markdown.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/mermaid.j2
       - type: file
         content: ""
         path: "./prompts/roles/fault_expert.j2"
@@ -49,20 +62,20 @@ agents:
           LANG: "简体中文(zh-CN)"
     tools:
       - *question_tool
-      - type: skills
-        injection_mode: metadata
-        max_skills: 10
+      # - type: subagent
+      # - type: workers
+      # - type: skills
       - type: custom
-        import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
+        import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
         kw_args:
           schemas:
             new_task: ./tools/new_task.yaml
-            attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+            attempt_completion: ./tools/attempt_completion.yaml
       - type: custom
-        import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
+        import_path: xeno_agent.agentpool.resource_providers.XenoPlanProvider
         kw_args:
           schemas:
-            update_todo_list: "../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
+            update_todo_list: "./tools/update_todo_list.yaml"
 
   equipment_expert:
     type: native
@@ -77,20 +90,18 @@ agents:
         variables:
           LANG: "简体中文(zh-CN)"
     tools:
-      - type: skills
-        injection_mode: metadata
-        max_skills: 5
+      - *question_tool
       - type: custom
         import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
         kw_args:
           enabled_tools: ["attempt_completion"]
           schemas:
-            attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+            attempt_completion: ./tools/attempt_completion.yaml
       - type: custom
         import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
         kw_args:
           schemas:
-            update_todo_list: "../docs/rfc/001_agent_system_design/builtin_tools/update_todo_list.yaml"
+            update_todo_list: "./tools/update_todo_list.yaml"
 
   material_assistant:
     type: native
@@ -101,6 +112,18 @@ agents:
     system_prompt:
       - type: file
         content: ""
+        path: ./prompts/capabilities/citation.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/layout.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/markdown.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/search.j2
+      - type: file
+        content: ""
         path: "./prompts/roles/material_assistant.j2"
         variables:
           LANG: "简体中文(zh-CN)"
@@ -109,11 +132,9 @@ agents:
         url: "http://10.147.254.3:8721/mcp"
         enabled_tools: ["search_database"]
     tools:
-      - type: skills
-        injection_mode: metadata
+      # - type: skills
       - type: custom
-        import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
+        import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
         kw_args:
-          enabled_tools: ["attempt_completion"]
           schemas:
-            attempt_completion: ../docs/rfc/001_agent_system_design/builtin_tools/attempt_completion.yaml
+            attempt_completion: ./tools/attempt_completion.yaml
