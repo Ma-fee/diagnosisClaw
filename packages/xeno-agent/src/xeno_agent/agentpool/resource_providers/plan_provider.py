@@ -16,7 +16,7 @@ from agentpool.agents.events import TextContentItem
 from agentpool.resource_providers import ResourceProvider
 from agentpool.resource_providers.plan_provider import PlanEntry
 from agentpool.tools.base import ToolResult
-from agentpool.utils.streams import TodoEntry, TodoStatus, TodoTracker
+from agentpool.utils.todos import TodoEntry, TodoStatus, TodoTracker
 from agentpool_config.context import CONFIG_DIR
 from defusedxml.ElementTree import ParseError, fromstring
 
