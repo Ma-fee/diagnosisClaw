@@ -8,7 +8,7 @@ skills:
     mode: metadata
     max_skills: 20
 storage:
-  title_generation_model: "openai-chat:svc/kimi-k2"
+  title_generation_model: "openai-chat:svc/glm-4.7"
 
 observability:
   enabled: true
@@ -106,7 +106,7 @@ agents:
           LANG: "简体中文(zh-CN)"
     mcp_servers:
       - type: streamable-http
-        url: "http://10.147.254.3:7006/mcp"
+        url: "http://10.147.254.3:8721/mcp"
         enabled_tools: ["search_database"]
     tools:
       - type: skills
