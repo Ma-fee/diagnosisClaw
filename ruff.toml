@@ -1,6 +1,6 @@
 line-length = 180
 target-version = 'py312'
-exclude = ['build', ]
+exclude = ['build', '.claude']
 
 [format]
 quote-style = "double"
