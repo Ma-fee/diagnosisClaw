@@ -1,0 +1,91 @@
+description: |-
+  The new_task tool creates subtasks with specialized modes while maintaining a parent-child relationship. It breaks down complex projects into manageable pieces, each operating in the mode best suited for specific work.
+
+  This tool is used to:
+  - Decompose a complex project into smaller, focused, and manageable subtasks.
+  - Assign different aspects of a task to specialized modes for optimal execution.
+  - Maintain a clean context by separating distinct phases of work.
+  - Inject specialized skills into subagent context for domain-specific tasks.
+
+  ## Skills Usage
+
+  The `skills` parameter allows parent agents to inject specialized skill instructions
+  into the subagent's context. Skills provide domain-specific guidance, best practices,
+  and procedural knowledge to help the subagent complete the task effectively.
+
+  When to use skills:
+  - Task requires domain expertise (e.g., Git operations, Python coding)
+  - Subagent should follow specific guidelines or patterns
+  - Quality standards must be enforced (e.g., code review practices)
+
+  ## Examples
+
+  ### Delegate with Git skill:
+  ```
+  new_task(
+      mode="code_reviewer",
+      message="Review this pull request for Git best practices",
+      expected_output="Review report with Git recommendations",
+      skills=["git-master"]
+  )
+  ```
+
+  ### Delegate with coding skills:
+  ```
+  new_task(
+      mode="python_expert",
+      message="Refactor this module to improve code quality",
+      expected_output="Refactored code with improved structure and documentation",
+      skills=["python", "code-review-excellence"]
+  )
+  ```
+
+  ### Multiple skills for complex tasks:
+  ```
+  new_task(
+      mode="full_stack_dev",
+      message="Implement a REST API endpoint with proper testing",
+      expected_output="Working API endpoint with unit tests and documentation",
+      skills=["python", "testing", "api-design", "documentation"]
+  )
+  ```
+
+name: new_task
+parameters:
+  type: object
+  properties:
+    mode:
+      type: string
+      description: The specialized mode for the new task. Must be one of the available modes.
+    message:
+      type: string
+      description: |
+        A clear, concise statement of what the task entails.
+
+        The initial instructions for this new task. Should be specific, precise, and concise.
+
+        The "message" must contain the following content:
+          - All necessary background information from the parent task or previous sub-tasks required to complete this task.
+          - The goal that this sub-task should achieve.
+          - In markdown format for readability.
+    expected_output:
+      type: string
+      description: |-
+        A precise definition of the successful outcome for this sub-task. The final result from the sub-task must strictly conform to this description. It should clearly and narrowly define:
+        - The specific work to be performed *only* within this sub-task.
+        - The exact format and content of the expected return value.
+        No deviations or additional work beyond this scope are permitted.
+    skills:
+      type: array
+      description: |
+        Skills to provide to the subagent for this task.
+        Each skill injects specialized instructions into the subagent's context.
+      items:
+        type: string
+        description: Skill name (e.g., "git-master", "python").
+      default: []
+  required:
+    - mode
+    - message
+    - expected_output
+  strict: false

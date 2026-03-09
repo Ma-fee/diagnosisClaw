@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
+from uuid import uuid4
 
 from agentpool import ChatMessage
 from agentpool.agents.base_agent import BaseAgent
@@ -149,12 +150,50 @@ class XenoDelegationProvider(StaticResourceProvider):
         tool_def.description = description + modes_section
         return tool_def
 
+    async def _format_skills_instructions(
+        self,
+        skills_manager,
+        skill_names: list[str],
+    ) -> str:
+        """Format skills as XML instructions for subagent context."""
+        skill_sections = []
+
+        for skill_name in skill_names:
+            skill = skills_manager.get_skill(skill_name)
+            if not skill:
+                available = ", ".join(skills_manager.list_skills())
+                raise ToolError(f"Skill '{skill_name}' not found. Available: {available}")
+
+            instruction_content = skill.load_instructions()
+            skill_base_path = str(skill.skill_path)
+
+            # Try to make path relative
+            try:
+                project_root = Path.cwd()
+                skill_rel_path = Path(skill_base_path).relative_to(project_root)
+                skill_base_path = str(skill_rel_path)
+            except ValueError:
+                pass  # Keep absolute if can't make relative
+
+            skill_sections.append(
+                f'  <skill name="{skill_name}" base="{skill_base_path}">\n'
+                f"    <description>{skill.description or ''}</description>\n"
+                f"    <instructions>\n{instruction_content}\n    </instructions>\n"
+                f"  </skill>",
+            )
+
+        if not skill_sections:
+            return ""
+
+        return "<available-skills>\n" + "\n".join(skill_sections) + "\n</available-skills>"
+
     async def new_task(
         self,
         ctx: AgentContext,
         mode: str,
         message: str,
         expected_output: str,
+        skills: list[str] | None = None,
     ) -> str:
         """Delegate a task to another agent.
 
@@ -217,14 +256,22 @@ class XenoDelegationProvider(StaticResourceProvider):
         if isinstance(ctx.data, dict):
             new_deps = {**ctx.data, **new_deps}
 
-        # Format prompt with task and expected output
-        formatted_prompt = f"<task>\n{target_task}\n</task>\n\n<expected_output>\n{target_expected_output}\n</expected_output>"
+        # Fetch and format skill instructions
+        skills_content = ""
+        if skills:
+            skills_manager = getattr(ctx.pool, "skills", None)
+            if skills_manager:
+                skills_content = await self._format_skills_instructions(skills_manager, skills)
+
+        # Format prompt with skills prepended
+        if skills_content:
+            formatted_prompt = f"{skills_content}\n\n<task>\n{target_task}\n</task>\n\n<expected_output>\n{target_expected_output}\n</expected_output>"
+        else:
+            formatted_prompt = f"<task>\n{target_task}\n</task>\n\n<expected_output>\n{target_expected_output}\n</expected_output>"
 
         final_result = ""
 
         # Generate a unique session ID for this subagent session (RFC-0015)
-        from uuid import uuid4
-
         child_session_id = str(uuid4())
         parent_session_id = ctx.node.session_id
         tool_call_id = ctx.tool_call_id
