@@ -269,6 +269,10 @@ class XenoPlanProvider(ResourceProvider):
         # Emit plan update event
         await self._emit_plan_update(agent_ctx)
 
+        # Trigger TodoTracker.on_change callback to broadcast todo.updated to OpenCode
+        if tracker.on_change is not None:
+            await tracker.on_change(tracker)
+
         # Build summary for user feedback
         entry_count = len(tracker.entries)
         title = f"Updated todo list with {entry_count} task"
