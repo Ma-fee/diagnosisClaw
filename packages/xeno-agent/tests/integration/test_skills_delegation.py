@@ -97,22 +97,21 @@ async def test_real_skill_injection(temp_skills_dir, tmp_path):
             mode="test_agent",
             message="Test the skills injection",
             expected_output="Confirmation that skills were injected",
-            skills=["test-git", "test-python"],
+            load_skills=["test-git", "test-python"],
         )
 
         # Verify the prompt contains skills XML
         assert captured_prompt is not None
-        assert "<available-skills>" in captured_prompt
-        assert '<skill name="test-git"' in captured_prompt
-        assert '<skill name="test-python"' in captured_prompt
-        assert "<description>Test Git best practices skill</description>" in captured_prompt
-        assert "<description>Test Python coding skill</description>" in captured_prompt
-        assert "<instructions>" in captured_prompt
+        assert '<skill-instruction name="test-git"' in captured_prompt
+        assert '<skill-instruction name="test-python"' in captured_prompt
+        assert "</skill-instructions>" in captured_prompt
+        assert "# Test Git Skill" in captured_prompt
+        assert "# Test Python Skill" in captured_prompt
         assert "<task>" in captured_prompt
         assert "<expected_output>" in captured_prompt
 
         # Verify skills come before task
-        skills_pos = captured_prompt.find("<available-skills>")
+        skills_pos = captured_prompt.find("<skill-instruction")
         task_pos = captured_prompt.find("<task>")
         assert skills_pos < task_pos, "Skills should come before task in prompt"
 
@@ -148,7 +147,7 @@ async def test_real_skill_missing_strict_mode(temp_skills_dir):
                 mode="test_agent",
                 message="Test with missing skill",
                 expected_output="Should fail",
-                skills=["nonexistent-skill"],
+                load_skills=["nonexistent-skill"],
             )
 
     finally:
