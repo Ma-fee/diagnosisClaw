@@ -175,25 +175,20 @@ class XenoDelegationProvider(StaticResourceProvider):
             except ValueError:
                 pass  # Keep absolute if can't make relative
 
-            skill_sections.append(
-                f'  <skill name="{skill_name}" base="{skill_base_path}">\n'
-                f"    <description>{skill.description or ''}</description>\n"
-                f"    <instructions>\n{instruction_content}\n    </instructions>\n"
-                f"  </skill>",
-            )
+            skill_sections.append(f'<skill-instruction name="{skill_name}" base="{skill_base_path}">\n{instruction_content}\n</skill-instructions>\n')
 
         if not skill_sections:
             return ""
 
-        return "<available-skills>\n" + "\n".join(skill_sections) + "\n</available-skills>"
+        return "\n".join(skill_sections)
 
     async def new_task(
         self,
         ctx: AgentContext,
         mode: str,
         message: str,
-        expected_output: str,
-        skills: list[str] | None = None,
+        expected_output: str = "",
+        load_skills: list[str] | None = None,
     ) -> str:
         """Delegate a task to another agent.
 
@@ -209,20 +204,20 @@ class XenoDelegationProvider(StaticResourceProvider):
         # Handle parameter name compatibility: use RFC parameters if provided, otherwise use legacy parameters
         resolved_agent_name = mode
         resolved_task = message
-        resolved_expected_output = expected_output
+        # resolved_expected_output = expected_output
         # Note: Use task_description (not message) to avoid name collision with StreamCompleteEvent.message
 
         if resolved_agent_name is None:
             raise ToolError("Either 'mode' or 'agent_name' parameter must be provided")
         if resolved_task is None:
             raise ToolError("Either 'message' or 'task' parameter must be provided")
-        if resolved_expected_output is None:
-            raise ToolError("'expected_output' parameter must be provided")
+        # if resolved_expected_output is None:
+        # raise ToolError("'expected_output' parameter must be provided")
 
         # Type narrowing: after the check above, resolved_agent_name is guaranteed to be str
         target_agent: str = resolved_agent_name
         target_task: str = resolved_task
-        target_expected_output: str = resolved_expected_output
+        # target_expected_output: str = resolved_expected_output
 
         # Handle delegation depth
         current_depth = 0
@@ -258,16 +253,21 @@ class XenoDelegationProvider(StaticResourceProvider):
 
         # Fetch and format skill instructions
         skills_content = ""
-        if skills:
+        if load_skills:
             skills_manager = getattr(ctx.pool, "skills", None)
             if skills_manager:
-                skills_content = await self._format_skills_instructions(skills_manager, skills)
+                skills_content = await self._format_skills_instructions(skills_manager, load_skills)
 
+        formatted_prompt = f"""<task>
+{target_task}
+</task>
+
+<expected_output>
+{expected_output}
+</expected_output>"""
         # Format prompt with skills prepended
         if skills_content:
-            formatted_prompt = f"{skills_content}\n\n<task>\n{target_task}\n</task>\n\n<expected_output>\n{target_expected_output}\n</expected_output>"
-        else:
-            formatted_prompt = f"<task>\n{target_task}\n</task>\n\n<expected_output>\n{target_expected_output}\n</expected_output>"
+            formatted_prompt = f"{skills_content}\n\n" + formatted_prompt
 
         final_result = ""
 
@@ -313,7 +313,7 @@ class XenoDelegationProvider(StaticResourceProvider):
                 case ToolCallCompleteEvent(tool_name="attempt_completion", tool_result=completion_result):
                     # Capture the final result from the completed tool call
                     final_result = str(completion_result) if completion_result else ""
-                    ctx.events.emit_event(
+                    await ctx.events.emit_event(
                         SubAgentEvent(
                             source_name=target_agent,
                             source_type=source_type,
@@ -343,6 +343,16 @@ class XenoDelegationProvider(StaticResourceProvider):
                 case StreamCompleteEvent(message=final_message):  # type: ignore[reportAssignmentType, reportAttributeAccessIssue]
                     if final_message and final_message.content:  # type: ignore[reportAttributeAccessIssue]
                         final_result = str(final_message.content)  # type: ignore[reportAttributeAccessIssue]
+                    await ctx.events.emit_event(
+                        SubAgentEvent(
+                            source_name=target_agent,
+                            source_type=source_type,
+                            event=StreamCompleteEvent(message=ChatMessage(content=final_result, role="assistant")),
+                            child_session_id=child_session_id,
+                        ),
+                    )
+                    # Stop subagent from continuing execution
+                    break
 
                 # Wrap other events with session tracking (RFC-0015)
                 case _:

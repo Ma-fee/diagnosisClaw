@@ -100,7 +100,7 @@ async def test_new_task_accepts_skills_parameter(mock_pool_with_skills: AgentPoo
         mode="test_agent",
         message="Test task with skills",
         expected_output="Test output",
-        skills=["git-master"],  # NEW parameter per RFC-0002
+        load_skills=["git-master"],  # NEW parameter per RFC-0002
     )
 
     # Verify the call completed without TypeError
@@ -135,7 +135,7 @@ async def test_skill_resolved_from_manager(
         mode="test_agent",
         message="Test task with skills",
         expected_output="Test output",
-        skills=["git-master"],
+        load_skills=["git-master"],
     )
 
     # Verify SkillsManager.get_skill was called for the skill
@@ -173,7 +173,7 @@ async def test_missing_skill_raises_error_strict_mode(mock_pool_with_skills: Age
             mode="test_agent",
             message="Test task with missing skill",
             expected_output="Test output",
-            skills=["nonexistent-skill"],
+            load_skills=["nonexistent-skill"],
         )
 
 
@@ -185,13 +185,11 @@ async def test_skills_formatted_as_xml(
 ):
     """Test that skills are formatted as XML with correct structure.
 
-    Verifies the XML format per RFC-0002:
-    <available-skills>
-      <skill name="git-master" base=".claude/skills/git-master/">
-        <description>...</description>
-        <instructions>...</instructions>
-      </skill>
-    </available-skills>
+    Verifies the skill-instruction format per RFC-0002:
+    <skill-instruction name="git-master" base=".claude/skills/git-master/">
+      # Git Master
+      ...
+    </skill-instructions>
     """
     os.environ["OBSERVABILITY_ENABLED"] = "false"
 
@@ -222,20 +220,15 @@ async def test_skills_formatted_as_xml(
         mode="test_agent",
         message="Test task",
         expected_output="Test output",
-        skills=["git-master"],
+        load_skills=["git-master"],
     )
 
     # Verify the captured prompt contains XML-formatted skills
     assert captured_prompt is not None
-    assert "<available-skills>" in captured_prompt
-    assert "</available-skills>" in captured_prompt
-    assert f'<skill name="git-master" base="{mock_skill.skill_path}">' in captured_prompt
-    assert "<description>" in captured_prompt
-    assert mock_skill.description in captured_prompt
-    assert "</description>" in captured_prompt
-    assert "<instructions>" in captured_prompt
+    assert '<skill-instruction name="git-master"' in captured_prompt
+    assert f'base="{mock_skill.skill_path}"' in captured_prompt
+    assert "</skill-instructions>" in captured_prompt
     assert "# Git Master" in captured_prompt
-    assert "</instructions>" in captured_prompt
 
 
 @pytest.mark.unit
@@ -247,7 +240,7 @@ async def test_skills_prepended_to_prompt(
     """Test that skills XML is prepended before the task in the formatted prompt.
 
     The expected order is:
-    1. <available-skills>...</available-skills>
+    1. <skill-instruction>...</skill-instructions>
     2. <task>...</task>
     3. <expected_output>...</expected_output>
     """
@@ -283,13 +276,13 @@ async def test_skills_prepended_to_prompt(
         mode="test_agent",
         message=test_message,
         expected_output=test_expected,
-        skills=["git-master"],
+        load_skills=["git-master"],
     )
 
     # Verify the order: skills before task before expected_output
     assert captured_prompt is not None
 
-    skills_pos = captured_prompt.find("<available-skills>")
+    skills_pos = captured_prompt.find('<skill-instruction name="git-master"')
     task_pos = captured_prompt.find(f"<task>\n{test_message}")
     expected_pos = captured_prompt.find(f"<expected_output>\n{test_expected}")
 
@@ -346,7 +339,7 @@ async def test_backward_compatibility_no_skills(mock_pool_with_skills: AgentPool
 
     # Verify the prompt does NOT contain skills section
     assert captured_prompt is not None
-    assert "<available-skills>" not in captured_prompt
+    assert "<skill-instruction" not in captured_prompt
 
     # Verify the prompt contains task and expected_output in correct format
     assert f"<task>\n{test_message}\n</task>" in captured_prompt
