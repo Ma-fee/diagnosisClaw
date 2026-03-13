@@ -17,37 +17,6 @@ description: |-
   - Task requires domain expertise (e.g., Git operations, Python coding)
   - Subagent should follow specific guidelines or patterns
   - Quality standards must be enforced (e.g., code review practices)
-
-  ## Examples
-
-  ### Delegate with Git skill:
-  ```
-  new_task(
-      mode="code_reviewer",
-      message="Review this pull request for Git best practices",
-      expected_output="Review report with Git recommendations",
-      skills=["git-master"]
-  )
-  ```
-
-  ### Delegate with coding skills:
-  ```
-  new_task(
-      mode="python_expert",
-      message="Refactor this module to improve code quality",
-      expected_output="Refactored code with improved structure and documentation",
-      skills=["python", "code-review-excellence"]
-  )
-  ```
-
-  ### Multiple skills for complex tasks:
-  ```
-  new_task(
-      mode="full_stack_dev",
-      message="Implement a REST API endpoint with proper testing",
-      expected_output="Working API endpoint with unit tests and documentation",
-      skills=["python", "testing", "api-design", "documentation"]
-  )
   ```
 
 name: new_task
@@ -68,18 +37,17 @@ parameters:
           - All necessary background information from the parent task or previous sub-tasks required to complete this task.
           - The goal that this sub-task should achieve.
           - In markdown format for readability.
-    expected_output:
-      type: string
-      description: |-
-        A precise definition of the successful outcome for this sub-task. The final result from the sub-task must strictly conform to this description. It should clearly and narrowly define:
-        - The specific work to be performed *only* within this sub-task.
-        - The exact format and content of the expected return value.
-        No deviations or additional work beyond this scope are permitted.
-    skills:
+    # expected_output:
+    #   type: string
+    #   description: |-
+    #     A precise definition of the successful outcome for this sub-task. The final result from the sub-task must strictly conform to this description. It should clearly and narrowly define:
+    #     - The specific work to be performed *only* within this sub-task.
+    #     - The exact format and content of the expected return value.
+    #     No deviations or additional work beyond this scope are permitted.
+    load_skills:
       type: array
       description: |
-        Skills to provide to the subagent for this task.
-        Each skill injects specialized instructions into the subagent's context.
+        Skill names to inject. REQUIRED - pass [] if no skills needed.
       items:
         type: string
         description: Skill name (e.g., "git-master", "python").
@@ -87,5 +55,6 @@ parameters:
   required:
     - mode
     - message
-    - expected_output
-  strict: false
+    # - expected_output
+    - load_skills
+  strict: true

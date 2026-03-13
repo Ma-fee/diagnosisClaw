@@ -293,7 +293,7 @@ class XenoDelegationProvider(StaticResourceProvider):
             source_name=target_agent,
             source_type=source_type,
             depth=current_depth + 1,
-            description=formatted_prompt,
+            description=f"# Task\n{target_task}\n\n# Expected Output\n{expected_output}",
             # metadata={
             #     "prompt": target_task[:201] if len(target_task) > 200 else target_task,
             # },
