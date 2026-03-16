@@ -246,33 +246,66 @@ ON Phase 3 entry:
 
 **MANDATORY**: Maintain explicit progress state throughout Phase 3 execution.
 
-**Initialization** (After todo list creation):
+**Progress Tracking Method**:
+
+**PREFERRED**: If plan-type tools available (e.g., `update_todo_list`), 
+USE TOOL for progress tracking.
+
+**FALLBACK**: If no plan tools available, use text-based progress tracking.
+
+---
+
+**With Plan Tool**:
 ```
 INITIALIZE_PROGRESS_TRACKING(
+    method: "tool",
+    todos: [list all inspection steps as items],
+    metadata: {
+        total_steps: count,
+        hypotheses: initial_ranking
+    }
+)
+
+ON user_completes_inspection:
+    UPDATE_TODO(
+        mark_done: current_step_id,
+        record_result: user_observation,
+        note: hypothesis_impact
+    )
+```
+
+**Without Plan Tool** (Text-based):
+```
+INITIALIZE_PROGRESS_TRACKING(
+    method: "text",
     total_steps: count(inspection_procedures),
     current_step: 0,
-    status: "in_progress",
-    completed_findings: [],
-    hypotheses_confidence: initial_ranking_from_plan
+    status: "in_progress"
 )
+
+ON user_completes_inspection:
+    UPDATE_TEXT_PROGRESS(
+        mark_completed: current_step,
+        record_result: user_observation
+    )
+    PRESENT_PROGRESS_SUMMARY()
 ```
+
+---
 
 **Update Triggers** (Pseudocode):
 ```
 ON user_completes_inspection:
-    UPDATE_PROGRESS(
-        mark_completed: current_step,
-        record_result: user_observation,
-        update_confidence: hypothesis_impact,
-        suggest_next: calculated_priority_step
-    )
+    IF plan_tool_available:
+        UPDATE_TODO(mark_done, result, note)
+    ELSE:
+        UPDATE_TEXT_PROGRESS(completed, result)
     PRESENT_PROGRESS_SUMMARY()
 
 ON hypothesis_confidence_changes:
-    UPDATE_PROGRESS(
+    UPDATE_PROGRESS_STATE(
         adjust_priority: hypothesis_ranking,
-        skip_if_irrelevant: low_probability_steps,
-        add_emergency: new_critical_checks
+        skip_if_irrelevant: low_probability_steps
     )
 
 ON user_requests_status:
@@ -341,6 +374,54 @@ IF NOT satisfied:
    - Update hypothesis confidence
    - Decide next step with user awareness
 
+### Information Presentation Requirements
+
+**When presenting each step, MUST include**:
+
+#### Visual Aids (If Available)
+
+**Images from knowledge base**:
+```
+当显示部件位置或检查方法时，如有知识库图片：
+- 展示图片 (使用知识库返回的 image URL)
+- 标注检查点位置
+- 说明测量方法
+
+示例：
+"散热器软管连接处检查（见下图红圈位置）：
+[图片]"
+```
+
+**Mermaid Diagrams** (for system flows):
+```
+对于复杂系统，使用 Mermaid 图示：
+- 液压系统流程
+- 电路连接关系
+- 故障传播路径
+```
+
+#### Source Attribution (MANDATORY)
+
+**Every technical value MUST cite source**:
+```
+Format:
+"正常压力范围: 31.4-34.3 MPa[^1]"
+"[^1]: [三一 SY215C 液压系统规格](manual:///...)"
+
+Include:
+- 标准值/正常范围
+- 部件规格参数
+- 故障案例数据
+- 行业标准要求
+
+From:
+- diagnosis-planning report (which has citations)
+- device-specific skill references
+- Knowledge base queries
+```
+
+**Reference**: Include `citation` and `image` capabilities for rich output.
+
 ### Dynamic Adjustment
 
 Adjust plan in real-time based on findings:
@@ -401,10 +482,93 @@ Present to user:
 
 ### Phase Completion
 
-Only proceed to documentation when:
+After root cause confirmation:
 - User explicitly confirms root cause
 - User has no outstanding questions
-- User agrees to document the case
+- **Next Phase**: Assist with fault resolution (Phase 4.5)
+
+## Phase 4.5: Fault Resolution Assistance (NEW)
+
+**Purpose**: Guide user through corrective actions and fault elimination
+
+**Execution Mode**: **INTERACTIVE** - Hands-on guidance with user
+
+### When to Enter
+
+After root cause confirmed and user wants to proceed with repair/fix.
+
+### Resolution Workflow
+
+```
+1. **Identify Required Actions**
+   Based on root cause, determine:
+   - Replacement parts needed
+   - Repair procedures
+   - Adjustment requirements
+   - Special tools needed
+
+2. **Guide Step-by-Step Resolution**
+   For each corrective action:
+   - Explain what to do and why
+   - Safety precautions
+   - Step-by-step procedures
+   - Expected outcomes after each step
+
+3. **Verify Resolution**
+   After actions completed:
+   - Verify symptoms eliminated
+   - Test equipment operation
+   - Confirm normal parameters
+   - Document any deviations
+
+4. **Post-Resolution Advice**
+   - Preventive maintenance recommendations
+   - Monitoring suggestions
+   - Warning signs to watch for
+```
+
+### Example Resolution Guidance
+
+```
+"已确认故障原因为散热器软管连接处泄漏。
+
+**修复步骤**:
+
+步骤1: 准备工具和备件
+- 需要: 新的软管夹 (规格: 32-44mm)
+- 需要: 冷却液 (约2升)
+- 工具: 螺丝刀套装
+
+步骤2: 更换软管
+[详细步骤指导...]
+
+步骤3: 补充冷却液
+[详细步骤指导...]
+
+步骤4: 验证修复
+- 启动发动机
+- 观察压力表
+- 检查是否有泄漏
+- 正常运行10分钟
+
+完成后请告诉我结果，我们将进入案例归档。"
+```
+
+### Tools and Resources
+
+Reference device-specific skill and diagnosis-planning report for:
+- Repair procedures
+- Torque specifications
+- Part numbers
+- Special tools
+
+### Phase Completion
+
+Resolution phase complete when:
+- [ ] Corrective actions completed
+- [ ] Equipment tested and operational
+- [ ] User confirms fault eliminated
+- [ ] Ready for case documentation
 
 ## Phase 5: Case Documentation
 

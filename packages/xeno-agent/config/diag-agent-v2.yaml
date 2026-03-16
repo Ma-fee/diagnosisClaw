@@ -120,13 +120,13 @@ agents:
 
   material_assistant:
     type: native
-    model: qwen35
+    model: glm-4.7
     description: |
       Investigates specific topics deeply and generates structured reports. Output format and organization are guided by domain-specific skills. Use when research-backed documentation is needed; avoid for pure report generation without investigation.
     system_prompt:
       - type: file
         content: ""
-        path: "./prompts/roles/material_assistant.j2"
+        path: "./prompts/roles/material_assistant_ng.j2"
         variables:
           LANG: "简体中文(zh-CN)"
     mcp_servers:

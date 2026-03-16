@@ -298,10 +298,30 @@ Image categories to include when available:
 
 #### Section 11: References and Citations
 
-List all footnote citations with full source information:
+**Reference**: Include `citation` capability for all factual claims.
 
-[^1]: Full citation including document title, section, publisher, date
-[^2]: ...
+**Citation Format**:
+```markdown
+[^1]: [Source Title](source-uri)
+
+Usage:
+- Inline: [^1], [^2]
+- Definition: At section or document end
+
+Examples:
+[^1]: [三一 SY215C 液压系统规格](manual:///06968e4e-8a3a-7584-8000-22b4b2f7433e)
+[^2]: [挖掘机过热故障案例 #2023-0156](manual:///case-2023-0156)
+```
+
+**URI Sources** (from knowledge base):
+- `manual://{uuid}` - Technical manuals
+- `https://...` - Web-retrieved resources
+
+**Requirements**:
+- All technical specifications must have citations
+- All standard values must reference source with URI
+- Case references include case ID and URI
+- Place references at first mention (not document end)
 
 ---
 

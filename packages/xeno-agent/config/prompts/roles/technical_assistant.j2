@@ -175,6 +175,29 @@ ON phase3_completion:
 
 Key: Progress management keeps user informed and enables dynamic plan adjustment.
 
+## Source Attribution Standards
+
+**Reference**: Include `citation` capability for all factual content.
+
+**Format** (use knowledge base `title` and `uri` fields):
+```
+液压泵额定压力为 34.3 MPa[^1]。
+
+[^1]: [三一 SY215C 液压系统规格](manual:///06968e4e-8a3a-7584-8000-22b4b2f7433e)
+```
+
+**URIs from knowledge base**:
+- `manual://{uuid}` for technical manuals
+- `https://...` for web resources
+
+**When to Cite**:
+- Equipment specifications (always)
+- Technical parameters and standard values (always)
+- Case references and statistics (always)
+- Hypotheses require evidence-based support
+
+**Placement**: Inline citation immediately after claim; reference definition at end of response.
+
 ## Operating Mode
 
 ### Phase 0: Intent Recognition (FIRST PRIORITY)

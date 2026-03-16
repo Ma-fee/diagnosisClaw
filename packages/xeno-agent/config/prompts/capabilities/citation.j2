@@ -2,37 +2,89 @@
 
 Maintain rigorous standards for information accuracy and source attribution:
 
-1. **Verification Hierarchy**:
-   - **Primary Sources**: Original research, official documentation, direct statements from experts
-   - **Secondary Sources**: Reviews, analyses, commentaries on primary sources
-   - **Tertiary Sources**: Encyclopedias, textbooks, summary articles
-   - **Unverified Sources**: Forums, blogs, social media (use only for context, never for factual claims)
+## Citation Format (Footnote Style)
 
-2. **Fact-Checking Protocol**:
-   - Verify all numerical data, statistics, and measurements against original sources
-   - Cross-check technical specifications and implementation details
-   - Validate historical claims against established historical records
-   - Confirm scientific consensus through peer-reviewed literature
+**Standard Format**:
+```markdown
+Inline citation: [^1]
 
-3. **Source Citation Requirements**:
-   - **Academic Sources**: Author, Title, Journal/Conference, Year, Volume/Issue, Pages, DOI
-   - **Web Sources**: Author (if available), Title, Publication, URL, Access Date
-   - **Documentation**: Software/Library Name, Version, Section/Chapter, URL
-   - **News Sources**: Author, Headline, Publication, Date, URL
+Footer reference (link format for better rendering):
+[^1]: [Source Description Text](source-uri)
+```
 
-4. **Image Reference Verification Protocol**:
-  - Before including any <figure> tag, verify that the user has actually provided an image URL in the conversation history
-  - If no image URL exists, the response must not contain any <figure> references
-  - Treat image references as factual claims requiring the same source verification as statistics or technical specifications
+**Examples**:
 
-5. **Transparency Standards**:
-   - Clearly distinguish between verified facts and interpretations
-   - Explicitly state when information is uncertain or contested
-   - Provide context for conflicting information from different sources
-   - Acknowledge limitations in available information
+```markdown
+发动机怠速转速应为 650-750 RPM[^1]。
 
-6. **Plagiarism Prevention**:
-   - Always paraphrase information rather than copying directly
-   - Provide proper attribution even when paraphrasing
-   - Use quotation marks for direct quotes with full citation
-   - Maintain clear boundaries between original analysis and sourced information
+[^1]: [三一 SY215C 维修手册 - 发动机规格 3.2](manual:///06968e4e-8a3a-7584-8000-22b4b2f7433e)
+```
+
+```markdown
+液压系统压力异常时优先检查溢流阀[^case_001]。
+
+[^case_001]: [挖掘机液压过热故障案例 #2023-001 现场报告](manual:///case-2023-001)
+```
+
+**Link Format Benefits**:
+- Description text is clickable
+- URI is hidden but accessible
+- Better readability in rendered output
+- Supports standard Markdown link behavior
+
+## URI Formats from Knowledge Base
+
+Knowledge base returns records with these URI schemes:
+
+| URI Scheme | Format | Example | Source Type |
+|------------|--------|---------|-------------|
+| `manual://` | `manual://{uuid}` | `manual:///06968e4e-...` | Local technical manuals |
+| `https://` | `https://...` | `https://kb.rootcloud.info/...` | Web-retrieved resources |
+
+**Use available fields**: When citing, use `title` and `uri` fields directly from knowledge base records.
+
+## When to Cite
+
+**ALWAYS cite**:
+- Equipment specifications and technical parameters
+- Failure statistics and case data
+- Manufacturer procedures and standard values
+- Historical precedents and benchmarks
+
+**RECOMMENDED cite**:
+- Industry standards and codes
+- Procedures and best practices
+- Interpretations of technical data
+
+**Place citations**: Immediately after factual claim, not at end of document.
+
+## Source Hierarchy
+
+1. **Primary**: Manufacturer manuals (`manual://`), original documentation
+2. **Secondary**: Case databases, authorized service guides
+3. **Tertiary**: Technical references, expert analysis
+
+## Missing Source Handling
+
+When source available but no web URL:
+```markdown
+压力值参考维修手册第三章[^1]。
+
+[^1]: [三一 SY215C 维修手册 - 第三章](manual:///06968e4e...)  
+  *(通过手册编号 SY215C-MAN-CH3 定位)*
+```
+
+## Quality Standards
+
+- [ ] All numerical specifications have citations
+- [ ] All manufacturer recommendations cite source
+- [ ] Case references include case ID and URI
+- [ ] Place references at first mention (not document end)
+- [ ] Use clickable link format: `[title](uri)`
+
+## Verification Hierarchy
+
+1. **Primary Sources**: Original research, official documentation, manufacturer manuals
+2. **Secondary Sources**: Reviews, analyses, case studies
+3. **Tertiary Sources**: Encyclopedias, textbooks
+4. **Unverified Sources**: Forums, blogs (context only, never for facts)

@@ -28,6 +28,16 @@ Reference this skill when the calling agent needs to create case documentation:
 - Corrective actions have been implemented
 - Fault has been resolved and verified
 - Knowledge needs to be captured for future reference
+
+## Source Attribution
+
+**Reference**: Include `citation` capability for all factual claims in the report.
+
+**Requirements**:
+- All technical specifications cite source: `[^1]: [title](uri)`
+- All case references include case ID and URI
+- Use `manual://` URIs for manuals, `https://` for web resources
+- Place references at first mention in each section
 - Training or case study material is required
 - Maintenance records require formal documentation
 

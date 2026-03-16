@@ -9,7 +9,7 @@ description: |-
 
   ## Skills Usage
 
-  The `skills` parameter allows parent agents to inject specialized skill instructions
+  The `load_skills` parameter allows parent agents to inject specialized skill instructions
   into the subagent's context. Skills provide domain-specific guidance, best practices,
   and procedural knowledge to help the subagent complete the task effectively.
 
@@ -37,13 +37,13 @@ parameters:
           - All necessary background information from the parent task or previous sub-tasks required to complete this task.
           - The goal that this sub-task should achieve.
           - In markdown format for readability.
-    # expected_output:
-    #   type: string
-    #   description: |-
-    #     A precise definition of the successful outcome for this sub-task. The final result from the sub-task must strictly conform to this description. It should clearly and narrowly define:
-    #     - The specific work to be performed *only* within this sub-task.
-    #     - The exact format and content of the expected return value.
-    #     No deviations or additional work beyond this scope are permitted.
+    expected_output:
+      type: string
+      description: |-
+        A precise definition of the successful outcome for this sub-task. The final result from the sub-task must strictly conform to this description. It should clearly and narrowly define:
+        - The specific work to be performed *only* within this sub-task.
+        - The exact format and content of the expected return value.
+        No deviations or additional work beyond this scope are permitted.
     load_skills:
       type: array
       description: |
