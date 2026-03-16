@@ -1,7 +1,7 @@
 # direnv configuration for xeno-agent
 
 # LLM API配置 - 请根据实际情况修改以下配置
-export OPENAI_API_BASE="http://your-api-endpoint/v1"
+export OPENAI_BASE_URL="http://your-api-endpoint/v1"
 export OPENAI_API_KEY="your-api-key-here"
 export OPENAI_MODEL_NAME="openai/svc/glm-4.6"
 export DEFAULT_LLM_MODEL="openai/svc/glm-4.6"
