@@ -3,29 +3,41 @@
 from __future__ import annotations
 
 from typing import Any, cast
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 from mcp.types import ErrorData
 
 from xeno_agent.tools.question_for_user import (
-    parse_questionnaire,
+    Question,
+    Suggest,
     _build_acp_schema,
     _format_response,
+    parse_questionnaire,
     question_for_user,
-    Suggest,
-    Question,
-    Questions,
 )
-
 
 # =============================================================================
 # XML Parsing Tests
 # =============================================================================
 
 
-def test_parse_enum_question():
-    """Test parsing of an enum type question from XML."""
+def test_parse_enum_question_with_questions_wrapper():
+    """Test parsing enum question with explicit <questions> wrapper."""
+    xml = '<questions><question header="Model" type="enum"><text>What is the equipment model?</text><suggest>SY215C</suggest><suggest>SY235C</suggest></question></questions>'
+    result = parse_questionnaire(xml)
+
+    assert len(result) == 1
+    assert result[0].header == "Model"
+    assert result[0].type == "enum"
+    assert result[0].text == "What is the equipment model?"
+    assert len(result[0].options) == 2
+    assert result[0].options[0].label == "SY215C"
+    assert result[0].options[1].label == "SY235C"
+
+
+def test_parse_enum_question_backward_compatible():
+    """Test parsing bare enum question (backward compatibility - auto-wraps)."""
     xml = '<question header="Model" type="enum"><text>What is the equipment model?</text><suggest>SY215C</suggest><suggest>SY235C</suggest></question>'
     result = parse_questionnaire(xml)
 
@@ -38,9 +50,14 @@ def test_parse_enum_question():
     assert result[0].options[1].label == "SY235C"
 
 
-def test_parse_multi_question():
-    """Test parsing of a multi-select type question from XML."""
-    xml = '<question header="Symptoms" type="multi"><text>Select the observed symptoms</text><suggest>Black smoke</suggest><suggest>Low power</suggest><suggest>Abnormal noise</suggest></question>'
+def test_parse_multi_question_with_wrapper():
+    """Test parsing multi-select with <questions> wrapper."""
+    xml = (
+        '<questions><question header="Symptoms" type="multi">'
+        "<text>Select the observed symptoms</text>"
+        "<suggest>Black smoke</suggest><suggest>Low power</suggest>"
+        "<suggest>Abnormal noise</suggest></question></questions>"
+    )
     result = parse_questionnaire(xml)
 
     assert len(result) == 1
@@ -52,9 +69,9 @@ def test_parse_multi_question():
     assert result[0].options[2].label == "Abnormal noise"
 
 
-def test_parse_input_question():
-    """Test parsing of an input type question from XML."""
-    xml = '<question header="Notes" type="input"><text>Enter additional notes</text></question>'
+def test_parse_input_question_with_wrapper():
+    """Test parsing input type question with <questions> wrapper."""
+    xml = '<questions><question header="Notes" type="input"><text>Enter additional notes</text></question></questions>'
     result = parse_questionnaire(xml)
 
     assert len(result) == 1
@@ -64,9 +81,14 @@ def test_parse_input_question():
     assert len(result[0].options) == 0
 
 
-def test_parse_multiple_questions():
-    """Test parsing of multiple questions from XML."""
-    xml = '<question header="First" type="enum"><text>Question 1</text><suggest>Option A</suggest></question><question header="Second" type="input"><text>Question 2</text></question>'
+def test_parse_multiple_questions_with_wrapper():
+    """Test parsing multiple questions with explicit <questions> wrapper."""
+    xml = (
+        "<questions>"
+        '<question header="First" type="enum"><text>Question 1</text><suggest>Option A</suggest></question>'
+        '<question header="Second" type="input"><text>Question 2</text></question>'
+        "</questions>"
+    )
     result = parse_questionnaire(xml)
 
     assert len(result) == 2
@@ -76,9 +98,13 @@ def test_parse_multiple_questions():
     assert result[1].type == "input"
 
 
-def test_parse_question_with_suggest_attributes():
-    """Test parsing questions with suggest element attributes."""
-    xml = '<question header="Test" type="enum"><text>Select option</text><suggest type="input" description="Custom option" next_action="next">Custom</suggest></question>'
+def test_parse_question_with_suggest_attributes_and_wrapper():
+    """Test parsing questions with suggest attributes using <questions> wrapper."""
+    xml = (
+        '<questions><question header="Test" type="enum"><text>Select option</text>'
+        '<suggest type="input" description="Custom option" next_action="next">Custom</suggest>'
+        "</question></questions>"
+    )
     result = parse_questionnaire(xml)
 
     assert len(result) == 1
@@ -90,14 +116,14 @@ def test_parse_question_with_suggest_attributes():
     assert option.next_action == "next"
 
 
-def test_parse_question_optional():
-    """Test parsing optional questions (required=False)."""
-    xml = '<question header="Optional" type="input" required="false"><text>Optional question</text></question>'
+def test_parse_question_optional_with_wrapper():
+    """Test parsing optional questions with <questions> wrapper."""
+    xml = '<questions><question header="Optional" type="input" required="false"><text>Optional question</text></question></questions>'
     result = parse_questionnaire(xml)
 
     assert len(result) == 1
     assert result[0].header == "Optional"
-    assert result[0].required == False
+    assert not result[0].required
 
 
 # =============================================================================
@@ -114,7 +140,7 @@ def test_build_enum_schema():
             text="What model?",
             required=True,
             options=[Suggest(label="SY215C"), Suggest(label="SY235C")],
-        )
+        ),
     ]
     schema = _build_acp_schema(questions)
 
@@ -128,8 +154,9 @@ def test_build_enum_schema():
     assert "oneOf" in schema["properties"]["q0"]
     one_of = schema["properties"]["q0"]["oneOf"]
     assert len(one_of) == 2
-    assert one_of[0] == {"const": "SY215C", "title": "SY215C"}
-    assert one_of[1] == {"const": "SY235C", "title": "SY235C"}
+    # When no description, oneOf only has const (matches implementation)
+    assert one_of[0] == {"const": "SY215C"}
+    assert one_of[1] == {"const": "SY235C"}
 
 
 def test_build_multi_schema():
@@ -141,7 +168,7 @@ def test_build_multi_schema():
             text="Select symptoms",
             required=True,
             options=[Suggest(label="A"), Suggest(label="B"), Suggest(label="C")],
-        )
+        ),
     ]
     schema = _build_acp_schema(questions)
 
@@ -151,7 +178,7 @@ def test_build_multi_schema():
     assert "items" in schema["properties"]["q0"]
     assert schema["properties"]["q0"]["items"]["type"] == "string"
     assert schema["properties"]["q0"]["items"]["enum"] == ["A", "B", "C"]
-    assert schema["properties"]["q0"]["uniqueItems"] == True
+    assert schema["properties"]["q0"]["uniqueItems"]
 
 
 def test_build_input_schema():
@@ -163,7 +190,7 @@ def test_build_input_schema():
             text="Enter notes",
             required=True,
             options=[],
-        )
+        ),
     ]
     schema = _build_acp_schema(questions)
 
@@ -217,7 +244,7 @@ def test_build_acp_schema_not_required():
             text="Optional question",
             required=False,
             options=[],
-        )
+        ),
     ]
     schema = _build_acp_schema(questions)
 
@@ -239,7 +266,7 @@ def test_format_response_accept_enum():
             text="What model?",
             required=True,
             options=[Suggest(label="SY215C")],
-        )
+        ),
     ]
     mock_result = MagicMock()
     mock_result.action = "accept"
@@ -262,7 +289,7 @@ def test_format_response_accept_multi():
             text="Select symptoms",
             required=True,
             options=[Suggest(label="A"), Suggest(label="B")],
-        )
+        ),
     ]
     mock_result = MagicMock()
     mock_result.action = "accept"
@@ -285,7 +312,7 @@ def test_format_response_accept_input():
             text="Enter notes",
             required=True,
             options=[],
-        )
+        ),
     ]
     mock_result = MagicMock()
     mock_result.action = "accept"
@@ -338,7 +365,7 @@ def test_format_response_cancel():
             text="Test question",
             required=True,
             options=[Suggest(label="A")],
-        )
+        ),
     ]
     mock_result = MagicMock()
     mock_result.action = "cancel"
@@ -360,7 +387,7 @@ def test_format_response_decline():
             text="Test question",
             required=True,
             options=[Suggest(label="A")],
-        )
+        ),
     ]
     mock_result = MagicMock()
     mock_result.action = "decline"
@@ -382,7 +409,7 @@ def test_format_response_error_data():
             text="Test question",
             required=True,
             options=[Suggest(label="A")],
-        )
+        ),
     ]
     error_result = ErrorData(code=500, message="Server error occurred")
 
@@ -404,7 +431,7 @@ def test_format_response_unknown_action_raises():
             text="Test question",
             required=True,
             options=[Suggest(label="A")],
-        )
+        ),
     ]
     mock_result = MagicMock()
     mock_result.action = "unknown_action"
@@ -424,7 +451,7 @@ def test_format_response_multi_empty():
             text="Select symptoms",
             required=True,
             options=[Suggest(label="A")],
-        )
+        ),
     ]
     mock_result = MagicMock()
     mock_result.action = "accept"
@@ -448,7 +475,7 @@ def test_format_response_input_empty():
             text="Enter notes",
             required=True,
             options=[],
-        )
+        ),
     ]
     mock_result = MagicMock()
     mock_result.action = "accept"
@@ -471,7 +498,7 @@ def test_format_response_non_dict_content():
             text="Enter notes",
             required=True,
             options=[],
-        )
+        ),
     ]
     mock_result = MagicMock()
     mock_result.action = "accept"

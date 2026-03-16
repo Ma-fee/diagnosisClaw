@@ -53,19 +53,20 @@ parameters:
       description: |-
         XML-formatted questionnaire containing structured questions.
 
-        Contains one or more `<question>` elements with various question types.
+        **MUST be wrapped in `<questions>` tag** containing one or more `<question>` elements.
         Each question can have suggest options with descriptions, input types, and actions.
 
-        See tool description for complete XML specification and examples.
-
         ```xml
-        <question header="Field Label" type="enum|multi|input" required="true|false">
-          <text>Question text displayed to user</text>
-          <suggest description="Option explanation" type="choice|input|fill" next_action="tool_name">
-            Option text
-          </suggest>
+        <questions>
+          <question header="Field Label" type="enum|multi|input" required="true|false">
+            <text>Question text displayed to user</text>
+            <suggest description="Option explanation" type="choice|input|fill" next_action="tool_name">
+              Option text
+            </suggest>
+            ...
+          </question>
           ...
-        </question>
+        </questions>
         ```
 
         #### Question Attributes
@@ -90,47 +91,53 @@ parameters:
 
         #### Example 1: Equipment Information (enum + input)
         ```xml
-        <question header="Model" type="enum" required="true">
-          <text>What equipment model are you working with?</text>
-          <suggest description="21.5 ton excavator">SY215C</suggest>
-          <suggest description="36.5 ton excavator">SY365H</suggest>
-          <suggest type="input">Other model</suggest>
-        </question>
-        <question header="Operating Hours" type="input" required="true">
-          <text>What is the current operating hour reading?</text>
-        </question>
+        <questions>
+          <question header="Model" type="enum" required="true">
+            <text>What equipment model are you working with?</text>
+            <suggest description="21.5 ton excavator">SY215C</suggest>
+            <suggest description="36.5 ton excavator">SY365H</suggest>
+            <suggest type="input">Other model</suggest>
+          </question>
+          <question header="Operating Hours" type="input" required="true">
+            <text>What is the current operating hour reading?</text>
+          </question>
+        </questions>
         ```
 
         #### Example 2: Fault Symptoms (multi-select)
         ```xml
-        <question header="Symptoms" type="multi" required="true">
-          <text>Select all symptoms observed:</text>
-          <suggest description="Dark exhaust smoke">Black smoke</suggest>
-          <suggest description="Reduced engine power">Power loss</suggest>
-          <suggest description="Unusual noise from engine">Abnormal noise</suggest>
-          <suggest description="Engine temperature high">Overheating</suggest>
-        </question>
+        <questions>
+          <question header="Symptoms" type="multi" required="true">
+            <text>Select all symptoms observed:</text>
+            <suggest description="Dark exhaust smoke">Black smoke</suggest>
+            <suggest description="Reduced engine power">Power loss</suggest>
+            <suggest description="Unusual noise from engine">Abnormal noise</suggest>
+            <suggest description="Engine temperature high">Overheating</suggest>
+          </question>
+        </questions>
         ```
 
         #### Example 3: Service Report (mixed types)
         ```xml
-        <question header="Service Type" type="enum" required="true">
-          <text>What type of service is required?</text>
-          <suggest>Scheduled maintenance</suggest>
-          <suggest>Repair</suggest>
-          <suggest>Inspection</suggest>
-          <suggest>Emergency breakdown</suggest>
-        </question>
-        <question header="Priority" type="enum" required="true">
-          <text>Set the service priority level:</text>
-          <suggest description="Equipment non-operational">Critical</suggest>
-          <suggest description="Reduced functionality">High</suggest>
-          <suggest description="Preventive/scheduled">Normal</suggest>
-          <suggest description="When convenient">Low</suggest>
-        </question>
-        <question header="Additional Notes" type="input" required="false">
-          <text>Any additional details or special requirements?</text>
-        </question>
+        <questions>
+          <question header="Service Type" type="enum" required="true">
+            <text>What type of service is required?</text>
+            <suggest>Scheduled maintenance</suggest>
+            <suggest>Repair</suggest>
+            <suggest>Inspection</suggest>
+            <suggest>Emergency breakdown</suggest>
+          </question>
+          <question header="Priority" type="enum" required="true">
+            <text>Set the service priority level:</text>
+            <suggest description="Equipment non-operational">Critical</suggest>
+            <suggest description="Reduced functionality">High</suggest>
+            <suggest description="Preventive/scheduled">Normal</suggest>
+            <suggest description="When convenient">Low</suggest>
+          </question>
+          <question header="Additional Notes" type="input" required="false">
+            <text>Any additional details or special requirements?</text>
+          </question>
+        </questions>
         ```
   required:
     - questionnaire

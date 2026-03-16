@@ -38,14 +38,34 @@ class Questions(BaseXmlModel, tag="questions"):
 def parse_questionnaire(xml: str) -> list[Question]:
     """Parse XML questionnaire into Question objects.
 
+    Expects XML wrapped in <questions> tag containing one or more <question> elements.
+    For backward compatibility, also accepts bare <question> tags (auto-wraps them).
+
     Args:
-        xml: XML string containing one or more <question> tags.
+        xml: XML string containing <questions> wrapper with <question> tags inside,
+             or bare <question> tags for backward compatibility.
 
     Returns:
         List of parsed Question objects.
+
+    Examples:
+        >>> xml = '''<questions>
+        ...   <question header="Model" type="enum">
+        ...     <text>What model?</text>
+        ...     <suggest>Option A</suggest>
+        ...   </question>
+        ... </questions>'''
+        >>> questions = parse_questionnaire(xml)
     """
-    wrapped = f"<questions>{xml}</questions>"
-    return Questions.from_xml(wrapped).questions
+    # Normalize whitespace and strip
+    xml = xml.strip()
+
+    # Check if already wrapped in <questions> tag
+    if not xml.startswith("<questions"):
+        # Backward compatibility: wrap bare <question> tags
+        xml = f"<questions>{xml}</questions>"
+
+    return Questions.from_xml(xml).questions
 
 
 def _build_acp_schema(questions: list[Question]) -> dict[str, Any]:
@@ -190,7 +210,13 @@ async def question_for_user(
     Returns:
         ToolResult with formatted answers in metadata["answers"].
     """
-    questions = parse_questionnaire(questionnaire)
+    try:
+        questions = parse_questionnaire(questionnaire)
+    except Exception as e:  # noqa: BLE001 - XML parsing may raise various exceptions
+        return ToolResult(
+            content=f"Error parsing questionnaire: {e!s}",
+            metadata={"answers": []},
+        )
     schema = _build_acp_schema(questions)
     message = "Please answer the following questions:"
     if questions:
