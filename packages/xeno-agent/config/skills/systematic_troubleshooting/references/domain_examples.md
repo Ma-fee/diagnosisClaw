@@ -1,16 +1,16 @@
 # Domain-Specific Diagnostic Examples
 
-This document provides examples of how to use the systematic-troubleshooting skill for specific equipment types.
-
-## Example: Hydraulic Excavator Engine Overheating
-
-This example demonstrates a complete diagnostic workflow for a common excavator fault.
+Complete workflow examples for the systematic troubleshooting skill.
 
 ---
+
+## Example: Hydraulic Excavator Engine Overheating
 
 ### Scenario
 
 User reports: "My Sy215c excavator engine is overheating after 30 minutes of operation. Temperature gauge is in the red zone."
+
+---
 
 ### Phase 1: Information Collection
 
@@ -20,35 +20,23 @@ User reports: "My Sy215c excavator engine is overheating after 30 minutes of ope
 - Pattern: Occurs after 30 minutes operation
 - No other symptoms mentioned
 
-**Delegate to information-gathering skill** with:
-```
-Equipment type: Sany Sy215c crawler excavator
-Fault: Engine overheating after 30 minutes
-Known symptoms: Temperature gauge in red zone
-Request: Collect complete diagnostic context
-```
+**Interactive collection** (skill guides user):
 
-**Receive structured context**:
-```yaml
-equipment:
-  model: Sany Sy215c
-  type: Crawler excavator
-  engine: Cummins QSB6.7
-  hours: 4500
-symptoms:
-  primary: Engine overheating
-  observations:
-    - Temperature gauge enters red zone after ~30 min
-    - Problem is consistent/repeatable
-    - No alarm codes reported
-operating_conditions:
-  ambient_temp: "35°C (hot summer day)"
-  workload: "Heavy digging, continuous operation"
-  coolant_level: "User unsure, will check"
-maintenance_history:
-  last_service: 500 hours ago
-  recent_changes: None reported
-information_completeness: sufficient
+```
+ Skill: "To help diagnose this properly, I need to collect some information:
+
+ 1. What's the exact model of your excavator? (You mentioned Sy215c - is it the standard or Pro version?)
+ 2. How many operating hours does it have?
+ 3. What's the ambient temperature today?
+ 4. What type of work were you doing when it overheated?
+ 5. When was the last maintenance service?"
+
+ User provides:
+ - Model: Sany Sy215c standard, confirmed
+ - Hours: 4500 hours
+ - Ambient: 35°C (95°F), hot summer day
+ - Work: Heavy digging, continuous operation
+ - Last service: 500 hours ago
 ```
 
 **Decision**: Information sufficient → Proceed to Phase 2
@@ -57,15 +45,17 @@ information_completeness: sufficient
 
 ### Phase 2: Diagnostic Planning
 
-**Delegate to diagnosis-planning skill** with:
+**Delegation to research agent**:
+
 ```
-Equipment: Sany Sy215c, Cummins QSB6.7 engine
-Fault: Engine overheating after sustained operation
-Context: [structured context from Phase 1]
-Request: Generate comprehensive diagnostic plan
+Delegate with:
+- Equipment: Sany Sy215c, Cummins QSB6.7 engine
+- Fault: Engine overheating after sustained operation
+- Context: 4500 hours, 35°C ambient, heavy digging work
+- Request: Generate comprehensive diagnostic plan
 ```
 
-**Key elements from planning report**:
+**Key planning outputs**:
 
 | Possible Cause | Probability | Key Inspection |
 |---------------|-------------|----------------|
@@ -81,6 +71,27 @@ Request: Generate comprehensive diagnostic plan
 - Coolant capacity: 25L
 - Thermostat opening: 82°C
 - Radiator fin clearance: >5mm between fins
+
+**User presentation** (in user's language):
+
+```
+"Diagnostic plan completed:
+
+📋 Possible Causes (ranked):
+1. Low coolant level - High probability - Check radiator and reservoir
+2. Clogged radiator fins - High probability - Visual inspection needed
+3. Faulty thermostat - Medium probability - Check hose temperatures
+4. Water pump failure - Medium probability - Check coolant flow
+5. Fan belt problems - Medium probability - Inspect condition
+6. Head gasket leak - Low probability - Test if other checks fail
+
+📋 Inspection Plan:
+- 6 diagnostic steps
+- Estimated time: 30-45 minutes
+- Safety note: Let engine cool before opening radiator
+
+Shall we begin the interactive diagnosis?"
+```
 
 ---
 
@@ -98,155 +109,216 @@ Request: Generate comprehensive diagnostic plan
 
 **Step 1 execution**:
 
-**Guide**: "First, let's check the coolant level. This is the most common cause of overheating. Please:
-
-1. Allow engine to cool completely (at least 30 minutes)
-2. Open the radiator cap (carefully - check no pressure)
-3. Check coolant level - should be visible at filler neck
-4. Check overflow reservoir - should be between MIN and MAX marks
-
-What do you observe?"
-
-**Options provided**:
-- "Coolant level is normal in both radiator and reservoir"
-- "Coolant is low in radiator but reservoir is OK"
-- "Coolant is low in both"
-- "Cannot check safely (engine still hot)"
-
-**User response**: "Coolant level is low in both radiator and reservoir"
-
-**Interpretation**: 
-- Confirms hypothesis "Low coolant level" (High probability)
-- Need to identify leak source
-- Update confidence: Low coolant cause 80% → 90%
-
-**Update todo**:
 ```
-[x] Step 1: Check coolant level - ABNORMAL (low)
-[ ] Step 1b: Identify coolant leak source
-[ ] Step 2: Inspect radiator
-...
+ Skill: "First, let's check coolant level - most common cause of overheating.
+
+⚠️ SAFETY: Allow engine to cool completely (30+ minutes) before opening radiator.
+
+Procedure:
+1. Open radiator cap carefully - check no pressure by pressing down slightly first
+2. Check coolant level - should be visible at filler neck
+3. Check overflow reservoir - should be between MIN and MAX marks
+
+What do you observe?
+
+A) Coolant level normal in both radiator and reservoir
+B) Coolant low in radiator but reservoir OK
+C) Coolant low in both radiator and reservoir
+D) Cannot check safely right now"
+
+ User: "C) Coolant is low in both radiator and reservoir"
 ```
 
-**Step 1b execution**:
+**Interpretation**: Low coolant confirmed, updates confidence:
+- Coolant leak: 40% → 80%
+- Other causes deferred
 
-**Guide**: "Low coolant explains the overheating. Now we need to find where it's leaking. Common leak points on excavators:
+**Update progress**:
+```
+Diagnostic Progress (1/6 steps completed)
+========================
+[✓] Step 1: Check coolant level - ABNORMAL (low in both)
+[→] Step 2: Identify leak source - Current step
+[ ] Steps 3-6: Pending (may skip if leak found)
 
-1. **Radiator**: Look for wet spots, white residue, or visible drips
-2. **Hoses**: Check upper/lower radiator hoses and heater hoses
-3. **Water pump**: Look for weep hole leakage
-4. **Heater core**: Check cabin floor for wetness
-5. **Head gasket**: Check for milky oil or bubbling in radiator
+Current hypothesis confidence:
+• Coolant leak ............... 80% ↑ (major finding)
+• Clogged radiator ........... 40%
+• Thermostat failure ......... 15%
+```
+
+**Step 2: Find leak source**:
+
+```
+ Skill: "Low coolant explains the overheating. Now let's find where it's leaking.
+
+Common leak points on excavators:
+1. Radiator - Look for wet spots, white residue, visible drips
+2. Hoses - Check upper/lower radiator hoses
+3. Water pump - Check weep hole for leakage
+4. Heater core - Check cabin floor for wetness
+5. Head gasket - Check for milky oil or bubbling
 
 Visual inspection results?"
 
-**User response**: "I see white crusty residue on the top tank of the radiator, near a hose connection"
-
-**Interpretation**:
-- Identified leak source: radiator tank seam or hose connection
-- Root cause is likely radiator leak + low coolant
-- Confidence: 95%
-
-**Update todo**:
-```
-[x] Step 1: Check coolant level - ABNORMAL (low)
-[x] Step 1b: Identify leak source - FOUND (radiator hose connection)
-[ ] Step 2: Inspect radiator condition
+ User: "I see white crusty residue on the top tank of the radiator, near a hose connection"
 ```
 
-**Step 2 execution**:
+**Interpretation**: Leak source identified - radiator hose connection
+- Root cause confidence: 95%
+- Can skip remaining routine checks
 
-**Guide**: "Good find. Now let's assess the radiator condition to determine if this is repairable or needs replacement:
+**Update progress**:
+```
+Diagnostic Progress (2/6 steps completed)
+========================
+[✓] Step 1: Check coolant level - ABNORMAL (low)
+[✓] Step 2: Identify leak source - FOUND (radiator hose connection)
+[✓] Root cause confidence: 95% - Ready for confirmation
 
-1. Check for additional leak points (pinholes, seam cracks)
-2. Inspect radiator fins - should be clean and straight
-3. Check for physical damage (bent fins, dents)
-4. Look for oil contamination in coolant (possible oil cooler leak)
-
-Radiator condition?"
-
-**User response**: "Fins look OK, just dirty. The leak seems to be just at the hose connection"
-
-**Decision**: Root cause identified with 95% confidence
+Root cause identified early - proceeding to Phase 4
+```
 
 ---
 
 ### Phase 4: Root Cause Confirmation
 
-**Verification checklist**:
+```
+ Skill: "Based on our investigation, let's confirm the root cause:
 
-- [x] All symptoms explained: Overheating caused by low coolant from radiator leak
-- [x] Alternatives excluded: Thermostat, pump, belt issues not tested but primary cause identified
-- [x] Evidence supports: Visual confirmation of leak location
-- [x] Confidence: 95%
+✅ Symptom Explanation
+Engine overheating is explained by low coolant from the radiator leak:
+- Temperature rises after 30 min (time to deplete remaining coolant)
+- Gauge enters red zone (insufficient cooling capacity)
 
-**Present to user**:
+✅ Alternative Causes Excluded
+While we didn't test all alternatives, the leak provides direct evidence:
+- Clogged radiator: Not ruled out but secondary to leak
+- Thermostat/water pump: Normal behavior expected once coolant restored
+- Head gasket: No signs (no white smoke, no milky oil)
 
-"**Root Cause Identified (95% confidence)**
+✅ Confidence Assessment
+Current confidence: 95%
 
-**Primary Cause**: Coolant leak at radiator hose connection leading to low coolant level
+✅ Recommended Actions
+1. Immediate: Add coolant to proper level for safe operation
+2. Repair: Replace upper radiator hose and clamp at connection
+3. Verification: Monitor coolant level and temperature after repair
 
-**Evidence**:
-1. Coolant level low in both radiator and reservoir
-2. Visual confirmation of leak at hose connection (white residue)
-3. Timeline matches: Leak gradual, caused overheating after 30min operation
+Do you confirm this is the correct root cause?"
 
-**Recommended Actions**:
-1. **Immediate**: Add coolant to reach proper level
-2. **Repair**: Replace radiator hose and clamp at connection point
-3. **Verification**: Monitor coolant level and temperature after repair
-
-Do you want to proceed with documentation?"
-
-**User confirmation**: Yes
+ User: "Yes, that makes sense"
+```
 
 ---
 
 ### Phase 5: Case Documentation
 
-**Delegate to case-document skill** with:
+**Generate in current context** (do not delegate):
 
-```yaml
-case_summary:
-  equipment: Sany Sy215c
-  fault: Engine overheating
-  root_cause: Coolant leak at radiator hose connection
-  confidence: 95%
-  
-diagnostic_history:
-  phase1: [context collection details]
-  phase2: [planning report reference]
-  phase3:
-    - step1: Coolant check - ABNORMAL (low)
-    - step1b: Leak source identification - FOUND at hose connection
-    - step2: Radiator inspection - minor dirt, otherwise OK
-  phase4: Root cause confirmed
-  
-repair_actions:
-  - Added coolant to proper level
-  - Replaced upper radiator hose and clamp
-  - Pressure tested system (passed)
-  
-verification:
-  - Monitored for 2 hours operation
-  - Temperature normal (85-90°C)
-  - No coolant loss observed
-  
-lessons_learned:
-  - Routine coolant level checks prevent overheating
-  - White residue is early indicator of small leaks
+```markdown
+# Diagnostic Case Report
+
+## Executive Summary
+- **Equipment**: Sany Sy215c crawler excavator
+- **Fault**: Engine overheating
+- **Root Cause**: Coolant leak at radiator hose connection
+- **Confidence**: 95%
+- **Resolution**: Replaced hose and clamp
+
+## Equipment Details
+- Model: Sany Sy215c
+- Engine: Cummins QSB6.7
+- Operating Hours: 4500
+- Date: [Current date]
+
+## Diagnostic Timeline
+
+### Phase 1: Information Collection (5 minutes)
+- Equipment identified: Sany Sy215c, 4500 hours
+- Operating conditions: 35°C ambient, heavy digging
+- Last service: 500 hours ago
+
+### Phase 2: Diagnostic Planning (delegated)
+- Received comprehensive plan with 6 possible causes
+- Prioritized by probability: coolant issues, radiator, thermostat
+
+### Phase 3: Interactive Execution (20 minutes)
+- Step 1: Coolant level check - ABNORMAL (low in both)
+- Step 2: Leak identification - FOUND at upper hose connection
+- Root cause identified with 95% confidence
+- Skipped steps 3-6 (unnecessary after root cause found)
+
+### Phase 4: Root Cause Confirmation
+- User confirmed: Coolant leak at radiator hose connection
+- All symptoms explained by this cause
+- Confidence: 95%
+
+## Evidence Summary
+
+| Check | Result | Implication |
+|-------|--------|-------------|
+| Coolant level | Low in radiator and reservoir | Leak exists |
+| Visual inspection | White residue at hose connection | Leak location identified |
+| Symptom timeline | Overheating after 30 min operation | Gradual coolant loss pattern |
+
+## Corrective Actions
+1. **Immediate**: Added coolant to proper level
+2. **Repair**: Replaced upper radiator hose and clamp
+3. **Verification**: Pressure tested system (passed)
+
+## Post-Repair Verification
+- Monitored for 2 hours operation
+- Temperature normal: 85-90°C
+- No coolant loss observed
+- Equipment returned to service
+
+## Lessons Learned
+1. **Preventive**: Routine coolant level checks can prevent overheating
+2. **Early detection**: White residue is an early indicator of small leaks
+3. **Efficiency**: Interactive diagnosis identified root cause in 2 steps
+
+## Root Cause Analysis
+The coolant leak at the radiator hose connection was caused by:
+- Age/wear of hose clamp at 4500 operating hours
+- Heat cycling stress from heavy digging operations
+- Gradual loosening of connection
+
+The leak was slow enough that coolant level dropped over ~30 minutes of operation, explaining the delayed overheating symptom.
 ```
 
-**Receive case report** (structured document with sections, tables, Mermaid diagrams)
+**Present to user**:
+
+```
+"Case documentation completed:
+
+📄 Document includes:
+- Executive summary with root cause and confidence
+- Complete diagnostic timeline with all steps
+- Evidence table with findings
+- Corrective actions taken
+- Lessons learned for future prevention
+
+This document is ready for:
+- Maintenance record archive
+- Training case study
+- Knowledge base contribution
+
+Any information you'd like to add or modify?"
+```
 
 ---
 
-### Key Takeaways from This Example
+## Key Takeaways from This Example
 
-1. **Information gathering** identified a clean, repeatable fault pattern
-2. **Diagnostic planning** provided hypothesis prioritization and standard values
-3. **Interactive execution** followed the plan but adjusted when root cause was found early
-4. **Confidence tracking** allowed early termination when 95% reached
-5. **Documentation** captured lessons for knowledge base
+1. **Information gathering** captured specific operating conditions that helped focus diagnosis
+2. **Planning phase** provided prioritized hypotheses to guide efficient investigation
+3. **Interactive execution** quickly identified root cause in 2 steps
+4. **Early termination** of routine checks when confidence threshold reached (95%)
+5. **Complete documentation** captured all details for future reference
 
-This demonstrates how systematic-troubleshooting orchestrates all phases while leveraging specialized skills for information gathering, planning, and documentation.
+The example demonstrates how systematic-troubleshooting orchestrates all phases while leveraging:
+- Delegated research for planning
+- Interactive guidance for execution
+- Current context for documentation
+- User confirmation at each phase gate

@@ -1,157 +1,141 @@
 ---
 name: systematic-troubleshooting
-description: Execute systematic interactive troubleshooting for complex system faults through structured user collaboration. Guides diagnostic workflows across five phases with mandatory user confirmation at each transition. Requires interactive user communication for information collection, test execution, and decision-making. Use when a user reports a fault that requires hands-on diagnostic involvement, guided inspection procedures, and collaborative root cause confirmation.
+description: Execute systematic interactive troubleshooting for complex system faults through structured user collaboration. Use this skill IMMEDIATELY when a user reports ANY equipment fault, system malfunction, or diagnostic need - including engine problems, hydraulic failures, electrical issues, overheating, leaks, abnormal noises, or performance degradation. Always prefer this skill for guided fault diagnosis requiring step-by-step user interaction, evidence-based root cause confirmation, and collaborative decision-making across diagnostic phases.
 ---
 
-# Systematic Troubleshooting Skill
+# Systematic Troubleshooting
 
-## Overview
+Structured fault diagnosis through five collaborative phases with mandatory user confirmations.
 
-Guides systematic fault diagnosis through collaborative user interaction. This skill provides the diagnostic logic and structure while relying on direct user engagement for information gathering, test execution, and decision confirmation.
+## Critical Requirements
 
-## Critical Operating Requirements
+**Language Requirement**: ALL output MUST be in the user's language (the language they use to communicate with you). Detect their language from their input and respond entirely in that language. Do not default to English if the user communicates in Chinese, Spanish, or other languages.
 
-### User Interaction Requirement
+**Interactive-First**: All phases involving user input require direct conversation. Never bypass user in decision-making.
 
-**This skill REQUIRES interactive user communication**. All phases involving user input must be conducted through direct conversation, not background delegation or automated data collection.
+**Phase Gates**: No automatic advancement. Each phase requires explicit user confirmation.
 
-| Phase Activity | How to Execute |
-|---------------|----------------|
-| Information Collection | Interactive questioning with user |
-| Test Guidance | Step-by-step user instructions |
-| Result Collection | Direct user response |
-| Phase Confirmation | Explicit user approval |
+**Execution Modes**:
+- **INTERACTIVE**: Information collection, test execution, result interpretation (direct with user)
+- **BACKGROUND**: Multi-dimensional research and document generation (delegated)
 
-### Phase Transition Protocol
-
-**MANDATORY USER CONFIRMATION** required before advancing to any new phase:
+## Diagnostic Phases
 
 ```
-Phase N Complete
-    ↓
-Summarize outcomes to user
-    ↓
-Explain next phase activities
-    ↓
-Ask explicit confirmation
-    ↓
-[User approves] → Load appropriate resources, proceed to Phase N+1
-[User declines] → Stay in current phase or conclude
-```
-
-## Diagnostic Workflow
-
-```
-Phase 1: Information Collection
-    ↓ (interactive with user)
-    [User confirms completion]
-    ↓
-Phase 2: Diagnostic Planning  
-    ↓ (background research)
-    [User confirms planning results]
-    ↓
-Phase 3: Interactive Execution
-    ↓ (interactive with user)
-    [User confirms root cause findings]
-    ↓
-Phase 4: Root Cause Confirmation
-    ↓ (interactive with user)
-    [User confirms documentation]
-    ↓
-Phase 5: Case Documentation
-    ↓ (background generation)
+Phase 1: Information Collection → INTERACTIVE
+    ↓ [User confirms completion]
+Phase 2: Diagnostic Planning → BACKGROUND
+    ↓ [User confirms planning results]
+Phase 3: Interactive Execution → INTERACTIVE
+    ↓ [User confirms root cause findings]
+Phase 4: Root Cause Confirmation → INTERACTIVE
+    ↓ [User confirms documentation]
+Phase 5: Case Documentation → CURRENT AGENT (not delegated)
     Complete
 ```
 
-## Phase 1: Information Collection
+## Phase Details
+
+All five phases are documented below. Extended guidance available in `references/` if file reading is supported.
+
+## Quick Reference
+
+### Phase Transition Protocol
+
+```
+Phase Complete → Summarize outcomes → Explain next phase → Ask confirmation
+[User approves] → Load resources → Proceed
+[User declines] → Stay or conclude
+```
+
+### Phase 3: Device-Specific Skill Loading
+
+**MUST load at Phase 3 entry:**
+
+| Equipment Type | Skill to Load |
+|----------------|---------------|
+| 挖掘机/Excavator/挖机 | excavator-diagnostic-guide |
+| 装载机/Loader | loader-diagnostic-guide |
+| 液压泵/Hydraulic Pump | hydraulic-diagnostic-guide |
+| 发动机/Engine | engine-diagnostic-guide |
+| 电机/Motor | motor-diagnostic-guide |
+| 未匹配 | Use planning report only |
+
+**Usage**: Planning report provides structure; device skill provides step-by-step procedures.
+
+### Integration with Other Skills
+
+| Trigger | Skill | Path |
+|---------|-------|------|
+| Comprehensive planning needed | diagnosis-planning | ../diagnosis-planning |
+| Information gathering framework | information-gathering | ../information-gathering |
+| Case documentation | case-document | ../case-document |
+
+### Progress Tracking
+
+**IF** `update_todo_list` tool available → USE IT
+**ELSE** → Use text-based format (see phase_3_execution.md)
+
+### Safety & Boundaries
+
+- Flag safety concerns immediately
+- Recommend qualified technician for safety-critical systems
+- Escalate if: confidence <90%, exceeds user capability, or safety concerns
+
+## Phase 1-5 Synopses
+
+### Phase 1: Information Collection
 
 **Purpose**: Gather comprehensive fault context through user interaction
 
-**Execution Mode**: **INTERACTIVE** - Direct user communication only
+**Mode**: INTERACTIVE
 
-### Information Requirements
+**Information to Collect**:
 
-Collect the following through structured user interaction:
-
-| Category | Information to Collect |
-|----------|----------------------|
+| Category | Details |
+|----------|---------|
 | **System Identification** | Equipment type, manufacturer, model, specifications |
 | **Fault Description** | Symptoms, severity, patterns, onset timing |
 | **Operating Conditions** | Ambient environment, workload, parameters |
 | **Historical Context** | Maintenance history, recent changes, past issues |
 
-### Collection Approach
+**Completion Verification** (check before asking user to proceed):
+- [ ] Equipment manufacturer and model documented
+- [ ] Primary symptom described with specifics
+- [ ] Operating conditions recorded
+- [ ] Maintenance history obtained
 
-1. **Start with available information** from user's initial report
-2. **Identify gaps** in required information
-3. **Request specific details interactively** from user
-4. **Validate completeness** before concluding phase
-
-### Phase Completion Criteria
-
-- [ ] Equipment model identified
-- [ ] Primary symptom clearly described
-- [ ] Operating conditions documented
-- [ ] User confirms information is complete
-
-### Phase Transition
-
-**Before advancing to Phase 2, present summary to user:**
-
+**Transition Template** (respond in user's language):
 ```
-"我现在已收集到以下信息：
+"I have collected the following information:
 
-📋 **设备信息**
-- 型号：[manufacturer] [model]
+📋 Equipment Information
+- Model: [manufacturer] [model]
 
-📋 **故障描述**  
-- 症状：[description]
-- 发生条件：[conditions]
+📋 Fault Description  
+- Symptom: [description]
+- Conditions: [conditions]
 
-📋 **下一步**
-我将基于这些信息检索技术资料并制定诊断计划，包括可能的故障原因和检查步骤。
+📋 Next Step
+I will research technical materials and develop a diagnostic plan.
 
-是否进入诊断规划阶段？"
+Shall we proceed to the diagnostic planning phase?"
 ```
 
-## Phase 2: Diagnostic Planning
+### Phase 2: Diagnostic Planning
 
-**Purpose**: Generate comprehensive diagnostic plan based on collected information
+**Purpose**: Generate diagnostic plan with hypotheses, procedures, standard values
 
-**Execution Mode**: **BACKGROUND** - Multi-dimensional research requiring delegation
+**Mode**: BACKGROUND (delegate)
 
-### Planning Activities
+**Why Delegation**: Planning requires multi-dimensional research across 4+ information categories (specs, failure modes, procedures, cases, standards), structured synthesis, and cross-reference validation.
 
-**REQUIRED**: Delegate the entire planning task. Diagnostic planning requires:
-- Multi-dimensional research (equipment specs, failure modes, procedures, cases, standards)
-- Structured synthesis of diverse information
-- Cross-reference intensive validation across sources
-
-**MANDATORY**: Use delegation (e.g., `new_task`) for comprehensive diagnostic planning. This is NOT a direct query task.
-
-| Task | Required Approach |
-|------|-------------------|
-| Retrieve technical standards | Via delegated research |
-| Research failure modes | Via delegated research |
-| Gather historical cases | Via delegated research |
-| Synthesize structured plan | Via delegated research |
-
-### Why Delegation is Required
-
-Diagnostic planning exhibits all characteristics requiring delegation:
-- **Multi-dimensional**: Requires 4+ distinct categories of information
-- **Structured output**: Organized sections, tables, timelines
-- **Cross-reference intensive**: Multiple sources need validation
-- **Comprehensive coverage**: Systematic exploration needed
-
-### Delegate with Context
-
+**How to Delegate**:
 ```
-Delegate to: [research-capable agent/skill]
-
+Delegate to: research-capable agent/skill
 Parameters:
-- equipment: {collected from Phase 1}
-- fault_description: {collected from Phase 1}
+- equipment: {from Phase 1}
+- fault_description: {from Phase 1}
 - context: {operating conditions, history}
 
 Required output:
@@ -160,545 +144,173 @@ Required output:
 - Decision logic and flowcharts
 - Information gaps and limitations
 
-Research scope: Technical manuals, failure databases, case studies, industry standards
+Research scope: Technical manuals, failure databases, case studies, standards
 ```
 
-### Planning Outputs (from delegated task)
+**Expected Planning Outputs**:
 
-Produce a diagnostic plan containing:
-
-1. **Possible Causes**
+**1. Possible Causes**
    - List with probability rankings
    - Failure mechanisms for each
    - Key indicators to check
 
-2. **Inspection Procedures**
+**2. Inspection Procedures**
    - Step-by-step sequence
    - Standard values and tolerances
    - Required tools
 
-3. **Decision Logic**
+**3. Decision Logic**
    - Flowchart for branching decisions
    - Criteria for eliminating hypotheses
 
-### Phase Completion Present to User
-
+**Transition Template** (in user's language):
 ```
-"诊断计划已制定完成：
+"Diagnostic plan completed:
 
-📋 **可能原因**（按概率排序）
-1. [Cause A] - [概率] - [关键检查点]
-2. [Cause B] - [概率] - [关键检查点]
+📋 Possible Causes (ranked by probability)
+1. [Cause A] - [probability] - [key check point]
+2. [Cause B] - [probability] - [key check point]
 ...
 
-📋 **检查计划**
-共 [N] 个检查步骤，预计需要 [时间估算]
+📋 Inspection Plan
+Total [N] inspection steps, estimated time [time estimate]
 
-是否开始进行交互式故障排查？在每个步骤中，我会指导您执行检查并解释结果。"
+Shall we begin interactive troubleshooting? I'll guide you through each step."
 ```
 
-## Phase 3: Interactive Diagnostic Execution
+### Phase 3: Interactive Diagnostic Execution
 
-**Purpose**: Execute the diagnostic plan through guided user interaction
+**Purpose**: Execute diagnostic plan step-by-step with user
 
-**Execution Mode**: **INTERACTIVE** - Extensive user communication required
+**Mode**: INTERACTIVE
 
-### Phase 3 Skill Loading (MANDATORY ENTRY ACTION)
+**Entry Requirement**: Load device-specific skill
 
-**REQUIRED**: Load device-specific diagnostic skill at Phase 3 entry.
+**Device-Specific Skill Loading**:
 
-**Why**: Interactive execution requires device-specific diagnostic procedures, component information, and troubleshooting patterns. The diagnosis-planning report provides the structure, but device-specific skills provide the detailed guidance.
+| Equipment Type (Keywords) | Skill to Load |
+|---------------------------|---------------|
+| Excavator, 挖掘机, 挖机, 挖土机 | excavator-diagnostic-guide |
+| Loader, 装载机, 铲车 | loader-diagnostic-guide |
+| Hydraulic Pump, 液压泵 | hydraulic-diagnostic-guide |
+| Engine, 发动机, 柴油机 | engine-diagnostic-guide |
+| Motor, 电机, 电动机 | motor-diagnostic-guide |
+| Roller, 压路机 | roller-diagnostic-guide |
+| Unmatched | Use planning report only |
 
-**Loading Logic**:
-```
-ON Phase 3 entry:
-    IF device_type in [挖掘机, Excavator, 挖机]:
-        LOAD skill: excavator-diagnostic-guide
-    ELSE IF device_type in [装载机, Loader]:
-        LOAD skill: loader-diagnostic-guide  
-    ELSE IF device_type in [液压泵, Hydraulic Pump]:
-        LOAD skill: hydraulic-diagnostic-guide
-    ELSE IF device_type in [发动机, Engine, 电机]:
-        LOAD skill: engine-diagnostic-guide
-    ELSE:
-        USE: diagnosis-planning report only
-        NOTE: "No device-specific skill available, using planning report"
-```
+**Setup**:
+1. Load appropriate device skill (see table above)
+2. Create diagnostic todo list
+3. Set up progress tracking (tool-based or text-based)
 
-**Usage Pattern**:
-- Diagnosis-planning report: Overall structure, hypothesis ranking, standard values
-- Device-specific skill: Step-by-step procedures, component locations, practical guidance
+**Progress Tracking Options**:
+- **IF** `update_todo_list` tool available → USE IT
+- **ELSE** → Use text-based format showing completed steps, current step, hypothesis confidence
 
-### Setup
+**Execution Loop (per step)**:
+1. **Present Purpose** - Why this check, which hypothesis it tests
+2. **Guide Action** - Clear procedures, safety precautions, normal values
+3. **Collect Result** - User's observation/measurement
+4. **Interpret Together** - Compare to standards, update confidence, decide next step
 
-**Step 1**: Load device-specific skill (see above)
+**Dynamic Adjustments**:
+- Root cause >90% → Skip remaining routine checks
+- Unexpected result → Branch investigation
+- Result contradicts hypothesis → Eliminate and re-prioritize
+- User cannot perform → Offer alternative
 
-**Step 2**: Create diagnostic todo list based on planning report + skill guidance:
-```
-[ ] Step 1: [Inspection item from planning report]
-       正常值: [Standard value from planning report]
-       工具: [Tools from planning report]
-       操作指导: [Specific guidance from loaded skill]
-[ ] Step 2: ...
-```
+**Completion Criteria**: All relevant hypotheses tested AND root cause >90% confidence AND user agrees
 
-### Progress Tracking Protocol
+### Phase 4: Root Cause Confirmation
 
-**MANDATORY**: Maintain explicit progress state throughout Phase 3 execution.
+**Purpose**: Formally verify root cause with user
 
-**Progress Tracking Method**:
+**Mode**: INTERACTIVE
 
-**PREFERRED**: If plan-type tools available (e.g., `update_todo_list`), 
-USE TOOL for progress tracking.
-
-**FALLBACK**: If no plan tools available, use text-based progress tracking.
-
----
-
-**With Plan Tool**:
-```
-INITIALIZE_PROGRESS_TRACKING(
-    method: "tool",
-    todos: [list all inspection steps as items],
-    metadata: {
-        total_steps: count,
-        hypotheses: initial_ranking
-    }
-)
-
-ON user_completes_inspection:
-    UPDATE_TODO(
-        mark_done: current_step_id,
-        record_result: user_observation,
-        note: hypothesis_impact
-    )
-```
-
-**Without Plan Tool** (Text-based):
-```
-INITIALIZE_PROGRESS_TRACKING(
-    method: "text",
-    total_steps: count(inspection_procedures),
-    current_step: 0,
-    status: "in_progress"
-)
-
-ON user_completes_inspection:
-    UPDATE_TEXT_PROGRESS(
-        mark_completed: current_step,
-        record_result: user_observation
-    )
-    PRESENT_PROGRESS_SUMMARY()
-```
-
----
-
-**Update Triggers** (Pseudocode):
-```
-ON user_completes_inspection:
-    IF plan_tool_available:
-        UPDATE_TODO(mark_done, result, note)
-    ELSE:
-        UPDATE_TEXT_PROGRESS(completed, result)
-    PRESENT_PROGRESS_SUMMARY()
-
-ON hypothesis_confidence_changes:
-    UPDATE_PROGRESS_STATE(
-        adjust_priority: hypothesis_ranking,
-        skip_if_irrelevant: low_probability_steps
-    )
-
-ON user_requests_status:
-    PRESENT_PROGRESS_SUMMARY()
-    SHOW: completed_steps / total_steps
-    SHOW: current_hypothesis_ranking
-    SHOW: next_steps_preview
-```
-
-**Progress State to Track**:
-- Completed steps with results and timestamps
-- Current active step with user pending status
-- Skipped/deferred items with reasons
-- Hypothesis confidence evolution
-- Evidence collected per hypothesis
-- Any deviations from original plan
-
-**Progress Presentation Format**:
-```
-诊断进度 (3/7 步骤完成)
-========================
-[✓] Step 1: 检查冷却液液位 - 结果：低于标准
-[✓] Step 2: 检查散热器软管 - 结果：发现裂纹
-[→] Step 3: 检查节温器工作状态 - 进行中...
-[ ] Steps 4-7: 待执行
-
-当前假设置信度:
-• 冷却液泄漏 ............... 85% ↑ (Step 2 新证据支持)
-• 节温器故障 ............... 30%
-• 水泵故障 ................. 15%
-
-预计剩余时间: 15-20 分钟
-```
-
-**Completion Check** (Before Phase 4):
-```
-VERIFY(
-    CONDITION_1: all_critical_inspections_completed OR
-    CONDITION_2: root_cause_confidence >= 90% OR
-    CONDITION_3: user_requests_early_conclusion
-)
-IF NOT satisfied:
-    PRESENT_GAP_ANALYSIS()
-    REQUEST_USER_DECISION(continue_or_conclude)
-```
-
-### Execution Loop (Per Step)
-
-1. **Present Purpose**
-   - Explain why this check is being performed
-   - Reference which hypothesis this tests
-   - Show how this connects to overall plan
-
-2. **Guide Action**
-   - Provide clear, step-by-step procedures
-   - State safety precautions
-   - Give expected normal values/ranges
-
-3. **Collect Result**
-   - Request user's observation or measurement
-   - Provide clear response options
-
-4. **Interpret Together**
-   - Compare result to standard values
-   - Explain what the result means
-   - Update hypothesis confidence
-   - Decide next step with user awareness
-
-### Information Presentation Requirements
-
-**When presenting each step, MUST include**:
-
-#### Visual Aids (If Available)
-
-**Images from knowledge base**:
-```
-当显示部件位置或检查方法时，如有知识库图片：
-- 展示图片 (使用知识库返回的 image URL)
-- 标注检查点位置
-- 说明测量方法
-
-示例：
-"散热器软管连接处检查（见下图红圈位置）：
-[图片]"
-```
-
-**Mermaid Diagrams** (for system flows):
-```
-对于复杂系统，使用 Mermaid 图示：
-- 液压系统流程
-- 电路连接关系
-- 故障传播路径
-```
-
-#### Source Attribution (MANDATORY)
-
-**Every technical value MUST cite source**:
-```
-Format:
-"正常压力范围: 31.4-34.3 MPa[^1]"
-"[^1]: [三一 SY215C 液压系统规格](manual:///...)"
-
-Include:
-- 标准值/正常范围
-- 部件规格参数
-- 故障案例数据
-- 行业标准要求
-
-From:
-- diagnosis-planning report (which has citations)
-- device-specific skill references
-- Knowledge base queries
-```
-
-**Reference**: Include `citation` and `image` capabilities for rich output.
-
-### Dynamic Adjustment
-
-Adjust plan in real-time based on findings:
-
-| Finding | Adjustment |
-|---------|-----------|
-| Root cause confirmed (>90%) | Skip remaining routine checks |
-| Unexpected abnormal result | Branch to associated investigation |
-| Result contradicts hypothesis | Eliminate, re-prioritize remaining |
-| User cannot perform step | Offer alternative or mark limitation |
-
-### Phase Completion Criteria
-
-- [ ] All relevant hypotheses tested
-- [ ] Root cause identified with >90% confidence
-- [ ] User agrees with findings
-- [ ] Ready for formal confirmation
-
-## Phase 4: Root Cause Confirmation
-
-**Purpose**: Formally verify and document root cause with user
-
-**Execution Mode**: **INTERACTIVE** - Requires user confirmation
-
-### Verification Checklist
-
-Present to user:
+**Verification Checklist** (present in user's language):
 
 ```
-"基于我们的排查，现在进行根因确认：
+"Based on our investigation, let's confirm the root cause:
 
-✅ **症状解释**
-所有观察到的症状都可以由此原因解释：
+✅ Symptom Explanation
+All observed symptoms can be explained by this cause:
 - [Symptom 1] → [Explanation]
 - [Symptom 2] → [Explanation]
 
-✅ **替代原因排除**
-其他可能原因已通过检查排除：
-- [Cause B]: 排除原因 [evidence]
-- [Cause C]: 排除原因 [evidence]
+✅ Alternative Causes Excluded
+Other possible causes have been ruled out:
+- [Cause B]: Excluded because [evidence]
+- [Cause C]: Excluded because [evidence]
 
-✅ **置信度评估**
-当前置信度: [90%+]
+✅ Confidence Assessment
+Current confidence: [90%+]
 
-✅ **建议措施**
+✅ Recommended Actions
 [Recommended corrective action]
 
-您确认这是正确的故障原因吗？还有其他疑虑吗？"
+Do you confirm this is the correct root cause?"
 ```
 
-### Confidence Levels
+**Confidence Levels**:
 
-| Level | Criteria | User Action |
-|-------|----------|-------------|
-| >95% | Direct evidence, all alternatives excluded | Confident proceed |
+| Level | Criteria | Action |
+|-------|----------|--------|
+| >95% | Direct evidence, all excluded | Confident proceed |
 | 90-95% | Strong evidence, minor uncertainty | Proceed with note |
-| <90% | Insufficient evidence | Recommend additional testing |
+| <90% | Insufficient evidence | Recommend more testing |
 
-### Phase Completion
+---
 
-After root cause confirmation:
-- User explicitly confirms root cause
-- User has no outstanding questions
-- **Next Phase**: Assist with fault resolution (Phase 4.5)
+### Optional Phase 4.5: Fault Resolution
 
-## Phase 4.5: Fault Resolution Assistance (NEW)
+**Purpose**: Guide user through corrective actions
 
-**Purpose**: Guide user through corrective actions and fault elimination
+**Mode**: INTERACTIVE
 
-**Execution Mode**: **INTERACTIVE** - Hands-on guidance with user
+**When**: After root cause confirmed, user wants to proceed with repair
 
-### When to Enter
+**Activities**:
+1. Identify parts/procedures needed
+2. Guide step-by-step resolution with safety precautions
+3. Verify resolution after completion
+4. Provide post-resolution advice (preventive maintenance, monitoring)
 
-After root cause confirmed and user wants to proceed with repair/fix.
-
-### Resolution Workflow
-
-```
-1. **Identify Required Actions**
-   Based on root cause, determine:
-   - Replacement parts needed
-   - Repair procedures
-   - Adjustment requirements
-   - Special tools needed
-
-2. **Guide Step-by-Step Resolution**
-   For each corrective action:
-   - Explain what to do and why
-   - Safety precautions
-   - Step-by-step procedures
-   - Expected outcomes after each step
-
-3. **Verify Resolution**
-   After actions completed:
-   - Verify symptoms eliminated
-   - Test equipment operation
-   - Confirm normal parameters
-   - Document any deviations
-
-4. **Post-Resolution Advice**
-   - Preventive maintenance recommendations
-   - Monitoring suggestions
-   - Warning signs to watch for
-```
-
-### Example Resolution Guidance
-
-```
-"已确认故障原因为散热器软管连接处泄漏。
-
-**修复步骤**:
-
-步骤1: 准备工具和备件
-- 需要: 新的软管夹 (规格: 32-44mm)
-- 需要: 冷却液 (约2升)
-- 工具: 螺丝刀套装
-
-步骤2: 更换软管
-[详细步骤指导...]
-
-步骤3: 补充冷却液
-[详细步骤指导...]
-
-步骤4: 验证修复
-- 启动发动机
-- 观察压力表
-- 检查是否有泄漏
-- 正常运行10分钟
-
-完成后请告诉我结果，我们将进入案例归档。"
-```
-
-### Tools and Resources
-
-Reference device-specific skill and diagnosis-planning report for:
-- Repair procedures
-- Torque specifications
-- Part numbers
-- Special tools
-
-### Phase Completion
-
-Resolution phase complete when:
-- [ ] Corrective actions completed
-- [ ] Equipment tested and operational
-- [ ] User confirms fault eliminated
-- [ ] Ready for case documentation
-
-## Phase 5: Case Documentation
+### Phase 5: Case Documentation
 
 **Purpose**: Generate comprehensive case report
 
-**Execution Mode**: **CURRENT AGENT - DIALOGUE CONTEXT REQUIRED** - MUST NOT DELEGATE
+**Mode**: CURRENT AGENT ONLY - MUST NOT DELEGATE
 
-### Critical Requirement: Generate in Current Context
+**Critical**: Generate in current context using complete conversation history. Subagents lose critical details.
 
-**REQUIRED**: Case documentation MUST be generated by the **current agent** using the complete diagnostic conversation context. Do NOT delegate document generation to subagents or background tasks.
+**Process**:
+1. Load `case-document` skill for templates
+2. Gather from conversation context: Phase 1-4 data, all user responses, measurements
+3. Apply templates with complete context
+4. Generate report sections:
+   - Executive summary
+   - Equipment details
+   - Timeline of diagnostic process
+   - Evidence and test results table
+   - Root cause analysis
+   - Corrective actions
+   - Lessons learned
+   - Technical diagrams
 
-**Why Context Matters**:
-- Only the current agent has access to the full diagnostic conversation
-- All user responses, measurement values, and decision rationale are in dialogue history
-- Subagents lose critical details when receiving summarizations
-- Report quality depends on complete contextual information
+**Anti-Pattern**:
+- ❌ Delegate to subagent for report generation
+- ❌ Summarize and pass to another agent
+- ✅ Generate in current agent with full context
 
-### Documentation Process
+## Additional Resources
 
-**Step 1**: Load `case-document` skill for templates and formatting guidelines
-
-**Step 2**: Gather data from current conversation context:
-- Phase 1: All information collected from user
-- Phase 2: Planning report results
-- Phase 3: Every inspection step and user response
-- Phase 4: Root cause confirmation dialogue
-- User's corrective actions and verification results
-
-**Step 3**: Apply `case-document` templates with complete contextual data
-
-**Step 4**: Generate report sections:
-1. Executive summary
-2. Equipment details
-3. Timeline of diagnostic process
-4. Evidence and test results table
-5. Root cause analysis
-6. Corrective actions
-7. Lessons learned
-8. Technical diagrams (using Mermaid templates from skill)
-
-### Final Presentation
-
-After generating the complete report:
-
-```
-"案例文档已生成：
-
-📄 **文档内容**
-[呈现完整的案例报告]
-
-文档可以用于：
-- 维护记录存档
-- 培训案例
-- 知识库积累
-
-是否还需要补充任何信息或进行修改？"
-```
-
-### Anti-Pattern: Do NOT Do This
-
-❌ **Wrong**: Delegate to subagent or background task for report generation  
-❌ **Wrong**: Summarize diagnostic history and pass to another agent  
-❌ **Wrong**: `new_task` or subagent delegation for case documentation
-
-✅ **Correct**: Load `case-document` skill as reference, generate report in current agent context  
-✅ **Correct**: Use complete dialogue history to fill templates  
-✅ **Correct**: Present directly to user from current agent
+For extended details (if file reading is available):
+- `references/phase_3_execution.md` - Detailed interactive execution guidance
+- `references/domain_examples.md` - Complete excavator diagnostic example
 
 ## Key Principles
 
-### Interactive-First Design
-
-- All user-facing activities are interactive
-- Background work is limited to data retrieval and document generation
-- User is never bypassed in decision-making
-
-### Phase Gates
-
-- No automatic phase advancement
-- Each phase requires explicit user confirmation
-- User can pause, modify, or exit at any phase boundary
-
-### Evidence-Driven
-
-- All conclusions supported by test results
-- Confidence levels tracked and communicated
-- Uncertainties acknowledged transparently
-
-## Safety and Boundaries
-
-### Safety Critical
-
-- Identify and flag safety concerns immediately
-- Recommend qualified technician for safety-critical systems
-- Never bypass safety procedures
-
-### Scope Limitations
-
-When to escalate or conclude:
-- Confidence cannot reach threshold
-- Required testing exceeds user capability
-- Safety concerns identified
-- User requests expert involvement
-
-## Integration with Other Skills
-
-### When to Load Other Skills
-
-| Trigger | Skill to Load |
-|---------|--------------|
-| Need comprehensive planning with diagrams | diagnosis-planning |
-| Information gathering framework needed | information-gathering |
-| Formal report generation required | case-document |
-
-### Coordination Protocol
-
-1. Explain to user what external skill will provide
-2. Load skill and execute (background for planning, interactive for guidance)
-3. Integrate results into current phase
-4. Continue with user confirmation
-
-## Error Handling
-
-| Scenario | Response |
-|----------|----------|
-| User cannot perform recommended test | Offer alternative test or document limitation |
-| Result contradicts all hypotheses | Document anomaly, expand hypothesis list |
-| User questions diagnosis logic | Explain reasoning, consider additional verification |
-| Confidence not improving | Recommend expert consultation |
-
-## Example Workflow
-
-See `references/domain_examples.md` for a complete excavator diagnostic example demonstrating the interactive workflow with phase confirmations.
+1. **Evidence-Driven**: All conclusions supported by test results, confidence tracked
+2. **User-Centric**: Never bypass user; explain reasoning transparently
+3. **Adaptive**: Adjust plan based on findings; skip irrelevant steps
+4. **Safety First**: Flag hazards immediately; recommend experts when needed
