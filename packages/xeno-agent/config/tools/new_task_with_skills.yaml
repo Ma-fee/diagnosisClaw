@@ -26,6 +26,13 @@ parameters:
     mode:
       type: string
       description: The specialized mode for the new task. Must be one of the available modes.
+    load_skills:
+      type: array
+      description: |
+        Skill names to inject. REQUIRED - pass [] if no skills needed.
+      items:
+        type: string
+        description: Skill name (e.g., "git-master", "python").
     message:
       type: string
       description: |
@@ -44,17 +51,9 @@ parameters:
         - The specific work to be performed *only* within this sub-task.
         - The exact format and content of the expected return value.
         No deviations or additional work beyond this scope are permitted.
-    load_skills:
-      type: array
-      description: |
-        Skill names to inject. REQUIRED - pass [] if no skills needed.
-      items:
-        type: string
-        description: Skill name (e.g., "git-master", "python").
-      default: []
   required:
     - mode
-    - message
-    # - expected_output
     - load_skills
+    - message
+    - expected_output
   strict: true

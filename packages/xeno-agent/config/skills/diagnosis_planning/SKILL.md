@@ -1,6 +1,14 @@
 ---
 name: diagnosis-planning
-description: Generate comprehensive, field-ready diagnostic planning reports for equipment failures with retrieval-augmented intelligence. Creates detailed diagnostic roadmaps including failure analysis, inspection procedures, standard values, troubleshooting flowcharts, technical diagrams, and schematics. Includes Section 12 for documenting information gaps and limitations to ensure field engineers understand data availability and reliability. Use when planning diagnostics for equipment faults, researching technical standards, retrieving equipment-specific parameters, or creating complete troubleshooting documentation suitable for printing and field use by maintenance engineers.
+description: |
+  MANDATORY: Execute this skill BEFORE providing any diagnostic recommendations or field operation guidance.
+  For equipment diagnosis scenarios, comprehensive information research must precede all operational advice.
+  This skill enforces evidence-based diagnostic planning with full traceability to technical manuals,
+  knowledge bases, and verified sources. Creates detailed diagnostic roadmaps including failure analysis,
+  inspection procedures, standard values, troubleshooting flowcharts, technical diagrams, and schematics.
+  Use when equipment fault diagnosis is requested, troubleshooting procedures are needed, maintenance
+  planning is required, or ANY diagnostic guidance is to be provided. NEVER provide diagnostic steps
+  without first completing the full research workflow documented herein.
 ---
 
 # Diagnosis Planning Skill
@@ -10,6 +18,59 @@ description: Generate comprehensive, field-ready diagnostic planning reports for
 Generate comprehensive diagnostic planning reports that serve as complete field manuals for systematic equipment fault diagnosis. These reports integrate expert diagnostic reasoning with retrieved technical documentation, diagrams, and historical data to create actionable, print-ready troubleshooting guides.
 
 Reports must include ALL information needed for fault localization, troubleshooting, and resolution - including technical diagrams, component schematics, system layouts, and visual references that engineers need in the field.
+
+## Prerequisites
+
+Before generating the diagnostic plan, confirm:
+
+- [ ] Equipment model/name provided or confirmed
+- [ ] Fault symptoms or error codes described
+- [ ] Operating context available (environment, usage hours, recent maintenance)
+
+If critical information is missing, ask the user to provide it before proceeding with research.
+
+## Output Delivery
+
+Generate the complete diagnostic planning report and **present directly in conversation**.
+Output should be comprehensive markdown suitable for:
+- Immediate review by requesting engineer
+- Copy/paste to documentation system
+- Print for field use
+
+## Document Conventions
+
+### References and Citations
+
+All technical data must include traceable footnote citations using the format `[^id]: [Title](uri)`.
+
+**Syntax**:
+- Bibliographic entry: `[^ref-id]: [Source Title](uri)`
+- Inline reference: `Text with citation [^ref-id].`
+- Inline addition (for sources discovered mid-report): Add entry immediately after first use
+
+**URI Schemes**:
+- `manual://{uuid}` - Technical manuals
+- `case://{id}` - Historical case records  
+- `internal://{resource}` - Internal databases
+- `https://...` - Web sources
+
+### Image and Figure Format
+
+All technical images must use this HTML structure with verified source attribution:
+
+```html
+<figure>
+    <img src="%verified_source_url%" title="%descriptive_title%"/>
+    <figcaption>
+        <p>Figure X: %Name from source%</p>
+        <p>Purpose: %How this aids diagnosis - links to specific step%</p>
+        <p>Details: %Key annotations visible in image%</p>
+        <p>Source: %Full citation with URI%</p>
+    </figcaption>
+</figure>
+```
+
+**Critical Rule**: Only use `src` URLs explicitly returned from research. NEVER fabricate or hallucinate image paths.
 
 ## Core Workflow
 
@@ -51,9 +112,130 @@ Combine retrieved information:
 - Map diagrams and schematics to inspection steps
 - Identify required visual aids for field reference
 
-### Step 2: Generate Comprehensive Diagnostic Planning Report
+#### 1.4 Evidence Review and Gap Analysis
 
-Create a detailed, field-ready report with all sections below:
+Thoroughly analyze retrieved information before proceeding:
+
+**Identify Conflicts and Inconsistencies**:
+| Aspect | Check | Action if Conflict Found |
+|--------|-------|-------------------------|
+| Parameter values | Multiple sources claiming different specs | Flag for verification; prioritize manufacturer manual |
+| Failure causes | Contradictory explanations for same symptom | Note both theories; check historical case frequency |
+| Procedures | Different manufacturers suggest different steps | Document both; note equipment-specific applicability |
+| Standards | Industry vs manufacturer tolerance differences | Highlight both; explain context of each |
+
+**Completeness Assessment**:
+- [ ] Equipment background (model, year, operating hours, environment)
+- [ ] Fault symptom complete description
+- [ ] All possible causes identified and ranked
+- [ ] Standard values for relevant parameters found
+- [ ] Troubleshooting procedures verified
+- [ ] Technical diagrams retrieved or noted as unavailable
+- [ ] Applicable standards identified
+
+**Iterative Research Decision**:
+If gaps or conflicts exist, judge whether additional searches are needed:
+- Use alternative keywords (e.g., "hydraulic pressure" → "system pressure" → "operating pressure")
+- Expand equipment model variations (e.g., "SY215C" → "SY215 series" → "Sany excavator hydraulic")
+- Cross-reference with related symptoms or components
+- Continue until confident or diminishing returns evident
+
+**Rule**: Exhaust reasonable search avenues before concluding research. Better to over-search than under-search.
+
+#### 1.5 Research Tool Priority
+
+Execute searches in this order to maximize source reliability:
+
+| Priority | Source Type | Tools/Methods | Rationale |
+|----------|-------------|---------------|-----------|
+| 1 | **Technical Manuals** | Knowledge base queries, MCP document retrieval, `manual://{uuid}` sources | Authoritative manufacturer data, equipment-specific |
+| 2 | **Internal Knowledge Base** | Case databases, maintenance records, organizational documentation | Proprietary data, organizational context, historical precedents |
+| 3 | **Web Resources** | Search APIs (Tavily, web search, documentation sites) | Supplementary, cross-verification, filling gaps only |
+
+**Rule**: Always attempt primary sources (manuals/knowledge base) before web search. Web results should be used for filling gaps, not as primary evidence. All web findings must be cross-referenced with manufacturer data when possible.
+
+### Step 2: Content Organization and Outline
+
+Before generating the final report, systematically organize all collected information:
+
+**Create a Structured Outline**:
+```markdown
+## Report Outline
+
+### Key Findings Summary
+- Equipment: [Model, Manufacturer, Key Specs]
+- Fault: [Symptom description, observed behavior]
+- Primary Hypotheses: [Cause 1 - evidence], [Cause 2 - evidence]...
+- Confidence Level: [High/Medium/Low based on source quality]
+
+### Supporting Evidence by Section
+- Section 2 (Equipment): Specs from [^manual-1], diagrams from [^manual-2]...
+- Section 3 (Failure Analysis): Causes ranked by [^case-1], [^case-2]...
+- Section 4 (Inspection): Procedures from [^manual-1]...
+- [Continue for each section]
+
+### Reference Materials Inventory
+| Source ID | Document | Key Content | Target Section |
+|-----------|----------|-------------|----------------|
+| [^manual-1] | SY215C Technical Manual Ch. 3 | Hydraulic specs | Section 2, 5 |
+| [^case-1] | Case #2023-0156 Overheat | Resolution: pump replacement | Section 3, 8 |
+| [std-1] | ISO 10816 Vibration | Acceptable vibration limits | Section 5 |
+```
+
+**Conflict Documentation**:
+| Topic | Source A | Source B | Resolution Decision |
+|-------|----------|----------|---------------------|
+| [e.g., Operating pressure] | Manual says 25MPa | Case file mentions 28MPa | Use manual value [^manual-1], note case anomaly [^case-2] |
+
+**Gap List for Section 13**:
+- [Spec X] not found in manual - impact: High
+- [Procedure Y] not documented - impact: Medium
+
+**Stop and Review**: Confirm outline covers all user requirements and collected data before proceeding to Step 3.
+
+### Step 3: Generate Comprehensive Diagnostic Planning Report
+
+Create a detailed, field-ready report using the outline from Step 2. Verify each section against your outline:
+
+---
+
+#### Section 0: Document References
+
+At the start of the report, create a `## References` section listing all sources found during research using the citation format defined in [Document Conventions](#document-conventions).
+
+**Required Format** (must follow exactly):
+```markdown
+## References
+
+[^manual-1]: [SY215C Hydraulic System Specifications, Ch. 3 Operating Parameters](manual://a1b2c3d4-e5f6-7890-abcd-ef1234567890)
+[^manual-2]: [CP-2000 Technical Manual, Section 4.2 - Bearing Installation](manual://b2c3d4e5-f6a7-8901-bcde-f23456789012)
+[^case-1]: [Excavator Overheat Case #2023-0156 - Root Cause Analysis](case://2023-0156)
+[^case-2]: [Hydraulic Pump Failure Field Report #2024-0089](case://2024-0089)
+[^std-1]: [ISO 10816-1:1995 Mechanical Vibration - Evaluation Standards](https://www.iso.org/standard/10816-1.html)
+[^web-1]: [Hydraulic System Troubleshooting Guide](https://example.com/hydraulic-guide) - Cross-reference only
+```
+
+**Format Rules**:
+- **ID naming**: Use `[^manual-{n}]`, `[^case-{n}]`, `[^std-{n}]`, `[^web-{n}]` for clarity
+- **Title**: Format as `[Section Name, Document Name]` or `[Case #{ID} - Brief Description]`
+- **URI**: Use actual retrieved URIs (manual://, case://, https://)
+- **Annotation**: Add brief notes for web sources (e.g., "cross-reference only", "supplementary info")
+
+**Process**:
+1. Extract all sources from your Step 2 outline
+2. Assign consistent IDs following the naming convention above
+3. List in priority order: Manuals → Standards → Cases → Web
+4. Verify each URI is from actual retrieved results
+5. Include brief annotation for supplementary web sources
+
+**Verification Checklist**:
+- [ ] Every source cited in the report appears in Section 0
+- [ ] Every entry in Section 0 is cited at least once in the report
+- [ ] IDs follow the `[^type-number]` naming convention
+- [ ] Titles include both section/filename context
+- [ ] URIs are complete and valid
+
+If no sources are found, omit Section 0 entirely (do not create empty section).
 
 ---
 
@@ -263,19 +445,7 @@ graph TD
 
 #### Section 9: Visual Reference Gallery
 
-Include all relevant technical images using proper figure format:
-
-```html
-<figure>
-    <img src="%image_url%" title="%descriptive_title%"/>
-    <figcaption>
-        <p>Figure X: %Name per source%</p>
-        <p>Purpose: How this image aids diagnosis/repair (e.g., "Shows bearing housing location for temperature measurement described in Step 3")</p>
-        <p>Details: All annotations, legends, labels from source</p>
-        <p>Source: %Citation%</p>
-    </figcaption>
-</figure>
-```
+Include all relevant technical images using the figure format defined in [Document Conventions](#document-conventions).
 
 Image categories to include when available:
 1. System overview diagrams
@@ -298,24 +468,7 @@ Image categories to include when available:
 
 #### Section 11: References and Citations
 
-**Reference**: Include `citation` capability for all factual claims.
-
-**Citation Format**:
-```markdown
-[^1]: [Source Title](source-uri)
-
-Usage:
-- Inline: [^1], [^2]
-- Definition: At section or document end
-
-Examples:
-[^1]: [三一 SY215C 液压系统规格](manual:///06968e4e-8a3a-7584-8000-22b4b2f7433e)
-[^2]: [挖掘机过热故障案例 #2023-0156](manual:///case-2023-0156)
-```
-
-**URI Sources** (from knowledge base):
-- `manual://{uuid}` - Technical manuals
-- `https://...` - Web-retrieved resources
+All factual claims must include citations using the format defined in [Document Conventions](#document-conventions).
 
 **Requirements**:
 - All technical specifications must have citations
@@ -402,10 +555,10 @@ Engineer Signature: _______________ Date: _______
 
 ---
 
-### Step 3: Completion
+### Step 4: Completion
 
 Generate the final diagnostic planning report containing:
-- All 12 sections completed with retrieved data
+- All 13 sections completed with retrieved data
 - **Section 12 must include all information gaps identified during research**
 - Properly formatted technical diagrams and figures
 - Comprehensive inline citations
@@ -432,119 +585,15 @@ Research must be conducted for:
 - Historical precedents for failure modes
 - Industry inspection standards
 
-### Citation Format
-
-Use inline footnotes for all technical data:
-
-```markdown
-Bearing temperature should not exceed 70°C under normal operation[^manual_bearing_temp].
-
-[^manual_bearing_temp]: CP-2000 Pump Technical Manual, Section 4.2 - Operating Specifications, Manufacturer Documentation, Rev. 3.2
-```
-
-## Image and Diagram Requirements
-
-### Mandatory Image Inclusion
-
-All relevant technical images, diagrams, and schematics must be included using proper figure structure:
-
-```html
-<figure>
-    <img src="%image_url%" title="%descriptive_title%"/>
-    <figcaption>
-        <p>Figure X: %Name from source%</p>
-        <p>%Detailed diagnostic purpose - explain what this shows and which inspection step it corresponds to%</p>
-        <p>%All annotations, legends, labels from source%</p>
-        <p>Source: %Full citation%</p>
-    </figcaption>
-</figure>
-```
-
-### Image Categories (Include ALL available)
-
-- System overview and block diagrams
-- Component location and identification diagrams
-- Schematics (hydraulic, pneumatic, electrical)
-- Measurement procedure illustrations
-- Assembly/disassembly views
-- Tool setup and positioning guides
-- Technical specification drawings
-
-### Image Processing Rules - NO HALLUCINATION
-
-**CRITICAL: Images must be REAL and VERIFIED**
-
-#### Image Source Rules (MUST FOLLOW)
-
-1. **ONLY use images from actual search results**: The `src` attribute must contain a URL or path that was explicitly returned from your research (e.g., from search results, database queries, or retrieved documents).
-
-2. **NEVER create placeholder or fake URLs**:
-   - ❌ FORBIDDEN: `/resources/placeholder`
-   - ❌ FORBIDDEN: `/resources/example.png`
-   - ❌ FORBIDDEN: `image_not_found.jpg`
-   - ❌ FORBIDDEN: Any path you construct without verification
-   - ❌ FORBIDDEN: URLs from training data memory
-
-3. **If no real image is available**: Do NOT include any `<figure>` tag. Simply describe the diagram/visual in text or note that "technical diagram not retrieved from sources."
-
-#### Image Verification Checklist
-
-Before including any `<figure>` element, verify:
-
-- [ ] The `src` URL/path was explicitly provided in your research results
-- [ ] You can trace the exact source document containing this image
-- [ ] The caption accurately describes what is shown in the actual image
-- [ ] The annotations/legend details match the actual image content
-- [ ] The purpose description correctly links to specific inspection steps
-
-**Verification Example**:
-```
-Research result shows: "/resources/pump_cp2000_sectional.png" from "CP-2000 Manual Plate A-3"
-
-✓ Include: <img src="/resources/pump_cp2000_sectional.png" ...>
-✗ DO NOT fabricate: <img src="/resources/pump_diagram.png" ...>
-```
-
-#### Image-Caption Alignment Requirements
-
-The caption must accurately reflect what is ACTUALLY in the image:
-
-| Element | Requirement |
-|---------|-------------|
-| Figure Name | Must match title from source document |
-| Purpose | Must accurately describe the diagnostic use (which step refers to this image) |
-| Details | Must list actual annotations, labels, legend items visible in image |
-| Source | Must cite the exact document where this image was retrieved |
-
-**If details are uncertain**: Either omit the figure or clearly state "Details based on source description, verify actual image annotations."
-
-#### Content Integration Rules
-
-- Include ALL visual information from sources: annotations, legends, callouts, dimensions (only if verified from actual source)
-- Cross-reference images to related inspection steps
-- If image quality is poor or details unclear, note this in the caption
-- Multiple angles of same component? Include each as separate figure if from different sources
-
 ## Output Format Standards
 
 - Clear hierarchical headers (H1, H2, H3)
 - Tables for structured data
 - Mermaid diagrams for flowcharts and fault trees
-- HTML figure tags for all images
+- HTML figure tags for all images using the format defined in [Document Conventions](#document-conventions)
 - Bullet lists for items under 10 entries
 - Bold emphasis for critical values and warnings
 - Inline footnote citations for all technical claims
 - Consistent formatting throughout
 
-## Example
-
-See `examples/pump_overheating.md` for a comprehensive retrieval-augmented diagnostic planning report with full diagram integration.
-
-**IMPORTANT**: The image paths (e.g., `/resources/pump_xxx.png`) in the example are ILLUSTRATIVE placeholders to demonstrate proper formatting. In actual use:
-- Image `src` attributes MUST contain real URLs/paths explicitly returned from your research
-- NEVER fabricate, hallucinate, or create placeholder image paths
-- If no image is retrieved from sources, omit the `<figure>` tag entirely
-
-## References
-
-- `references/search_strategy.md`: Detailed search methodologies and query patterns
+**Image Handling**: All images must be from verified sources. See [Document Conventions](#document-conventions) for detailed requirements. If no image is retrieved from sources, omit the `<figure>` tag entirely and describe the visual in text.

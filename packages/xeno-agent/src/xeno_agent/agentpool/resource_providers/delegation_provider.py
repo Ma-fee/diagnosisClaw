@@ -197,6 +197,7 @@ class XenoDelegationProvider(StaticResourceProvider):
             mode: The specialized mode for the new task
             message: The task description
             expected_output: Description of the expected output
+            load_skills: Optional list of skill names to load and include as instructions for the subagent
 
         Returns:
             The result of the delegated task
@@ -258,13 +259,7 @@ class XenoDelegationProvider(StaticResourceProvider):
             if skills_manager:
                 skills_content = await self._format_skills_instructions(skills_manager, load_skills)
 
-        formatted_prompt = f"""<task>
-{target_task}
-</task>
-
-<expected_output>
-{expected_output}
-</expected_output>"""
+        formatted_prompt = f"""<task>\n\n{target_task}\n</task>\n\n<expected_output>\n\n{expected_output}\n\n</expected_output>"""
         # Format prompt with skills prepended
         if skills_content:
             formatted_prompt = f"{skills_content}\n\n" + formatted_prompt
@@ -293,7 +288,7 @@ class XenoDelegationProvider(StaticResourceProvider):
             source_name=target_agent,
             source_type=source_type,
             depth=current_depth + 1,
-            description=f"# Task\n{target_task}\n\n# Expected Output\n{expected_output}",
+            description=f"\n_Task_\n\n{target_task}\n\n_Expected Output_\n{expected_output}",
             # metadata={
             #     "prompt": target_task[:201] if len(target_task) > 200 else target_task,
             # },

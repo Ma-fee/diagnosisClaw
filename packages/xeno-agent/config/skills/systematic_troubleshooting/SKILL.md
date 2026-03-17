@@ -48,20 +48,17 @@ Phase Complete → Summarize outcomes → Explain next phase → Ask confirmatio
 [User declines] → Stay or conclude
 ```
 
-### Phase 3: Device-Specific Skill Loading
+### Phase 3: When to Load equipment-operation-assistant
 
-**MUST load at Phase 3 entry:**
+**Default**: Provide concise check information, user performs independently
 
-| Equipment Type | Skill to Load |
-|----------------|---------------|
-| 挖掘机/Excavator/挖机 | excavator-diagnostic-guide |
-| 装载机/Loader | loader-diagnostic-guide |
-| 液压泵/Hydraulic Pump | hydraulic-diagnostic-guide |
-| 发动机/Engine | engine-diagnostic-guide |
-| 电机/Motor | motor-diagnostic-guide |
-| 未匹配 | Use planning report only |
+**Delegate when user asks:**
+- "xxx 在哪里？"/"Where is xxx?"
+- "如何检查 xxx？"/"How to check xxx?"
+- "怎么操作/拆卸 xxx？"/"How do I...?"
+- "找不到 xxx"/"Cannot locate xxx"
 
-**Usage**: Planning report provides structure; device skill provides step-by-step procedures.
+**Delegation**: `load_skills=['equipment-operation-assistant']` with specific operation details
 
 ### Integration with Other Skills
 
@@ -130,13 +127,16 @@ Shall we proceed to the diagnostic planning phase?"
 
 **Why Delegation**: Planning requires multi-dimensional research across 4+ information categories (specs, failure modes, procedures, cases, standards), structured synthesis, and cross-reference validation.
 
-**How to Delegate**:
+**How to Delegate** (MUST include load_skills):
 ```
-Delegate to: research-capable agent/skill
+Delegate to: task agent with load_skills=['diagnosis-planning']
 Parameters:
-- equipment: {from Phase 1}
-- fault_description: {from Phase 1}
-- context: {operating conditions, history}
+- category: deep (or appropriate category for research)
+- load_skills: ['diagnosis-planning']  ← CRITICAL: Must include this
+- prompt: Include
+  - equipment: {from Phase 1}
+  - fault_description: {from Phase 1}
+  - context: {operating conditions, history}
 
 Required output:
 - Failure analysis with probability rankings
@@ -184,40 +184,50 @@ Shall we begin interactive troubleshooting? I'll guide you through each step."
 
 **Mode**: INTERACTIVE
 
-**Entry Requirement**: Load device-specific skill
+**Default Approach**: Provide concise inspection information only
 
-**Device-Specific Skill Loading**:
+For each diagnostic step:
+1. **Present what to check** - Component location, normal values, key indicators
+2. **Ask user to perform check** - "请检查 xxx 的读数"
+3. **Collect result** - User reports back measurements/observations
 
-| Equipment Type (Keywords) | Skill to Load |
-|---------------------------|---------------|
-| Excavator, 挖掘机, 挖机, 挖土机 | excavator-diagnostic-guide |
-| Loader, 装载机, 铲车 | loader-diagnostic-guide |
-| Hydraulic Pump, 液压泵 | hydraulic-diagnostic-guide |
-| Engine, 发动机, 柴油机 | engine-diagnostic-guide |
-| Motor, 电机, 电动机 | motor-diagnostic-guide |
-| Roller, 压路机 | roller-diagnostic-guide |
-| Unmatched | Use planning report only |
+**When to Delegate to equipment-operation-assistant**:
+
+ONLY when user needs step-by-step guidance. Trigger phrases:
+- "xxx 在哪里？"/ "Where is xxx?"
+- "如何检查 xxx？"/ "How to check xxx?"
+- "怎么操作？"/ "怎么拆？"/ "How do I...?"
+- "找不到 xxx"/ "Cannot locate xxx"
+- "不会操作 xxx"/ "Don't know how to operate xxx"
+
+**Delegation parameters**:
+```
+load_skills: ['equipment-operation-assistant']
+prompt: "Guide user through [specific operation]
+  - Equipment: [type]
+  - Task: [what user needs to do]
+  - Current situation: [context from ongoing diagnosis]"
+```
 
 **Setup**:
-1. Load appropriate device skill (see table above)
-2. Create diagnostic todo list
-3. Set up progress tracking (tool-based or text-based)
+1. Create diagnostic todo list
+2. Set up progress tracking (tool-based or text-based)
 
 **Progress Tracking Options**:
 - **IF** `update_todo_list` tool available → USE IT
 - **ELSE** → Use text-based format showing completed steps, current step, hypothesis confidence
 
 **Execution Loop (per step)**:
-1. **Present Purpose** - Why this check, which hypothesis it tests
-2. **Guide Action** - Clear procedures, safety precautions, normal values
-3. **Collect Result** - User's observation/measurement
+1. **Present Check Info** - What to inspect, expected values, significance
+2. **Wait for User Result** - User performs check independently
+3. **IF user asks for guidance** → Delegate to equipment-operation-assistant
 4. **Interpret Together** - Compare to standards, update confidence, decide next step
 
 **Dynamic Adjustments**:
 - Root cause >90% → Skip remaining routine checks
 - Unexpected result → Branch investigation
 - Result contradicts hypothesis → Eliminate and re-prioritize
-- User cannot perform → Offer alternative
+- User cannot perform → Delegate to equipment-operation-assistant
 
 **Completion Criteria**: All relevant hypotheses tested AND root cause >90% confidence AND user agrees
 
