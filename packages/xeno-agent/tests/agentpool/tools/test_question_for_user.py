@@ -6,6 +6,7 @@ from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from agentpool.tasks import RunAbortedError
 from mcp.types import ErrorData
 
 from xeno_agent.tools.question_for_user import (
@@ -357,7 +358,7 @@ def test_format_response_accept_multiple_questions():
 
 
 def test_format_response_cancel():
-    """Test formatting cancel action response."""
+    """Test formatting cancel action response raises RunAbortedError."""
     questions = [
         Question(
             header="Test",
@@ -370,16 +371,12 @@ def test_format_response_cancel():
     mock_result = MagicMock()
     mock_result.action = "cancel"
 
-    result = _format_response(questions, mock_result)
-    content = cast(str, result.content)
-    metadata: dict[str, list[list[str]]] = cast(dict[str, Any], result.metadata)
-
-    assert content == "User cancelled the questionnaire"
-    assert metadata["answers"] == []
+    with pytest.raises(RunAbortedError, match="cancelled"):
+        _format_response(questions, mock_result)
 
 
 def test_format_response_decline():
-    """Test formatting decline action response."""
+    """Test formatting decline action response raises RunAbortedError."""
     questions = [
         Question(
             header="Test",
@@ -392,12 +389,8 @@ def test_format_response_decline():
     mock_result = MagicMock()
     mock_result.action = "decline"
 
-    result = _format_response(questions, mock_result)
-    content = cast(str, result.content)
-    metadata: dict[str, list[list[str]]] = cast(dict[str, Any], result.metadata)
-
-    assert content == "User declined to complete the questionnaire"
-    assert metadata["answers"] == []
+    with pytest.raises(RunAbortedError, match="declined"):
+        _format_response(questions, mock_result)
 
 
 def test_format_response_error_data():
@@ -557,7 +550,7 @@ async def test_accept_response_multi():
 
 @pytest.mark.asyncio
 async def test_cancel_response():
-    """Test question_for_user with cancel action."""
+    """Test question_for_user with cancel action raises RunAbortedError."""
     mock_ctx = MagicMock()
     mock_ctx.handle_elicitation = AsyncMock()
 
@@ -566,17 +559,13 @@ async def test_cancel_response():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     xml = '<question header="Test"><text>Q</text><suggest>A</suggest></question>'
-    result = await question_for_user(mock_ctx, xml)
-    metadata: dict[str, list[list[str]]] = cast(dict[str, Any], result.metadata)
-    content = cast(str, result.content)
-
-    assert metadata["answers"] == []
-    assert "cancelled" in content.lower()
+    with pytest.raises(RunAbortedError, match="cancelled"):
+        await question_for_user(mock_ctx, xml)
 
 
 @pytest.mark.asyncio
 async def test_decline_response():
-    """Test question_for_user with decline action."""
+    """Test question_for_user with decline action raises RunAbortedError."""
     mock_ctx = MagicMock()
     mock_ctx.handle_elicitation = AsyncMock()
 
@@ -585,12 +574,8 @@ async def test_decline_response():
     mock_ctx.handle_elicitation.return_value = mock_result
 
     xml = '<question header="Test"><text>Q</text><suggest>A</suggest></question>'
-    result = await question_for_user(mock_ctx, xml)
-    metadata: dict[str, list[list[str]]] = cast(dict[str, Any], result.metadata)
-    content = cast(str, result.content)
-
-    assert metadata["answers"] == []
-    assert "declined" in content.lower()
+    with pytest.raises(RunAbortedError, match="declined"):
+        await question_for_user(mock_ctx, xml)
 
 
 @pytest.mark.asyncio

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from agentpool.agents.context import AgentContext
+from agentpool.tasks import RunAbortedError
 from agentpool.tools.base import ToolResult
 from mcp.types import ElicitRequestFormParams, ErrorData
 from pydantic_xml import BaseXmlModel, attr, element
@@ -175,15 +176,9 @@ def _format_response(questions: list[Question], result: Any) -> ToolResult:
             metadata={"answers": answers},
         )
     if action == "cancel":
-        return ToolResult(
-            content="User cancelled the questionnaire",
-            metadata={"answers": []},
-        )
+        raise RunAbortedError("User cancelled the questionnaire")
     if action == "decline":
-        return ToolResult(
-            content="User declined to complete the questionnaire",
-            metadata={"answers": []},
-        )
+        raise RunAbortedError("User declined to complete the questionnaire")
     raise RuntimeError(f"Unknown action: {action}")
 
 
