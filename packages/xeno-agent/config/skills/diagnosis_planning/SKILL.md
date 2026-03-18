@@ -1,14 +1,6 @@
 ---
 name: diagnosis-planning
-description: |
-  MANDATORY: Execute this skill BEFORE providing any diagnostic recommendations or field operation guidance.
-  For equipment diagnosis scenarios, comprehensive information research must precede all operational advice.
-  This skill enforces evidence-based diagnostic planning with full traceability to technical manuals,
-  knowledge bases, and verified sources. Creates detailed diagnostic roadmaps including failure analysis,
-  inspection procedures, standard values, troubleshooting flowcharts, technical diagrams, and schematics.
-  Use when equipment fault diagnosis is requested, troubleshooting procedures are needed, maintenance
-  planning is required, or ANY diagnostic guidance is to be provided. NEVER provide diagnostic steps
-  without first completing the full research workflow documented herein.
+description: MANDATORY - Execute before ANY diagnostic recommendations. Enforces evidence-based equipment fault diagnosis with full traceability to technical manuals and verified sources. Creates comprehensive diagnostic roadmaps with failure analysis, inspection procedures, standard values, troubleshooting flowcharts, and technical diagrams. Use when equipment fault diagnosis is requested, troubleshooting is needed, maintenance planning is required, or ANY diagnostic guidance is to be provided.
 ---
 
 # Diagnosis Planning Skill
