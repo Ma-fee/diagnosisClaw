@@ -11,7 +11,7 @@ storage:
   title_generation_model: "openai-chat:svc/kimi-k2"
 
 observability:
-  enabled: true
+  enabled: false
   provider:
     type: custom
     endpoint: "http://phoenix.ai.rootcloud.info/"

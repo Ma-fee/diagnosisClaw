@@ -60,22 +60,29 @@ class XenoDelegationProvider(StaticResourceProvider):
         new_task_schema = None
         attempt_completion_schema = None
         if schemas:
+            # Get config directory, fallback to current working directory
+            config_dir = CONFIG_DIR.get()
+
             if (new_task_schema_path := schemas.get("new_task")) is not None:
                 # Resolve path using CONFIG_DIR context (RFC-0009 compliant)
                 schema_path = Path(new_task_schema_path)
                 if not schema_path.is_absolute():
-                    config_dir = CONFIG_DIR.get()
                     if config_dir is not None:
                         schema_path = Path(str(config_dir)) / schema_path
+                    # If CONFIG_DIR is not set, try to resolve relative to config file location
+                    # by checking common config directory patterns
+                    elif (Path("config") / schema_path).exists():
+                        schema_path = Path("config") / schema_path
                 new_task_schema = load_tool_schema(str(schema_path))
 
             if (attempt_completion_schema_path := schemas.get("attempt_completion")) is not None:
                 # Resolve path using CONFIG_DIR context (RFC-0009 compliant)
                 schema_path = Path(attempt_completion_schema_path)
                 if not schema_path.is_absolute():
-                    config_dir = CONFIG_DIR.get()
                     if config_dir is not None:
                         schema_path = Path(str(config_dir)) / schema_path
+                    elif (Path("config") / schema_path).exists():
+                        schema_path = Path("config") / schema_path
                 attempt_completion_schema = load_tool_schema(str(schema_path))
 
         # Load schema overrides for delegation tools
@@ -295,14 +302,13 @@ class XenoDelegationProvider(StaticResourceProvider):
         )
         await ctx.events.emit_event(spawn_event)
 
+        _completion_emitted = False
         async for event in stream:
             match event:
-                # Track when attempt_completion is called and stop subagent execution
+                # Track when attempt_completion is called
                 case ToolCallStartEvent(tool_name="attempt_completion", raw_input=args):
                     # Capture the 'result' parameter from tool input
                     final_result = str(args.get("result", ""))
-                    # Stop subagent from continuing execution
-                    break
 
                 # Track when attempt_completion completes and capture final result
                 case ToolCallCompleteEvent(tool_name="attempt_completion", tool_result=completion_result):
@@ -316,8 +322,7 @@ class XenoDelegationProvider(StaticResourceProvider):
                             child_session_id=child_session_id,
                         ),
                     )
-                    # Stop subagent from continuing execution
-                    break
+                    _completion_emitted = True
 
                 # Handle SubAgentEvent wrapping - preserve child_session_id for navigation
                 case SubAgentEvent(
@@ -336,18 +341,17 @@ class XenoDelegationProvider(StaticResourceProvider):
 
                 # Capture final result from StreamCompleteEvent if attempt_completion wasn't used
                 case StreamCompleteEvent(message=final_message):  # type: ignore[reportAssignmentType, reportAttributeAccessIssue]
-                    if final_message and final_message.content:  # type: ignore[reportAttributeAccessIssue]
-                        final_result = str(final_message.content)  # type: ignore[reportAttributeAccessIssue]
-                    await ctx.events.emit_event(
-                        SubAgentEvent(
-                            source_name=target_agent,
-                            source_type=source_type,
-                            event=StreamCompleteEvent(message=ChatMessage(content=final_result, role="assistant")),
-                            child_session_id=child_session_id,
-                        ),
-                    )
-                    # Stop subagent from continuing execution
-                    break
+                    if not _completion_emitted:
+                        if final_message and final_message.content:  # type: ignore[reportAttributeAccessIssue]
+                            final_result = str(final_message.content)  # type: ignore[reportAttributeAccessIssue]
+                        await ctx.events.emit_event(
+                            SubAgentEvent(
+                                source_name=target_agent,
+                                source_type=source_type,
+                                event=StreamCompleteEvent(message=ChatMessage(content=final_result, role="assistant")),
+                                child_session_id=child_session_id,
+                            ),
+                        )
 
                 # Wrap other events with session tracking (RFC-0015)
                 case _:
@@ -359,11 +363,6 @@ class XenoDelegationProvider(StaticResourceProvider):
                         child_session_id=child_session_id,
                     )
                     await ctx.events.emit_event(subagent_event)
-        # except (GeneratorExit, asyncio.CancelledError):
-        #     # Stream was cancelled by break statement, which is expected behavior
-        #     # when attempt_completion is detected. This prevents cleanup code from
-        #     # running in a different async task context.
-        #     pass
 
         return final_result
 

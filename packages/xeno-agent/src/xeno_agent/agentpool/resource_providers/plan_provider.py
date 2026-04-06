@@ -14,9 +14,8 @@ from typing import TYPE_CHECKING, Any, Literal, cast, override
 from agentpool.agents.context import AgentContext
 from agentpool.agents.events import TextContentItem
 from agentpool.resource_providers import ResourceProvider
-from agentpool.resource_providers.plan_provider import PlanEntry
 from agentpool.tools.base import ToolResult
-from agentpool.utils.todos import TodoEntry, TodoStatus, TodoTracker
+from agentpool.utils.todos import PlanEntry, TodoEntry, TodoStatus, TodoTracker
 from agentpool_config.context import CONFIG_DIR
 from defusedxml.ElementTree import ParseError, fromstring
 
@@ -98,14 +97,18 @@ class XenoPlanProvider(ResourceProvider):
         super().__init__(name=name or "xeno_plan", owner=owner)
 
         # Extract update_todo_list schema path from schemas dictionary
+        config_dir = CONFIG_DIR.get()
+
         update_todo_list_schema_path = schemas.get("update_todo_list") if schemas else None
         if update_todo_list_schema_path:
             # Resolve path using CONFIG_DIR context (RFC-0009 compliant)
             schema_path = Path(update_todo_list_schema_path)
             if not schema_path.is_absolute():
-                config_dir = CONFIG_DIR.get()
                 if config_dir is not None:
                     schema_path = Path(str(config_dir)) / schema_path
+                # If CONFIG_DIR is not set, try to resolve relative to config file location
+                elif (Path("config") / schema_path).exists():
+                    schema_path = Path("config") / schema_path
             update_todo_list_schema_path = schema_path
 
         # Load schema override for update_todo_list tool

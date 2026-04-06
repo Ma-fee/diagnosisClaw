@@ -20,6 +20,7 @@ dependencies = [
     "anyio>=4.0.0",
     "defusedxml>=0.7.1",
     "pydantic-xml>=2.0.0",
+    "arize-phoenix>=13.21.0",
 ]
 
 [project.scripts]

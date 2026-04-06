@@ -52,6 +52,11 @@ vi .envrc  # 或使用其他编辑器
 
 # 如果使用 direnv，加载环境变量
 direnv allow
+
+# 如果不使用 direnv 加载环境变量
+source .envrc
+
+echo "OPENAI_BASE_URL: $OPENAI_BASE_URL" && echo "OPENAI_API_KEY: $OPENAI_API_KEY" && echo "OPENAI_MODEL_NAME: $OPENAI_MODEL_NAME" && echo "DEFAULT_LLM_MODEL: $DEFAULT_LLM_MODEL"
 ```
 
 #### 方法二：从项目根目录运行
@@ -109,14 +114,14 @@ uv run agentpool run --config config/diag-agent.yaml equipment_expert "分析这
 通过 ACP 协议暴露智能体，支持 Zed、Toad 等 IDE 集成：
 
 ```bash
-# 在 packages/xeno-agent 目录下运行
-cd packages/xeno-agent
+# 在 packages/xeno-agent/config 目录下运行
+cd packages/xeno-agent/config
 
-# 启动 ACP 服务器（使用 diag-agent.yaml 配置）
-uv run agentpool serve-acp config/diag-agent.yaml
+# 启动 ACP 服务器
+uv run agentpool serve-acp diag-agent.yaml
 
 # 或指定特定智能体
-uv run agentpool serve-acp config/diag-agent.yaml --agent fault_expert
+uv run agentpool serve-acp diag-agent.yaml --agent fault_expert
 ```
 
 然后在支持 ACP 的 IDE 中配置连接到本地的 ACP 服务器。
@@ -126,11 +131,11 @@ uv run agentpool serve-acp config/diag-agent.yaml --agent fault_expert
 启动 OpenCode 兼容的服务器：
 
 ```bash
-# 在 packages/xeno-agent 目录下运行
-cd packages/xeno-agent
+# 在 packages/xeno-agent/config 目录下运行
+cd packages/xeno-agent/config
 
-# 启动 OpenCode 服务器（默认端口 7162，使用 diag-agent.yaml 配置）
-uv run agentpool serve-opencode --config config/diag-agent.yaml --port 7162
+# 启动 OpenCode 服务器（默认端口 4096）
+uv run agentpool serve-opencode diag-agent.yaml --port 7162
 
 # 在另一个终端连接
 opencode attach http://127.0.0.1:7162

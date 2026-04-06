@@ -1,32 +1,61 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/Leoyzen/agentpool/b6fe25825d38d4490d9bf21b5f4b03ada33171c8/schema/config-schema.json
+default_agent: technical_assistant
 
-# Default/Primary agent for this configuration
-default_agent: fault_expert # Gateway agent is the primary entry point
-
-# Storage configuration - disable automatic title generation to avoid Google model requirement
 storage:
-  title_generation_model: "openai-chat:svc/glm-4.7"
+  title_generation_model: "openai-chat:Pro/zai-org/GLM-4.7"
 
 observability:
-  enabled: false
+  enabled: true
   provider:
     type: custom
-    endpoint: "http://phoenix.ai.rootcloud.info/"
+    endpoint: "http://localhost:4318"
     service_name: "agentpool"
     protocol: "http/protobuf"
 
-model_variants:
-  glm-4.7:
-    type: string
-    identifier: "openai-chat:svc/glm-4.7"
-
 agents:
-  # Fault Expert - Orchestrator/Diagnostician
+  technical_assistant:
+    type: native
+    model:
+      type: string
+      identifier: "openai-chat:Pro/zai-org/GLM-4.7"
+    description: |
+      General-purpose equipment technical assistant with intelligent routing capabilities.
+      Handles routine equipment inquiries, manual retrieval, parameter queries, and
+      basic technical Q&A. Automatically detects fault diagnosis scenarios and escalates
+      to systematic troubleshooting workflow when needed. Serves as the primary entry
+      point for all equipment-related interactions.
+    system_prompt:
+      - type: file
+        content: ""
+        path: "./prompts/roles/technical_assistant.j2"
+        variables:
+          LANG: "简体中文(zh-CN)"
+    tools:
+      - type: custom
+        import_path: xeno_agent.agentpool.resource_providers:QuestionForUserProvider
+        kw_args:
+          schemas:
+            question_for_user: ./tools/question_for_user.yaml
+      - type: skills
+      - type: custom
+        import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
+        kw_args:
+          enabled_tools: ["new_task"]
+          schemas:
+            new_task: ./tools/new_task_with_skills.yaml
+      - type: custom
+        import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
+        kw_args:
+          schemas:
+            update_todo_list: "./tools/update_todo_list.yaml"
+
   fault_expert:
     type: native
-    model: "openai-chat:svc/kimi-k2"
+    model:
+      type: string
+      identifier: "openai-chat:Pro/zai-org/GLM-4.7"
     description: |
-      Lead diagnostician responsible for fault analysis, hypothesis generation, diagnostic planning, and coordinating other experts.
+      Lead diagnostician responsible for fault analysis, hypothesis generation,
+      diagnostic planning, and coordinating other experts.
     system_prompt:
       - type: file
         content: ""
@@ -49,11 +78,11 @@ agents:
         variables:
           LANG: "简体中文(zh-CN)"
     tools:
-      - type: question
-        description: Ask the user a clarifying question with structured options.
-      # - type: subagent
-      # - type: workers
-      # - type: skills
+      - type: custom
+        import_path: xeno_agent.agentpool.resource_providers:QuestionForUserProvider
+        kw_args:
+          schemas:
+            question_for_user: ./tools/question_for_user.yaml
       - type: custom
         import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
         kw_args:
@@ -68,7 +97,9 @@ agents:
 
   equipment_expert:
     type: native
-    model: "openai-chat:svc/kimi-k2"
+    model:
+      type: string
+      identifier: "openai-chat:Pro/zai-org/GLM-4.7"
     description: |
       Equipment expert for analyzing equipment images,
       panels, diagrams, and providing hands-on guidance.
@@ -79,8 +110,11 @@ agents:
         variables:
           LANG: "简体中文(zh-CN)"
     tools:
-      - type: question
-        description: Ask the user a clarifying question with structured options.
+      - type: custom
+        import_path: xeno_agent.agentpool.resource_providers:QuestionForUserProvider
+        kw_args:
+          schemas:
+            question_for_user: ./tools/question_for_user.yaml
       - type: custom
         import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
         kw_args:
@@ -95,10 +129,13 @@ agents:
 
   material_assistant:
     type: native
-    model: "openai-chat:svc/kimi-k2"
+    model:
+      type: string
+      identifier: "openai-chat:Pro/zai-org/GLM-4.7"
     description: |
-      Material assistant for deep technical information retrieval
-      and document research.
+      Investigates specific topics deeply and generates structured reports. Output format
+      and organization are guided by domain-specific skills. Use when research-backed
+      documentation is needed; avoid for pure report generation without investigation.
     system_prompt:
       - type: file
         content: ""
@@ -114,15 +151,10 @@ agents:
         path: ./prompts/capabilities/search.j2
       - type: file
         content: ""
-        path: "./prompts/roles/material_assistant.j2"
+        path: "./prompts/roles/material_assistant_ng.j2"
         variables:
           LANG: "简体中文(zh-CN)"
-    # mcp_servers:
-    #   - type: streamable-http
-    #     url: "http://10.147.254.3:8721/mcp"
-    #     enabled_tools: ["search_database"]
     tools:
-      # - type: skills
       - type: custom
         import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
         kw_args:
