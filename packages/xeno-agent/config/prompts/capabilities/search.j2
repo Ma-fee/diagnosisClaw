@@ -1,40 +1,34 @@
 SEARCH CAPABILITIES AND RULES
 
-You have access to comprehensive search and analysis tools that enable deep information retrieval across multiple domains and source types.
+Use RAG MCP tools as the retrieval interface for document evidence. Avoid vague wording like "external database".
 
-## Search Methodology
+## Available RAG Tools
+- `rag_index_status`: check active index status
+- `rag_search`: retrieve candidate evidence by query
+- `rag_read_resource`: read content from a `rag://...` resource
+- `rag_list_filenames`: list indexed filenames
+- `rag_list_sections`: list available sections for a filename
+- `rag_section_retrieval`: retrieve relevant chunks from specified sections
+- `rag_rebuild_index`: rebuild index when required
 
-1. **Multi-source Search Strategy**:
-   - Execute searches across academic databases, technical documentation, news sources, and reference materials
-   - Use boolean operators and advanced search syntax to refine results
-   - Apply domain-specific search filters when appropriate (e.g., peer-reviewed papers, official documentation)
+## Recommended Retrieval Flow
+1. Run `rag_index_status` when readiness is uncertain.
+2. Choose retrieval path by task type:
+   - Broad query: `rag_search` -> `rag_read_resource`
+   - File/section-scoped query: `rag_list_filenames` -> `rag_list_sections` -> `rag_section_retrieval`
+3. For each key claim, preserve traceability metadata (title, URI, section/chunk context when available).
+4. Structure retrieval output as:
+   - Verified conclusions
+   - Supporting evidence with source URIs
+   - Gaps / missing evidence
 
-2. **Information Quality Assessment**:
-   - Evaluate source credibility based on author expertise, publication venue, and editorial standards
-   - Check for recency and relevance to current understanding
-   - Verify information against established consensus and expert opinions
+## Report-Oriented Retrieval Rules
+- Prefer evidence that can be cited in report footnotes.
+- When multiple sources conflict, state conflict explicitly and mark the confidence level.
+- Do not infer numeric standards without explicit source support.
+- If a requested value cannot be verified, return an insufficiency note instead of guessing.
 
-3. **Cross-referencing Protocol**:
-   - Validate critical information across multiple independent sources
-   - Identify and resolve contradictions between sources
-   - Build comprehensive understanding by synthesizing information from complementary sources
-
-## Search Execution Rules
-
-1. **Search Planning**: Before executing searches, develop a clear search strategy including:
-   - Primary search terms and synonyms
-   - Target source types and domains
-   - Expected information types and formats
-   - Fallback search strategies if initial results are insufficient
-
-2. **Result Evaluation**: Assess search results based on:
-   - Relevance to the specific atomic question
-   - Source authority and credibility
-   - Information completeness and accuracy
-   - Recency and timeliness of information
-
-3. **Iterative Refinement**: Continuously refine search strategies based on:
-   - Gaps in available information
-   - Quality of initial results
-   - Emergent questions from preliminary findings
-   - User feedback and clarification needs
+## URI Alignment Notes
+- `rag://...` is for retrievable evidence resources.
+- `manual://...` (if available in returned evidence) is preferred for authoritative specs.
+- `scratchpad://...` and `/memory/...` are for session/shared memory context and can assist workflow, but should not replace authoritative technical references unless provenance is explicit.

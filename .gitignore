@@ -370,5 +370,19 @@ fabric.properties
 # Data directories (anywhere in the tree)
 **/data/
 
-# AI
-**/.sisyphus
+
+# Local/private working notes
+.swp
+opencode bash.txt
+pane_output.txt
+resume_project_update.md
+resume_project_update_ai_algorithm.md
+packages/xeno-agent/.runtime/
+
+# Local private markdown/spec/plan notes
+0006-agentpool-harness*.md
+0007-agentpool-harness*.md
+docs/superpowers/specs/
+packages/xeno-agent/docs/interview/
+packages/bug-records/
+packages/xeno-agent/equipment_parameters.md

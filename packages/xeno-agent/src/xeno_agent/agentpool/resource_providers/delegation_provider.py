@@ -41,6 +41,8 @@ class XenoDelegationProvider(StaticResourceProvider):
         name: str = "delegation",
         schemas: dict[str, str] | None = None,
         enabled_tools: list[str] | None = None,
+        allowed_modes: list[str] | None = None,
+        fresh_session: bool = False,
     ) -> None:
         """Initialize the delegation provider.
 
@@ -53,8 +55,13 @@ class XenoDelegationProvider(StaticResourceProvider):
             enabled_tools: Optional list of tools to enable. If None or empty, all tools are enabled.
                 Expected values: "new_task", "attempt_completion"
                 Example: ["new_task"] for main agent, ["attempt_completion"] for subagent
+            allowed_modes: Optional whitelist of agent modes exposed through new_task.
+                If omitted, all pool agents except the current one are available.
+            fresh_session: Whether delegated runs should force a fresh child session.
         """
         super().__init__(name=name)
+        self.allowed_modes = allowed_modes
+        self.fresh_session = fresh_session
 
         # Extract schema paths from schemas dictionary
         new_task_schema = None
@@ -84,6 +91,9 @@ class XenoDelegationProvider(StaticResourceProvider):
                     elif (Path("config") / schema_path).exists():
                         schema_path = Path("config") / schema_path
                 attempt_completion_schema = load_tool_schema(str(schema_path))
+
+        self._new_task_schema_override = new_task_schema
+        self._attempt_completion_schema_override = attempt_completion_schema
 
         # Load schema overrides for delegation tools
         # Pass full schema to create_tool
@@ -118,6 +128,52 @@ class XenoDelegationProvider(StaticResourceProvider):
                 ),
             )
 
+    def _get_allowed_mode_names(
+        self,
+        pool,
+        current_agent_name: str | None = None,
+    ) -> list[str]:
+        """Return available target mode names after self/whitelist filtering."""
+        allowed = set(self.allowed_modes) if self.allowed_modes else None
+        mode_names: list[str] = []
+
+        for name in pool.nodes:
+            if name == current_agent_name:
+                continue
+            if allowed is not None and name not in allowed:
+                continue
+            mode_names.append(name)
+
+        return mode_names
+
+    def _validate_target_mode(
+        self,
+        target_agent: str,
+        available_modes: list[str],
+    ) -> None:
+        """Validate delegated target mode against the provider whitelist."""
+        if self.allowed_modes is None or target_agent in available_modes:
+            return
+
+        allowed = ", ".join(available_modes) if available_modes else "(none)"
+        raise ToolError(
+            f"Delegation to agent '{target_agent}' is not allowed. Allowed modes: {allowed}"
+        )
+
+    def _format_delegation_failure_result(
+        self,
+        target_agent: str,
+        error: Exception,
+    ) -> str:
+        """Format delegated worker failures as a result the parent agent can reason over."""
+        return (
+            "DELEGATION_STATUS: FAILED\n"
+            f"AGENT: {target_agent}\n"
+            f"ERROR: {error}\n"
+            "NEXT_STEP: Continue with your own domain knowledge, explicitly marking "
+            "missing evidence, unavailable standards, and assumptions."
+        )
+
     async def prepare_new_task(
         self,
         ctx: RunContext[AgentContext],
@@ -133,11 +189,12 @@ class XenoDelegationProvider(StaticResourceProvider):
             The customized tool definition
         """
         # Handle case where ctx.deps is None (e.g., during tool registration/setup)
-        if not ctx.deps or not ctx.deps.pool:
+        if ctx.deps is None or ctx.deps.pool is None:
             return tool_def
 
         pool = ctx.deps.pool
         current_agent_name = ctx.deps.node.name if ctx.deps.node else None
+        available_modes = self._get_allowed_mode_names(pool, current_agent_name)
 
         # Strip existing # Available Modes: section from tool_def.description
         description = tool_def.description or ""
@@ -146,9 +203,8 @@ class XenoDelegationProvider(StaticResourceProvider):
 
         # Iterate pool.nodes, skipping the current agent
         modes_section = "\n\n# Available Modes:"
-        for name, node in pool.nodes.items():
-            if name == current_agent_name:
-                continue
+        for name in available_modes:
+            node = pool.nodes[name]
 
             # Appends available agents and their descriptions to the tool description
             node_description = getattr(node, "description", "") or ""
@@ -192,10 +248,12 @@ class XenoDelegationProvider(StaticResourceProvider):
     async def new_task(
         self,
         ctx: AgentContext,
-        mode: str,
-        message: str,
+        mode: str | None = None,
+        message: str | None = None,
         expected_output: str = "",
         load_skills: list[str] | None = None,
+        agent_name: str | None = None,
+        task: str | None = None,
     ) -> str:
         """Delegate a task to another agent.
 
@@ -205,13 +263,15 @@ class XenoDelegationProvider(StaticResourceProvider):
             message: The task description
             expected_output: Description of the expected output
             load_skills: Optional list of skill names to load and include as instructions for the subagent
+            agent_name: Legacy alias for mode
+            task: Legacy alias for message
 
         Returns:
             The result of the delegated task
         """
         # Handle parameter name compatibility: use RFC parameters if provided, otherwise use legacy parameters
-        resolved_agent_name = mode
-        resolved_task = message
+        resolved_agent_name = mode or agent_name
+        resolved_task = message or task
         # resolved_expected_output = expected_output
         # Note: Use task_description (not message) to avoid name collision with StreamCompleteEvent.message
 
@@ -238,6 +298,10 @@ class XenoDelegationProvider(StaticResourceProvider):
         # Get agent from pool
         if ctx.pool is None:
             raise ToolError("No agent pool available")
+
+        current_agent_name = ctx.node.name if ctx.node else None
+        available_modes = self._get_allowed_mode_names(ctx.pool, current_agent_name)
+        self._validate_target_mode(target_agent, available_modes)
 
         if target_agent not in ctx.pool.nodes:
             available = ", ".join(ctx.pool.nodes.keys())
@@ -266,7 +330,10 @@ class XenoDelegationProvider(StaticResourceProvider):
             if skills_manager:
                 skills_content = await self._format_skills_instructions(skills_manager, load_skills)
 
-        formatted_prompt = f"""<task>\n\n{target_task}\n</task>\n\n<expected_output>\n\n{expected_output}\n\n</expected_output>"""
+        formatted_prompt = (
+            f"<task>\n{target_task}\n</task>\n\n"
+            f"<expected_output>\n{expected_output}\n</expected_output>"
+        )
         # Format prompt with skills prepended
         if skills_content:
             formatted_prompt = f"{skills_content}\n\n" + formatted_prompt
@@ -284,7 +351,11 @@ class XenoDelegationProvider(StaticResourceProvider):
 
         # try:
         # Run subagent stream
-        stream = node.run_stream(formatted_prompt, deps=new_deps)
+        run_stream_kwargs = {"deps": new_deps}
+        run_stream_kwargs["input_provider"] = ctx.get_input_provider()
+        if self.fresh_session:
+            run_stream_kwargs["session_id"] = child_session_id
+        stream = node.run_stream(formatted_prompt, **run_stream_kwargs)
 
         # Emit SpawnSessionStart before streaming begins (RFC-0014)
         spawn_event = SpawnSessionStart(
@@ -303,47 +374,18 @@ class XenoDelegationProvider(StaticResourceProvider):
         await ctx.events.emit_event(spawn_event)
 
         _completion_emitted = False
-        async for event in stream:
-            match event:
-                # Track when attempt_completion is called
-                case ToolCallStartEvent(tool_name="attempt_completion", raw_input=args):
-                    # Capture the 'result' parameter from tool input
-                    final_result = str(args.get("result", ""))
+        try:
+            async for event in stream:
+                match event:
+                    # Track when attempt_completion is called
+                    case ToolCallStartEvent(tool_name="attempt_completion", raw_input=args):
+                        # Capture the 'result' parameter from tool input
+                        final_result = str(args.get("result", ""))
 
-                # Track when attempt_completion completes and capture final result
-                case ToolCallCompleteEvent(tool_name="attempt_completion", tool_result=completion_result):
-                    # Capture the final result from the completed tool call
-                    final_result = str(completion_result) if completion_result else ""
-                    await ctx.events.emit_event(
-                        SubAgentEvent(
-                            source_name=target_agent,
-                            source_type=source_type,
-                            event=StreamCompleteEvent(message=ChatMessage(content=final_result, role="assistant")),
-                            child_session_id=child_session_id,
-                        ),
-                    )
-                    _completion_emitted = True
-
-                # Handle SubAgentEvent wrapping - preserve child_session_id for navigation
-                case SubAgentEvent(
-                    source_name=source_name,
-                    source_type=source_type,
-                    event=inner_event,
-                    child_session_id=inner_child_session_id,
-                ):
-                    nested_event = SubAgentEvent(
-                        source_name=source_name,
-                        source_type=source_type,
-                        event=inner_event,
-                        child_session_id=inner_child_session_id or child_session_id,
-                    )
-                    await ctx.events.emit_event(nested_event)
-
-                # Capture final result from StreamCompleteEvent if attempt_completion wasn't used
-                case StreamCompleteEvent(message=final_message):  # type: ignore[reportAssignmentType, reportAttributeAccessIssue]
-                    if not _completion_emitted:
-                        if final_message and final_message.content:  # type: ignore[reportAttributeAccessIssue]
-                            final_result = str(final_message.content)  # type: ignore[reportAttributeAccessIssue]
+                    # Track when attempt_completion completes and capture final result
+                    case ToolCallCompleteEvent(tool_name="attempt_completion", tool_result=completion_result):
+                        # Capture the final result from the completed tool call
+                        final_result = str(completion_result) if completion_result else ""
                         await ctx.events.emit_event(
                             SubAgentEvent(
                                 source_name=target_agent,
@@ -352,17 +394,59 @@ class XenoDelegationProvider(StaticResourceProvider):
                                 child_session_id=child_session_id,
                             ),
                         )
+                        _completion_emitted = True
 
-                # Wrap other events with session tracking (RFC-0015)
-                case _:
-                    subagent_event = SubAgentEvent(
-                        source_name=target_agent,
+                    # Handle SubAgentEvent wrapping - preserve child_session_id for navigation
+                    case SubAgentEvent(
+                        source_name=source_name,
                         source_type=source_type,
-                        event=event,
-                        depth=current_depth + 1,
-                        child_session_id=child_session_id,
-                    )
-                    await ctx.events.emit_event(subagent_event)
+                        event=inner_event,
+                        child_session_id=inner_child_session_id,
+                    ):
+                        nested_event = SubAgentEvent(
+                            source_name=source_name,
+                            source_type=source_type,
+                            event=inner_event,
+                            child_session_id=inner_child_session_id or child_session_id,
+                        )
+                        await ctx.events.emit_event(nested_event)
+
+                    # Capture final result from StreamCompleteEvent if attempt_completion wasn't used
+                    case StreamCompleteEvent(message=final_message):  # type: ignore[reportAssignmentType, reportAttributeAccessIssue]
+                        if not _completion_emitted:
+                            if final_message and final_message.content:  # type: ignore[reportAttributeAccessIssue]
+                                final_result = str(final_message.content)  # type: ignore[reportAttributeAccessIssue]
+                            await ctx.events.emit_event(
+                                SubAgentEvent(
+                                    source_name=target_agent,
+                                    source_type=source_type,
+                                    event=StreamCompleteEvent(message=ChatMessage(content=final_result, role="assistant")),
+                                    child_session_id=child_session_id,
+                                ),
+                            )
+
+                    # Wrap other events with session tracking (RFC-0015)
+                    case _:
+                        subagent_event = SubAgentEvent(
+                            source_name=target_agent,
+                            source_type=source_type,
+                            event=event,
+                            depth=current_depth + 1,
+                            child_session_id=child_session_id,
+                        )
+                        await ctx.events.emit_event(subagent_event)
+        except Exception as error:
+            final_result = self._format_delegation_failure_result(target_agent, error)
+            await ctx.events.emit_event(
+                SubAgentEvent(
+                    source_name=target_agent,
+                    source_type=source_type,
+                    event=StreamCompleteEvent(
+                        message=ChatMessage(content=final_result, role="assistant")
+                    ),
+                    child_session_id=child_session_id,
+                ),
+            )
 
         return final_result
 

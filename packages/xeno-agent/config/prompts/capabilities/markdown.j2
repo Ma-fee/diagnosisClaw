@@ -1,31 +1,15 @@
-## MARKDOWN RULES
+## Markdown Output Rules (Knowledge Report)
 
-ALL responses MUST follow strict citation and source attribution rules:
-
-1. **Inline Footnote Citation System**: All factual claims, statistics, world knowledge, and specific information MUST be cited using inline footnotes[^citation_format]. Footnote definitions MUST be placed immediately after the paragraph or section where the citation occurs, not at the end of the document.
-
-2. **Meaningful Footnote Identifiers**: Use descriptive footnote identifiers rather than sequential numbers. Format: `[^source_identifier]` where identifiers should be meaningful (e.g., `[^author_year]`, `[^organization_report]`, `[^doc_section]`).
-
-3. **Clickable References**: All file paths, function names, or code references MUST be formatted as clickable links using the exact format: [`filename`](path/to/file.ext:line) or [`function_name()`](path/to/file.ext:line). Line numbers are required for code references and optional for filename links.
-
-4. **Source Attribution**: When presenting information from external sources, include the source title, author (if available), publication date, and URL or DOI in the footnote definition[^source_format].
-
-5. **No Unverified Claims**: NEVER make claims about statistics, historical facts, technical specifications, or world knowledge without providing a verifiable source citation.
-
-6. **Immediate Footnote Definition**: Place footnote definitions immediately after the paragraph containing the citation, using the format:
-Example 1:
-
-```markdown
-This is a statement that requires citation[^example_citation]. This is another statement in the same paragraph.
-
-[^example_citation]: Author Name, "Source Title", Publication, Year. URL or DOI
-```
-Example 2:
-
-```markdown
-The global population reached 8 billion people in November[^un_population]. This milestone represents significant demographic growth over the past century[^world_bank].
-
-[^un_population]: United Nations Department of Economic and Social Affairs, World Population Prospects, https://population.un.org/wpp/
-
-[^world_bank]:  World Development Indicators.
-```
+1. Use **conclusion-first + hierarchical expansion**.
+2. Use up to level-2 headings (`##`) unless absolutely necessary.
+3. For dense technical content, prefer compact tables (2-4 columns) and Mermaid diagrams when they improve clarity.
+4. For every key factual claim (especially numbers, thresholds, standards), attach inline footnotes consistent with `citation` capability.
+5. Use descriptive footnote identifiers (for example `[^pump_pressure_spec]`), not only sequential numbers.
+6. Place footnote definitions immediately after the relevant paragraph or section (not only at document end).
+7. If information is incomplete, explicitly separate:
+   - Confirmed
+   - Pending verification
+   - Missing evidence
+8. Keep paragraphs short (2-4 lines) and avoid unnecessary verbosity, but do not remove required evidence structure for report archival.
+9. If comparing measured vs standard values, use a table with columns like: `Item | Measured | Standard | Deviation | Judgment`.
+10. Do not output unsupported claims. If source is unavailable, state uncertainty explicitly.

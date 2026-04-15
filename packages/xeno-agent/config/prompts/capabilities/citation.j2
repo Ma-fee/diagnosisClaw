@@ -1,90 +1,44 @@
-# INFORMATION VERIFICATION AND SOURCING RULES
+# Citation Capability (Report-Grade)
 
-Maintain rigorous standards for information accuracy and source attribution:
+## Core Principle
+- This system is used to produce knowledge reports. Keep citations explicit, traceable, and stable.
+- Use inline footnotes for factual claims that affect technical judgment, operations, or safety.
 
-## Citation Format (Footnote Style)
+## Mandatory Citation Scope
+You MUST cite:
+- Equipment parameters, thresholds, setpoints, alarm conditions
+- Standard values, measured comparisons, and pass/fail criteria
+- Maintenance/repair prerequisites and sequence constraints
+- Vendor conclusions, case IDs, statistics, and historical references
+- Any statement derived from retrieved material rather than direct user input
 
-**Standard Format**:
+## Optional Citation Scope
+Citation is optional for:
+- Pure transition language
+- High-level process narration without factual claims
+
+## Footnote Format (Required)
+Use descriptive identifiers and immediate definitions.
+
 ```markdown
-Inline citation: [^1]
+Main relief pressure is 34.3 MPa[^sy215c_main_relief].
 
-Footer reference (link format for better rendering):
-[^1]: [Source Description Text](source-uri)
+[^sy215c_main_relief]: [SY215C Hydraulic Specification - Main Relief Valve](manual:///06968e4e-8a3a-7584-8000-22b4b2f7433e)
 ```
 
-**Examples**:
+## URI and Source Mapping
+- `manual://...` → authoritative manual/spec source (preferred)
+- `rag://...` → retrieved content resource (acceptable with traceable title)
+- `https://...` → verifiable external source (when in-system source is unavailable)
+- `scratchpad://...` and `/memory/...` → workflow memory/state references, not primary authority for technical facts unless provenance is explicitly shown
 
-```markdown
-发动机怠速转速应为 650-750 RPM[^1]。
+## Source Priority
+1. `manual://...`
+2. `rag://...`
+3. Verifiable `https://...`
 
-[^1]: [三一 SY215C 维修手册 - 发动机规格 3.2](manual:///06968e4e-8a3a-7584-8000-22b4b2f7433e)
-```
-
-```markdown
-液压系统压力异常时优先检查溢流阀[^case_001]。
-
-[^case_001]: [挖掘机液压过热故障案例 #2023-001 现场报告](manual:///case-2023-001)
-```
-
-**Link Format Benefits**:
-- Description text is clickable
-- URI is hidden but accessible
-- Better readability in rendered output
-- Supports standard Markdown link behavior
-
-## URI Formats from Knowledge Base
-
-Knowledge base returns records with these URI schemes:
-
-| URI Scheme | Format | Example | Source Type |
-|------------|--------|---------|-------------|
-| `manual://` | `manual://{uuid}` | `manual:///06968e4e-...` | Local technical manuals |
-| `https://` | `https://...` | `https://kb.rootcloud.info/...` | Web-retrieved resources |
-
-**Use available fields**: When citing, use `title` and `uri` fields directly from knowledge base records.
-
-## When to Cite
-
-**ALWAYS cite**:
-- Equipment specifications and technical parameters
-- Failure statistics and case data
-- Manufacturer procedures and standard values
-- Historical precedents and benchmarks
-
-**RECOMMENDED cite**:
-- Industry standards and codes
-- Procedures and best practices
-- Interpretations of technical data
-
-**Place citations**: Immediately after factual claim, not at end of document.
-
-## Source Hierarchy
-
-1. **Primary**: Manufacturer manuals (`manual://`), original documentation
-2. **Secondary**: Case databases, authorized service guides
-3. **Tertiary**: Technical references, expert analysis
-
-## Missing Source Handling
-
-When source available but no web URL:
-```markdown
-压力值参考维修手册第三章[^1]。
-
-[^1]: [三一 SY215C 维修手册 - 第三章](manual:///06968e4e...)  
-  *(通过手册编号 SY215C-MAN-CH3 定位)*
-```
-
-## Quality Standards
-
-- [ ] All numerical specifications have citations
-- [ ] All manufacturer recommendations cite source
-- [ ] Case references include case ID and URI
-- [ ] Place references at first mention (not document end)
-- [ ] Use clickable link format: `[title](uri)`
-
-## Verification Hierarchy
-
-1. **Primary Sources**: Original research, official documentation, manufacturer manuals
-2. **Secondary Sources**: Reviews, analyses, case studies
-3. **Tertiary Sources**: Encyclopedias, textbooks
-4. **Unverified Sources**: Forums, blogs (context only, never for facts)
+## Quality Floor
+- Never fabricate source title, URI, section, date, or publisher
+- Prefer one citation per numeric claim when practical
+- If evidence is incomplete, explicitly state: `insufficient evidence / missing authoritative source`
+- Keep citation density high enough for auditability in archived reports
