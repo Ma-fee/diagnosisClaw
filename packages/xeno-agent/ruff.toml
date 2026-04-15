@@ -1,0 +1,69 @@
+line-length = 180
+target-version = 'py313'
+exclude = ['build', ]
+
+[format]
+quote-style = "double"
+
+[lint]
+ignore = [
+    'B006', # 学 Python 啦！
+    'C408',  # 不必要的 dict/list 调用
+    'COM819',  # 尾随逗号超棒的
+    'E731',  # 不要赋值给 lambda
+    'ERA001', 'T201', # 开发期间注释代码，打印语句可以放松点
+    'G004', # 日志格式字符串不应该使用 f-string
+    'RET503', # 没有显式返回 None (所有其他规则都是关于删除像这样的不必要的东西)
+    'RUF012', # 可变类属性应该用 typing.ClassVar 注释
+    'S101', # assert 使用
+    'S311', # 标准伪随机生成器不适用于安全/加密目的
+    'SIM108', # 不喜欢三元运算符
+    'SIM300', # 尤达比你更聪明！
+    'TRY003',  # 避免在异常类之外使用长消息
+    'RUF001',  # string 异常
+    'RUF002',
+    'RUF003',  # 不要重新引发异常而不保留原
+    #'TRY004',  # 使用 TypeError 而不是 ValueError
+    'TRY301',  # 抽象 raise 垃圾
+]
+select = [
+    'A',  # flake8-builtins
+    'ASYNC', # https://docs.astral.sh/ruff/rules/#flake8-async-async
+    'B',  # flake8-bugbear
+    'BLE', # flake8-blind-except
+    'C4',  # 不必要的推导式，map()
+    'COM',  # flake8-commas
+    'DTZ', # flake8-datetimez
+    'E',  # pycodestyle
+    'ERA',  # 没有注释掉的代码
+    'EXE', # flake8-executable
+    'F',  # pyflakes
+    'FLY',  # flynt
+    'G',  # flake8-logging-format
+    'I',  # isort
+    'ICN', # https://github.com/joaopalmeiro/flake8-import-conventions
+    'ISC', # https://pypi.org/project/flake8-implicit-str-concat/
+    'LOG', # flake8-logging
+    'PERF', # perflint
+    'PIE', # https://pypi.org/project/flake8-pie/
+    'PLC',  # Pylint 约定
+    'PLE',  # Pylint 错误
+    'PLW',  # Pylint 警告
+    'PT',  # https://pypi.org/project/flake8-pytest-style/
+    'PTH',  # flake8 使用 pathlib
+    'RET', # https://pypi.org/project/flake8-return/
+    'RUF',  # Ruff 规则
+    'S',  # https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+    'SIM',  # https://pypi.org/project/flake8-simplify/
+    'T',  # flake8-debugger
+    'TRY',  # tryceratops
+    'UP',  # pyupgrade
+    'W',  # pycodestyle
+    #'ARG',  # flake8 未使用的参数 (没啥用，未使用的函数参数很常见，没问题)
+    #'D',  # pydocstyle (太多了)
+    #'N',  # pep8-naming (太主观了)
+    #'NPY', # numpy
+    #'PD', # pandas
+    #'PL',  # 完整的 Pylint (太多了)
+    #'PLR',  # Pylint 重构 (太多/太主观了)
+]

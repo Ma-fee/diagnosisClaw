@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10,<=3.13"
-dependencies = []
+dependencies = [
+    "arize-phoenix>=13.20.0",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -51,6 +53,8 @@ format = "flat"
 
 [dependency-groups]
 dev = [
+    "defusedxml>=0.8.0rc2",
     "pre-commit>=4.5.0",
+    "pytest-cov>=7.0.0",
     "ruff>=0.14.6",
 ]

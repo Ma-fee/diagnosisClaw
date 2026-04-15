@@ -1,0 +1,33 @@
+MARKDOWN RULES
+
+ALL responses MUST follow strict citation and source attribution rules:
+
+1. **Inline Footnote Citation System**: All factual claims, statistics, world knowledge, and specific information MUST be cited using inline footnotes[^citation_format]. Footnote definitions MUST be placed immediately after the paragraph or section where the citation occurs, not at the end of the document.
+
+2. **Meaningful Footnote Identifiers**: Use descriptive footnote identifiers rather than sequential numbers. Format: `[^source_identifier]` where identifiers should be meaningful (e.g., `[^author_year]`, `[^organization_report]`, `[^doc_section]`).
+
+3. **Clickable References**: All file paths, function names, or code references MUST be formatted as clickable links using the exact format: [`filename`](path/to/file.ext:line) or [`function_name()`](path/to/file.ext:line). Line numbers are required for code references and optional for filename links.
+
+4. **Source Attribution**: When presenting information from external sources, include the source title, author (if available), publication date, and URL or DOI in the footnote definition[^source_format].
+
+5. **No Unverified Claims**: NEVER make claims about statistics, historical facts, technical specifications, or world knowledge without providing a verifiable source citation.
+
+6. **Immediate Footnote Definition**: Place footnote definitions immediately after the paragraph containing the citation, using the format:
+Example 1:
+
+```markdown
+This is a statement that requires citation[^example_citation]. This is another statement in the same paragraph.
+
+[^example_citation]: Author Name, "Source Title", Publication, Year. URL or DOI
+```
+Example 2:
+
+```markdown
+The global population reached 8 billion people in November[^un_population]. This milestone represents significant demographic growth over the past century[^world_bank].
+
+[^un_population]: United Nations Department of Economic and Social Affairs, World Population Prospects, https://population.un.org/wpp/
+
+[^world_bank]:  World Development Indicators.
+```
+
+Critical constraint: 不得虚构任何来源信息（包括机构名称、文档名称、发布年份、章节编号、URL/DOI 等），所有引用必须基于真实可追溯的资料。

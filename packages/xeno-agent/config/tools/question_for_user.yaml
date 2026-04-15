@@ -1,0 +1,144 @@
+description: |-
+  Tool for asking multiple structured questions to users in a single interaction.
+
+  Enables collecting complex, multi-field data through a questionnaire format with various question types (enum, multi-select, text input).
+
+  ### **When to Use This Tool**
+
+  **Use this tool when you need to collect multiple pieces of related information from the user at once.**
+
+  **Scenarios requiring mandatory use:**
+
+  1. **Multi-Field Information Collection**
+     - Need to gather several related data points in one interaction
+     - Example: Equipment model, operating hours, fault symptoms, and maintenance history
+
+  2. **Structured Data Entry**
+     - User input follows a predefined schema with multiple fields
+     - Example: Service report form with location, equipment ID, issue type, and priority
+
+  3. **Complex Option Selection**
+     - Multiple questions with different option types (single choice, multi-choice, free text)
+     - Example: Diagnostic questionnaire with conditional follow-ups
+
+  4. **Wizard-Style Data Collection**
+     - Step-by-step guided data entry with validation
+     - Example: Equipment registration with serial number, model, purchase date
+
+
+
+  ### **Usage Guidelines**
+
+  1. **Order Matters**: Questions are presented in the order they appear in XML
+  2. **Group Related Fields**: Keep related questions together in a single questionnaire
+  3. **Minimize Question Count**: Include 1-5 questions per call for better UX
+  4. **Provide Options**: For enum/multi types, provide 2-6 well-defined options
+  5. **Use Descriptions**: Add descriptions to suggest options for clarity
+  6. **Validation**: Use `required="false"` for optional fields sparingly
+
+  ### **Common Pitfalls to Avoid**
+
+  - ❌ Asking unrelated questions in the same questionnaire
+  - ❌ Using generic headers that don't describe the field
+  - ❌ Providing only one option for enum questions
+  - ❌ Nesting XML incorrectly (ensure proper closing tags)
+  - ❌ Using special XML characters without proper escaping
+
+name: question_for_user
+parameters:
+  type: object
+  properties:
+    questionnaire:
+      type: string
+      description: |-
+        XML-formatted questionnaire containing structured questions.
+
+        **MUST be wrapped in `<questions>` tag** containing one or more `<question>` elements.
+        Each question can have suggest options with descriptions, input types, and actions.
+
+        ```xml
+        <questions>
+          <question header="Field Label" type="enum|multi|input" required="true|false">
+            <text>Question text displayed to user</text>
+            <suggest description="Option explanation" type="choice|input|fill" next_action="tool_name">
+              Option text
+            </suggest>
+            ...
+          </question>
+          ...
+        </questions>
+        ```
+
+        #### Question Attributes
+
+        - **header** (required): Short label/field name for the question
+        - **type** (required): Question type
+          - `enum`: Single choice from options (radio buttons)
+          - `multi`: Multiple choice selection (checkboxes)
+          - `input`: Free text input field
+        - **required** (optional): Whether answer is mandatory, defaults to `true`
+
+        #### Suggest Attributes
+
+        - **description** (optional): Detailed explanation of the option shown as tooltip/subtitle
+        - **type** (optional): Option behavior type
+          - `choice`: Standard selectable option (default)
+          - `input`: Opens text input for free-form entry
+          - `fill`: Pre-filled template for structured data entry
+        - **next_action** (optional): Tool name to auto-trigger after selection (e.g., `"update_todo_list"`, `"attempt_completion"`)
+
+        ### **Examples**
+
+        #### Example 1: Equipment Information (enum + input)
+        ```xml
+        <questions>
+          <question header="Model" type="enum" required="true">
+            <text>What equipment model are you working with?</text>
+            <suggest description="21.5 ton excavator">SY215C</suggest>
+            <suggest description="36.5 ton excavator">SY365H</suggest>
+            <suggest type="input">Other model</suggest>
+          </question>
+          <question header="Operating Hours" type="input" required="true">
+            <text>What is the current operating hour reading?</text>
+          </question>
+        </questions>
+        ```
+
+        #### Example 2: Fault Symptoms (multi-select)
+        ```xml
+        <questions>
+          <question header="Symptoms" type="multi" required="true">
+            <text>Select all symptoms observed:</text>
+            <suggest description="Dark exhaust smoke">Black smoke</suggest>
+            <suggest description="Reduced engine power">Power loss</suggest>
+            <suggest description="Unusual noise from engine">Abnormal noise</suggest>
+            <suggest description="Engine temperature high">Overheating</suggest>
+          </question>
+        </questions>
+        ```
+
+        #### Example 3: Service Report (mixed types)
+        ```xml
+        <questions>
+          <question header="Service Type" type="enum" required="true">
+            <text>What type of service is required?</text>
+            <suggest>Scheduled maintenance</suggest>
+            <suggest>Repair</suggest>
+            <suggest>Inspection</suggest>
+            <suggest>Emergency breakdown</suggest>
+          </question>
+          <question header="Priority" type="enum" required="true">
+            <text>Set the service priority level:</text>
+            <suggest description="Equipment non-operational">Critical</suggest>
+            <suggest description="Reduced functionality">High</suggest>
+            <suggest description="Preventive/scheduled">Normal</suggest>
+            <suggest description="When convenient">Low</suggest>
+          </question>
+          <question header="Additional Notes" type="input" required="false">
+            <text>Any additional details or special requirements?</text>
+          </question>
+        </questions>
+        ```
+  required:
+    - questionnaire
+strict: false

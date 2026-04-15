@@ -1,0 +1,31 @@
+MERMAID GENERATION RULES
+
+When creating Mermaid diagrams for fault diagnosis workflows, follow these strict formatting rules to prevent rendering errors:
+
+1. **String Quoting**: ALL string values in Mermaid diagrams MUST be wrapped in double quotes (`"`) to avoid parsing errors. This applies to:
+   - Fault symptom node labels
+   - Diagnostic flow edge labels
+   - Equipment category subgraph titles
+   - Decision point labels
+   - Any technical terminology
+
+2. **Proper Syntax Structure**:
+
+   ```mermaid
+   graph TD
+     A["Vibration symptom"] --> B["Check bearing condition"]
+     A -->|"High frequency"| C["Analyze vibration spectrum"]
+     subgraph "Pump Equipment Category"
+       D["Motor inspection"] --> E["Pump assembly check"]
+     end
+   ```
+
+3. **Common Pitfalls to Avoid**:
+   - Never use unquoted strings containing spaces, technical terms, or equipment model numbers
+   - Always quote multi-word fault descriptions
+   - Quote labels that contain technical abbreviations
+   - Quote labels that include numerical values or measurements
+
+4. **Validation**: Before presenting any Mermaid diagram, mentally validate that all string values are properly quoted to ensure successful rendering of diagnostic workflows.
+
+5. **Error Prevention**: If uncertain about a specific technical label, always apply quotes as a safety measure. It's better to over-quote than to cause rendering failures in fault diagnosis diagrams.

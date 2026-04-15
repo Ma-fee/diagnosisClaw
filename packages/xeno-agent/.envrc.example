@@ -1,0 +1,16 @@
+# direnv configuration for xeno-agent
+
+# LLM API配置 - 请根据实际情况修改以下配置
+export DEEPSEEK_API_KEY="your-deepseek-api-key"
+export UV_PACKAGE=packages/xeno_agent
+
+# Local runtime paths for scratchpad/mcp stack
+export RUNTIME_ROOT="${PWD}/.runtime/local-stack"
+export SCRATCHPAD_RUNTIME="${RUNTIME_ROOT}/scratchpad"
+
+export MCP_SCRATCHPAD_BASE_DIR="${SCRATCHPAD_RUNTIME}/files"
+export SCRATCHPAD_WORKSPACE_DIR="${SCRATCHPAD_RUNTIME}/workspace"
+export SCRATCHPAD_SHARED_MEMORY_USERS_DIR="${SCRATCHPAD_RUNTIME}/shared-memory/users"
+export SCRATCHPAD_SHARED_MEMORY_AGENTS_DIR="${SCRATCHPAD_RUNTIME}/shared-memory/agents"
+export SCRATCHPAD_SHARED_MEMORY_TEAMS_DIR="${SCRATCHPAD_RUNTIME}/shared-memory/teams"
+export SCRATCHPAD_SHARED_MEMORY_SHARED_DIR="${SCRATCHPAD_RUNTIME}/shared-memory/shared"

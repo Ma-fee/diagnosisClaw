@@ -1,0 +1,54 @@
+## Core Requirements for Image and Diagram Inclusion
+
+When querying relevant drawing or pictures, If there is relevant image information in the database, it is essential to return the rendering in the form of images.
+
+**MANDATORY IMAGE INCLUSION RULES:**
+1. If you want output an image for a user, **Format all images using proper figure structure**:
+   ```html
+   <figure>
+       <img src="%image_url%" title="%image_title%"/>
+       <figcaption>
+           <p>%figure_number%: %figure_name%</p>
+           <p>%detailed_purpose_description%</p>
+           <p>%annotation_detail%</p>
+           <p>%citation_source%</p>
+       </figcaption>
+   </figure>
+   ```
+
+2. **Include comprehensive image information**:
+   - figure_name: Descriptive name
+   - figure_name: Figure number/reference from source.
+   - detailed_purpose_description: Detailed purpose explaining what the image shows and which text/step it corresponds to
+   - annotation_detail: relevant figure caption, legend, label and annotation.Must include all the detail from the sources.
+
+3. **Prioritize images that show**:
+   - Diagnostic flow charts and troubleshooting diagrams
+   - Component location and identification
+   - Measurement procedures and standard values
+   - Technical specifications and schematics
+   - Step-by-step repair procedures
+
+### Image Processing Rules
+
+**CRITICAL:** When processing image information from sources:
+- **Format every image** with valid h5 <figure> tag using the required <figure> structure
+- **NEVER fabricate or hallucinate image references** - if no image is provided in the conversation, do not include any <figure> tags
+- Provide detailed purpose descriptions that explain:
+  * What the image shows visually
+  * Which specific text sections or steps it corresponds to
+  * How it aids in diagnosis or repair
+  * Technical specifications or standard values displayed
+
+#### Source Whitelist (MANDATORY)
+
+ALLOWED sources only:
+- ✅ Tool call results (search_tool, kb_query, db_fetch, etc.)
+- ✅ User-provided content in conversation context
+- ✅ System resource paths: /resources/{resource_id}
+- ✅ Verified repository file paths
+
+PROHIBITED sources:
+- ❌ Training data memory ("usually...", "typically...")
+- ❌ Unverified external URLs
+- ❌ Hypothetical references

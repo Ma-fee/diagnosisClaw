@@ -1,0 +1,45 @@
+[project]
+name = "xeno-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "yuchen.liu", email = "yuchen.liu@irootech.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "python-dotenv>=1.0.0",
+    "mcp>=1.0.0",
+    "httpx>=0.25.0",
+    "pydantic-ai",
+    "agentpool[coding,default,zed]>=2.8",
+    "pyyaml>=6.0.3",
+    "alembic>=1.18.1",
+    "clawd-code-sdk>=0.1.22",
+    "typer>=0.12.0",
+    "anyio>=4.0.0",
+    "defusedxml>=0.7.1",
+    "pydantic-xml>=2.0.0",
+    "arize-phoenix>=13.21.0",
+]
+
+[project.scripts]
+xeno-agent = "xeno_agent.main:main"
+
+[build-system]
+requires = ["uv_build>=0.9.22,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+agentpool = { path = "../agentpool", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[tool.pytest]
+markers = [
+    "unit: marks tests as unit tests",
+]

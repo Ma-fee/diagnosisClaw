@@ -141,6 +141,7 @@ celerybeat.pid
 
 # Environments
 .env
+.envrc
 .venv
 env/
 venv/
@@ -180,9 +181,9 @@ cython_debug/
 #.idea/
 
 # Visual Studio Code
-#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore
 #  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
-#  and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#  and can be added to the global gitignore or merged into this file. However, if you prefer,
 #  you could uncomment the following to ignore the enitre vscode folder
 # .vscode/
 
@@ -361,10 +362,27 @@ fabric.properties
 **/build
 
 # Documentation directories (anywhere in the tree)
-**/docs/
+# **/docs/
 
 # Plan directories (anywhere in the tree)
 **/plans/
 
 # Data directories (anywhere in the tree)
 **/data/
+
+
+# Local/private working notes
+.swp
+opencode bash.txt
+pane_output.txt
+resume_project_update.md
+resume_project_update_ai_algorithm.md
+packages/xeno-agent/.runtime/
+
+# Local private markdown/spec/plan notes
+0006-agentpool-harness*.md
+0007-agentpool-harness*.md
+docs/superpowers/specs/
+packages/xeno-agent/docs/interview/
+packages/bug-records/
+packages/xeno-agent/equipment_parameters.md

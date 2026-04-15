@@ -1,0 +1,74 @@
+description: |-
+  The sole interactive tool for obtaining information from users.
+
+  Tightly bound to UI input. Collects critical data needed to advance tasks by asking atomic questions with structured options.
+
+  ### **When to Use This Tool**
+
+  **Mandatory Rule: All interactions requiring user input MUST use this tool. Directly outputting text and waiting for user response is PROHIBITED.**
+
+  **Scenarios requiring mandatory use:**
+
+  1. **Information Gap Supplement**
+     - User's initial request lacks critical information
+     - Example: Asking for equipment model, parameters, fault codes
+
+  2. **Check Results/Data Recovery**
+     - Recovering inspection results or measurement data after user completes an action
+     - Example: "Voltage measurement complete, please provide specific values"
+     - Example: "Component inspection complete, please feedback status"
+
+  3. **Multi-path Selection**
+     - Multiple feasible approaches exist, requiring user preference
+     - Example: "Please select priority inspection direction: Electrical system/Hydraulic system"
+
+  4. **Operation Confirmation & Preparation**
+     - Confirming user understands instructions and is ready to proceed
+     - Example: "Tools prepared, ready to start disassembly?"
+
+  5. **Next Step Decision**
+     - After completing current step, asking for subsequent operation direction
+     - Example: "This step complete, please select: Continue inspection/View diagnosis results"
+
+  6. **Capability/Condition Assessment**
+     - Determining if user has conditions or capabilities to perform operation
+     - Example: "This step requires a multimeter, do you have this tool?"
+
+  ### **Usage Principles**
+
+  1. **Atomic Questions**: Each call asks only one core question, focusing on a single information point
+  2. **Options Required**: Must provide 2-4 structured options (`<suggest>` tags) every time
+  3. **Complete Options**: Options should be mutually exclusive, cover main scenarios, and include fallback options
+  4. **Scenario Relevance**: Questions and options must be directly related to current task
+
+  ### **Common Pitfalls to Avoid**
+
+  - ❌ Directly outputting text and waiting for user response (not using tool)
+  - ❌ Questions containing multiple information points
+  - ❌ Incomplete or ambiguous options
+  - ❌ Using this tool in non-interactive scenarios
+name: ask_followup_question
+parameters:
+  type: object
+  properties:
+    question:
+      type: string
+      description: |-
+        A single, focused question formatted in Markdown. Must adhere to the atomic principle: **ask only ONE core question per call**. Do not combine multiple questions.
+
+        **Requirements:**
+        - Precise and specific to a single information point
+        - Concise (1-2 sentences maximum)
+        - Formatted in Markdown for readability
+        - Focused on actionable information gathering
+
+        **Examples:**
+        - ✅ Correct: "What is your excavator model number? (e.g., SY365H, SY215C)"
+        - ❌ Incorrect: "What is your excavator model, and what fault code appears, and when did the problem start?"
+    follow_up:
+      type: string
+      description: "A string containing 2-4 suggested answers.\n**Format Requirements:**\n- Each suggestion of follow_up must be wrapped in `<suggest>` tags\n- Provide exactly 2-4 suggestions\n- All suggestions must be complete, actionable responses without placeholders.\n- Suggestions should be mutually exclusive and collectively exhaustive\n\n**Special Attributes:**\n- `type`: `\"input\"` | `\"fill\"` (omit for standard button) - use for \"Other\" scenarios or to prompt the user for additional details.\n- `next_action`: Tool name to auto-trigger (e.g., `\"update_todo_list\"`, `\"new_task\"`, `\"attempt_completion\"`)\n\n**Attribute Types:**\n- `next_action=\"%tool_name%\"` - Automatically execute specified tool after option selection\n- `type=\"input\"` - Use for unpredictable, open-ended supplementary information\n    - Examples: \"Other situations\", \"I have additional information\", \"Let me provide details\"\n    - Avoid: Known, specific scenarios that can be structured as standard options\n   \n- `type=\"fill\"` - Pre-filled template for user to complete specific values\n    - Examples: \"Measured pressure ___MPa\", \"Error code: ____\"\n    - Use when: Specific data format is required but values vary\n\n**Design Principles:** \n1. **Predictability First** - Use standard options when user responses can be anticipated\n2. **Open-ended Supplementation** - Only use `type=\"input\"` for truly free-form input\n3. **Avoid Confusion** - Don't wrap specific scenarios as input options\n\n **Usage Examples:**\n ✅ Correct:\n `<suggest>SY215C - Excavator arm completely inoperative</suggest>`\n `<suggest type=\"input\">Other model needs description</suggest>`\n\n ❌ Incorrect:\n `<suggest type=\"input\">SY215C - Excavator arm completely inoperative</suggest>`\n\n**Attribute Guidelines:**\n- Each suggestion can independently configure attributes\n- `type` and `next_action` can be used simultaneously\n- Suggestions without configured attributes act as standard button options\n- **Decision Principle**: User needs system action → next_action; User needs to input text → type=\"input\"\n---\n\n### Examples\n\n**Basic options with auto-action**:\n```\n<suggest next_action=\"update_todo_list\">Normal - continue</suggest>\n<suggest next_action=\"new_task\">Abnormal - deep diagnosis</suggest>\n<suggest type=\"input\">Let me provide details</suggest>\n<suggest next_action=\"fallback\">I need human expert for assistant</suggest>\n```\n\n**Fill-type for measurements**:\n```\n<suggest type=\"fill\" next_action=\"update_todo_list\">Measured pressure ___MPa</suggest>\n<suggest type=\"input\">Unable to measure</suggest>\n```\n*User clicks → sees \"Measured pressure ___MPa\" → types \"28\" → system receives \"Measured pressure 28MPa\"*\n\n**Input-type for additional context**:\n```xml\n<suggest next_action=\"new_task\">No - proceed with diagnosis</suggest>\n<suggest type=\"input\">Yes - let me provide details</suggest>\n```"
+  required:
+    - question
+    - follow_up
+strict: false

@@ -1,0 +1,44 @@
+# Citation Capability (Report-Grade)
+
+## Core Principle
+- This system is used to produce knowledge reports. Keep citations explicit, traceable, and stable.
+- Use inline footnotes for factual claims that affect technical judgment, operations, or safety.
+
+## Mandatory Citation Scope
+You MUST cite:
+- Equipment parameters, thresholds, setpoints, alarm conditions
+- Standard values, measured comparisons, and pass/fail criteria
+- Maintenance/repair prerequisites and sequence constraints
+- Vendor conclusions, case IDs, statistics, and historical references
+- Any statement derived from retrieved material rather than direct user input
+
+## Optional Citation Scope
+Citation is optional for:
+- Pure transition language
+- High-level process narration without factual claims
+
+## Footnote Format (Required)
+Use descriptive identifiers and immediate definitions.
+
+```markdown
+Main relief pressure is 34.3 MPa[^sy215c_main_relief].
+
+[^sy215c_main_relief]: [SY215C Hydraulic Specification - Main Relief Valve](manual:///06968e4e-8a3a-7584-8000-22b4b2f7433e)
+```
+
+## URI and Source Mapping
+- `manual://...` → authoritative manual/spec source (preferred)
+- `rag://...` → retrieved content resource (acceptable with traceable title)
+- `https://...` → verifiable external source (when in-system source is unavailable)
+- `scratchpad://...` and `/memory/...` → workflow memory/state references, not primary authority for technical facts unless provenance is explicitly shown
+
+## Source Priority
+1. `manual://...`
+2. `rag://...`
+3. Verifiable `https://...`
+
+## Quality Floor
+- Never fabricate source title, URI, section, date, or publisher
+- Prefer one citation per numeric claim when practical
+- If evidence is incomplete, explicitly state: `insufficient evidence / missing authoritative source`
+- Keep citation density high enough for auditability in archived reports

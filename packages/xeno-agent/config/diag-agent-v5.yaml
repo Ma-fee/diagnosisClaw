@@ -1,0 +1,173 @@
+default_agent: technical_assistant
+
+storage:
+  title_generation_model: "deepseek:deepseek-chat"
+
+observability:
+  enabled: true
+  provider:
+    type: custom
+    endpoint: "http://127.0.0.1:6006"
+    service_name: "agentpool"
+    protocol: "http/protobuf"
+    console: true
+
+mcp_servers:
+  - type: sse
+    name: scratchpad_fs
+    url: "http://127.0.0.1:8890/mcp"
+    timeout: 120
+
+agents:
+  technical_assistant:
+    type: native
+    model:
+      type: string
+      identifier: "deepseek:deepseek-reasoner"
+    description: |
+      General-purpose equipment technical assistant with intelligent routing capabilities.
+      Handles routine equipment inquiries, manual retrieval, parameter queries, and
+      basic technical Q&A. Automatically detects fault diagnosis scenarios and escalates
+      to systematic troubleshooting workflow when needed. Serves as the primary entry
+      point for all equipment-related interactions.
+    system_prompt:
+      - type: file
+        content: ""
+        path: "./prompts/roles/technical_assistant.j2"
+        variables:
+          LANG: "简体中文(zh-CN)"
+    tools:
+      - type: custom
+        import_path: xeno_agent.agentpool.resource_providers:QuestionForUserProvider
+        kw_args:
+          schemas:
+            question_for_user: ./tools/question_for_user.yaml
+      - type: skills
+      - type: custom
+        import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
+        kw_args:
+          enabled_tools: ["new_task"]
+          schemas:
+            new_task: ./tools/new_task_with_skills.yaml
+      - type: custom
+        import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
+        kw_args:
+          schemas:
+            update_todo_list: "./tools/update_todo_list.yaml"
+
+  fault_expert:
+    type: native
+    model:
+      type: string
+      identifier: "deepseek:deepseek-reasoner"
+    description: |
+      Lead diagnostician responsible for fault analysis, questionnaire-based
+      information collection, diagnostic planning, and structured troubleshooting.
+    system_prompt:
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/citation.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/image.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/layout.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/markdown.j2
+      - type: file
+        content: ""
+        path: ./prompts/capabilities/mermaid.j2
+      - type: file
+        content: ""
+        path: "./prompts/roles/fault_expert.j2"
+        variables:
+          LANG: "简体中文(zh-CN)"
+    tools:
+      - type: custom
+        import_path: xeno_agent.agentpool.resource_providers:QuestionForUserProvider
+        kw_args:
+          schemas:
+            question_for_user: ./tools/question_for_user.yaml
+      - type: custom
+        import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
+        kw_args:
+          enabled_tools: ["new_task", "attempt_completion"]
+          allowed_modes: ["material_assistant", "equipment_expert"]
+          fresh_session: true
+          schemas:
+            new_task: ./tools/new_task_with_skills.yaml
+            attempt_completion: ./tools/attempt_completion.yaml
+      - type: custom
+        import_path: xeno_agent.agentpool.resource_providers.XenoPlanProvider
+        kw_args:
+          schemas:
+            update_todo_list: "./tools/update_todo_list.yaml"
+
+  equipment_expert:
+    type: native
+    model:
+      type: string
+      identifier: "deepseek:deepseek-reasoner"
+    description: |
+      Equipment expert for analyzing equipment images,
+      panels, diagrams, and returning structured operational guidance.
+    system_prompt:
+      - type: file
+        content: ""
+        path: "./prompts/roles/equipment_expert.j2"
+        variables:
+          LANG: "简体中文(zh-CN)"
+    tools:
+      - type: custom
+        import_path: "xeno_agent.agentpool.resource_providers.XenoDelegationProvider"
+        kw_args:
+          enabled_tools: ["attempt_completion"]
+          schemas:
+            attempt_completion: ./tools/attempt_completion.yaml
+      - type: custom
+        import_path: "xeno_agent.agentpool.resource_providers.XenoPlanProvider"
+        kw_args:
+          schemas:
+            update_todo_list: "./tools/update_todo_list.yaml"
+
+  # material_assistant:
+  #   type: native
+  #   model:
+  #     type: string
+  #     identifier: "deepseek:deepseek-reasoner"
+  #   description: |
+  #     Investigates specific topics deeply and generates structured reports. Output format
+  #     and organization are guided by domain-specific skills. Use when research-backed
+  #     documentation is needed; avoid for pure report generation without investigation.
+  #   system_prompt:
+  #     - type: file
+  #       content: ""
+  #       path: ./prompts/capabilities/citation.j2
+  #     - type: file
+  #       content: ""
+  #       path: ./prompts/capabilities/layout.j2
+  #     - type: file
+  #       content: ""
+  #       path: ./prompts/capabilities/markdown.j2
+  #     - type: file
+  #       content: ""
+  #       path: ./prompts/capabilities/search.j2
+  #     - type: file
+  #       content: ""
+  #       path: "./prompts/roles/material_assistant_ng.j2"
+  #       variables:
+  #         LANG: "简体中文(zh-CN)"
+  #   mcp_servers:
+  #     - type: sse
+  #       name: rag_mcp
+  #       url: "http://127.0.0.1:8787/sse"
+  #       enabled_tools: ["rag_search", "rag_read_resource", "rag_index_status", "rag_rebuild_index", "rag_list_filenames", "rag_list_sections", "rag_section_retrieval"]
+  #   tools:
+  #     - type: custom
+  #       import_path: xeno_agent.agentpool.resource_providers.XenoDelegationProvider
+  #       kw_args:
+  #         enabled_tools: ["attempt_completion"]
+  #         schemas:
+  #           attempt_completion: ./tools/attempt_completion.yaml
